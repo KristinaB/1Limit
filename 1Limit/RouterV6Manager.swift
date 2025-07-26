@@ -195,6 +195,7 @@ class RouterV6Manager: ObservableObject {
             await addLog("❌ Signature generation failed: \(error)")
             return
         }
+        print("🔍 SIGNATURE DEBUG: Generated signature - \(signature)")
         await addLog("🔐 EIP-712 signature generated (65 bytes)")
         await addLog("🔧 Converting to EIP-2098 compact format...")
         
@@ -546,11 +547,18 @@ class RouterV6Manager: ObservableObject {
         )
         
         // Sign using the exact same implementation that works
+        print("🔍 DEBUG: Using EIP712SignerWeb3 for signing")
+        print("   Order salt: \(web3Order.salt)")
+        print("   Order maker: \(web3Order.maker)")
+        print("   Order makerTraits: \(web3Order.makerTraits)")
+        
         let signature = try EIP712SignerWeb3.signRouterV6Order(
             order: web3Order,
             domain: web3Domain,
             privateKey: wallet.privateKey
         )
+        
+        print("🔍 DEBUG: Signature generated, length: \(signature.count)")
         
         return "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
     }

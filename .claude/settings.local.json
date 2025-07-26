@@ -10,7 +10,8 @@
       "Bash(cat:*)",
       "Bash(find:*)",
       "Bash(python:*)",
-      "Bash(swift run:*)"
+      "Bash(swift run:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
