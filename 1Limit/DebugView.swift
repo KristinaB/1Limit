@@ -8,9 +8,7 @@
 import SwiftUI
 
 struct DebugView: View {
-    @State private var isExecuting = false
-    @State private var executionResult = ""
-    @State private var showingResult = false
+    @StateObject private var routerManager = RouterV6Manager()
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -51,7 +49,7 @@ struct DebugView: View {
                 // Execute button
                 Button(action: executeTestTransaction) {
                     HStack {
-                        if isExecuting {
+                        if routerManager.isExecuting {
                             ProgressView()
                                 .scaleEffect(0.8)
                                 .foregroundColor(.white)
@@ -60,20 +58,20 @@ struct DebugView: View {
                                 .font(.title2)
                         }
                         
-                        Text(isExecuting ? "Executing..." : "Execute Test Transaction")
+                        Text(routerManager.isExecuting ? "Executing..." : "Execute Test Transaction")
                             .font(.headline)
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(isExecuting ? Color.gray : Color.purple)
+                    .background(routerManager.isExecuting ? Color.gray : Color.purple)
                     .cornerRadius(12)
                 }
-                .disabled(isExecuting)
+                .disabled(routerManager.isExecuting)
                 
-                if !executionResult.isEmpty {
+                if !routerManager.executionLog.isEmpty {
                     ScrollView {
-                        Text(executionResult)
+                        Text(routerManager.executionLog)
                             .font(.system(.caption, design: .monospaced))
                             .padding()
                             .background(Color(.systemGray6))
@@ -98,63 +96,9 @@ struct DebugView: View {
     }
     
     private func executeTestTransaction() {
-        isExecuting = true
-        executionResult = ""
-        
         Task {
-            await performDebugExecution()
+            await routerManager.executeTestTransaction()
         }
-    }
-    
-    @MainActor
-    private func performDebugExecution() async {
-        var result = "🚀 1inch Router V6 Debug Execution\n"
-        result += "====================================\n\n"
-        
-        // Simulate the execution steps from the ported Go code
-        result += "📋 Step 1: Generating order parameters...\n"
-        await Task.sleep(1_000_000_000) // 1 second
-        
-        result += "🧂 Generated salt: 0x1234567890abcdef\n"
-        result += "📦 Generated nonce: 0x9876543210\n"
-        result += "🎛️ Calculated MakerTraits: 0xabcdef1234567890\n\n"
-        
-        result += "📋 Step 2: Creating EIP-712 domain...\n"
-        await Task.sleep(1_000_000_000)
-        
-        result += "🌐 Domain name: 1inch Aggregation Router\n"
-        result += "📊 Version: 6\n"
-        result += "⛓️ Chain ID: 137 (Polygon)\n"
-        result += "📄 Contract: 0x111111125421cA6dc452d289314280a0f8842A65\n\n"
-        
-        result += "📋 Step 3: Signing Router V6 order...\n"
-        await Task.sleep(1_000_000_000)
-        
-        result += "🔐 EIP-712 signature generated\n"
-        result += "🔧 Converting to EIP-2098 compact format\n"
-        result += "✅ Signature ready for submission\n\n"
-        
-        result += "📋 Step 4: Preparing transaction...\n"
-        await Task.sleep(1_000_000_000)
-        
-        result += "📊 Method: fillOrder(order, r, vs, amount, takerTraits)\n"
-        result += "⛽ Gas limit: 300000\n"
-        result += "💰 Gas price: Auto (20% boost)\n\n"
-        
-        result += "📋 Step 5: Submitting to network...\n"
-        await Task.sleep(2_000_000_000)
-        
-        // Simulate success
-        let mockTxHash = "0x" + String((0..<64).map { _ in "0123456789abcdef".randomElement()! })
-        result += "✅ Transaction submitted successfully!\n"
-        result += "🔗 TX Hash: \(mockTxHash)\n"
-        result += "⏳ Status: Pending confirmation...\n\n"
-        
-        result += "🎉 Debug execution completed!\n"
-        result += "💡 This was a simulation using the ported 1inch Router V6 SDK 🤖❤️🎉\n"
-        
-        executionResult = result
-        isExecuting = false
     }
 }
 
