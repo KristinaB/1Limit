@@ -45,6 +45,16 @@ struct ChartView: View {
         return Array(data[visibleRange.clamped(to: 0..<data.count)])
     }
     
+    private var latestDataRange: Range<Int> {
+        let data = chartService.candlestickData
+        let count = data.count
+        if count <= 30 {
+            return 0..<count
+        } else {
+            return (count - 30)..<count
+        }
+    }
+    
     var minPrice: Double {
         visibleData.map { $0.low }.min() ?? 0
     }
@@ -116,6 +126,10 @@ struct ChartView: View {
                                             toToken: tokenPair.to,
                                             timeframe: timeframe
                                         )
+                                        // Auto-scroll to latest data after timeframe change
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                            visibleRange = latestDataRange
+                                        }
                                     }
                                 }) {
                                     Text(timeframe.displayName)
@@ -299,6 +313,16 @@ struct ChartView: View {
                     toToken: tokenPair.to,
                     timeframe: selectedTimeframe
                 )
+                // Auto-scroll to latest data
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    visibleRange = latestDataRange
+                }
+            }
+        }
+        .onChange(of: chartService.candlestickData) { _ in
+            // Auto-scroll to latest data when new data is loaded
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                visibleRange = latestDataRange
             }
         }
     }
