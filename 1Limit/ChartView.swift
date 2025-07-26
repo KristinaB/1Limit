@@ -8,23 +8,6 @@
 import SwiftUI
 import Charts
 
-struct OHLCData: Identifiable {
-    let id = UUID()
-    let date: Date
-    let open: Double
-    let high: Double
-    let low: Double
-    let close: Double
-    
-    var isGreen: Bool {
-        close >= open
-    }
-    
-    var bodyRange: ClosedRange<Double> {
-        min(open, close)...max(open, close)
-    }
-}
-
 extension OHLCData {
     static func generateSampleData(for pair: String) -> [OHLCData] {
         let formatter = DateFormatter()

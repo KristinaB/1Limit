@@ -184,8 +184,16 @@ class PriceService: ObservableObject {
                     continue
                 }
                 
-                // Convert from wei to USD (divide by 10^18)
-                let usdPrice = priceWei / pow(10, 18)
+                // Convert price based on token decimals
+                // USDC has 6 decimals, WMATIC has 18 decimals
+                let usdPrice: Double
+                if symbol == "USDC" {
+                    // USDC: divide by 10^6 (6 decimals)
+                    usdPrice = priceWei / pow(10, 6)
+                } else {
+                    // WMATIC: divide by 10^18 (18 decimals)  
+                    usdPrice = priceWei / pow(10, 18)
+                }
                 
                 tokenPrices[symbol] = TokenPrice(
                     symbol: symbol,
