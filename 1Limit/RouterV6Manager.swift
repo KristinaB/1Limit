@@ -50,19 +50,23 @@ struct SimpleBigUInt {
         var result = Data(repeating: 0, count: 32)
         
         if byteShift < 32 {
-            // Copy shifted bytes
+            // Copy shifted bytes with bounds checking
             let sourceEnd = min(data.count, 32 - byteShift)
             for i in 0..<sourceEnd {
-                result[i + byteShift] = data[i]
+                if i < data.count && (i + byteShift) < 32 {
+                    result[i + byteShift] = data[i]
+                }
             }
             
-            // Handle bit shifting within bytes
+            // Handle bit shifting within bytes with bounds checking
             if bitShift > 0 {
                 var carry: UInt8 = 0
                 for i in stride(from: 31, through: 0, by: -1) {
-                    let newCarry = result[i] >> (8 - bitShift)
-                    result[i] = (result[i] << bitShift) | carry
-                    carry = newCarry
+                    if i < result.count {
+                        let newCarry = result[i] >> (8 - bitShift)
+                        result[i] = (result[i] << bitShift) | carry
+                        carry = newCarry
+                    }
                 }
             }
         }
@@ -74,7 +78,9 @@ struct SimpleBigUInt {
     func or(_ other: SimpleBigUInt) -> SimpleBigUInt {
         var result = Data(count: 32)
         for i in 0..<32 {
-            result[i] = data[i] | other.data[i]
+            let leftByte = i < data.count ? data[i] : 0
+            let rightByte = i < other.data.count ? other.data[i] : 0
+            result[i] = leftByte | rightByte
         }
         return SimpleBigUInt(result)
     }
