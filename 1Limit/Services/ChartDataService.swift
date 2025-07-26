@@ -220,8 +220,9 @@ class ChartDataService: ObservableObject {
             throw ChartDataError.apiError(httpResponse.statusCode)
         }
         
-        // Parse the JSON response
-        guard let jsonArray = try JSONSerialization.jsonObject(with: data) as? [[Any]] else {
+        // Parse the JSON response - API returns {"data": [...]}
+        guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let jsonArray = jsonObject["data"] as? [[String: Any]] else {
             throw ChartDataError.invalidJSON
         }
         
@@ -229,15 +230,16 @@ class ChartDataService: ObservableObject {
         var candlesticks: [CandlestickData] = []
         
         for item in jsonArray {
-            guard item.count >= 6,
-                  let timestampValue = item[0] as? Double,
-                  let openValue = item[1] as? Double,
-                  let highValue = item[2] as? Double,
-                  let lowValue = item[3] as? Double,
-                  let closeValue = item[4] as? Double,
-                  let volumeValue = item[5] as? Double else {
+            guard let timestampValue = item["time"] as? Double,
+                  let openValue = item["open"] as? Double,
+                  let highValue = item["high"] as? Double,
+                  let lowValue = item["low"] as? Double,
+                  let closeValue = item["close"] as? Double else {
                 continue
             }
+            
+            // Volume might not be present in this API format, default to 0
+            let volumeValue = item["volume"] as? Double ?? 0
             
             let candlestick = CandlestickData(
                 timestamp: Date(timeIntervalSince1970: timestampValue),
