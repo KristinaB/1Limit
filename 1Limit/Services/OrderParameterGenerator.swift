@@ -39,13 +39,20 @@ class OrderParameterGenerator: OrderParameterGeneratorProtocol {
     
     /// Generate 40-bit nonce for MakerTraits (matching Go implementation)
     func generateRandomNonce() -> UInt64 {
-        guard let randomData = secureRandom.generateRandomData(length: 5) else {
+        guard let randomData = secureRandom.generateRandomData(length: 8) else {
             // Fallback to standard random if secure random fails
             return UInt64.random(in: 1...UInt64.max) & 0xFFFFFFFFFF
         }
         
-        // Convert to UInt64 and mask to 40 bits
-        let nonce = randomData.withUnsafeBytes { $0.load(as: UInt64.self) }
+        // Safely convert to UInt64 and mask to 40 bits
+        let nonce = randomData.withUnsafeBytes { bytes in
+            // Ensure we have enough bytes for UInt64
+            guard bytes.count >= 8 else {
+                // Fallback if somehow we don't have enough bytes
+                return UInt64.random(in: 1...UInt64.max)
+            }
+            return bytes.load(as: UInt64.self)
+        }
         return nonce & 0xFFFFFFFFFF // 40-bit mask
     }
 }
