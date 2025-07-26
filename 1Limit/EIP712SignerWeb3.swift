@@ -97,9 +97,9 @@ class EIP712SignerWeb3 {
             throw EIP712Error.invalidTypedData
         }
         
-        // Hash the struct data using existing functions
-        let structHash = try EIP712Signer.hashStruct(primaryType: "Order", data: message, types: types)
-        let domainHash = try EIP712Signer.hashStruct(primaryType: "EIP712Domain", data: domainData, types: types)
+        // Hash the struct data using our own implementation
+        let structHash = try hashStruct(primaryType: "Order", data: message, types: types)
+        let domainHash = try hashStruct(primaryType: "EIP712Domain", data: domainData, types: types)
         
         // Create final hash with EIP-191 prefix
         var finalHashData = Data()
