@@ -13,108 +13,97 @@ struct DebugView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 8) {
-                    Image(systemName: "hammer.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.purple)
-                    
-                    Text("Debug Console")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    
-                    Text("Test 1inch Router V6 Integration")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
+            ZStack {
+                Color.appBackground
+                    .ignoresSafeArea()
                 
-                // Test parameters info
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Test Parameters")
-                        .font(.headline)
-                    
-                    DebugInfoRow(title: "Network", value: "Polygon Mainnet")
-                    DebugInfoRow(title: "Router", value: "V6 (0x1111...)")
-                    DebugInfoRow(title: "From", value: "0.01 WMATIC")
-                    DebugInfoRow(title: "To", value: "0.01 USDC")
-                    DebugInfoRow(title: "Type", value: "Limit Order")
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
-                
-                Spacer()
-                
-                // Execute button
-                Button(action: executeTestTransaction) {
-                    HStack {
-                        if routerManager.isExecuting {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .foregroundColor(.white)
-                        } else {
-                            Image(systemName: "play.circle.fill")
-                                .font(.title2)
-                        }
-                        
-                        Text(routerManager.isExecuting ? "Executing..." : "Execute Test Transaction")
-                            .font(.headline)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(routerManager.isExecuting ? Color.gray : Color.purple)
-                    .cornerRadius(12)
-                }
-                .disabled(routerManager.isExecuting)
-                
-                if !routerManager.executionLog.isEmpty {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        HStack {
-                            Text("Debug Log")
-                                .font(.headline)
-                            Spacer()
-                            Button(action: copyLogToClipboard) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "doc.on.doc")
-                                    Text("Copy")
-                                }
-                                .font(.caption)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(6)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        AppCard {
+                            VStack(spacing: 16) {
+                                Image(systemName: "hammer.fill")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.primaryGradientStart)
+                                
+                                Text("Debug Console")
+                                    .appTitle()
+                                
+                                Text("Test 1inch Router V6 Integration")
+                                    .secondaryText()
                             }
                         }
                         
-                        ScrollView {
-                            Text(routerManager.executionLog)
-                                .font(.system(.caption, design: .monospaced))
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
-                        }
-                        .frame(maxHeight: 200)
-                    }
-                }
+                        // Test parameters info
+                        InfoCard(
+                            title: "Test Parameters",
+                            items: [
+                                ("Network", "Polygon Mainnet", nil),
+                                ("Router", "V6 (0x1111...)", nil),
+                                ("From", "0.01 WMATIC", nil),
+                                ("To", "0.01 USDC", nil),
+                                ("Type", "Limit Order", nil)
+                            ]
+                        )
                 
-                Spacer()
-            }
-            .padding()
+                        // Execute button
+                        if routerManager.isExecuting {
+                            SecondaryButton("Executing...", icon: "hourglass") {
+                                // Disabled while executing
+                            }
+                            .disabled(true)
+                            .opacity(0.6)
+                        } else {
+                            PrimaryButton("Execute Test Transaction", icon: "play.circle.fill") {
+                                executeTestTransaction()
+                            }
+                        }
+                
+                        if !routerManager.executionLog.isEmpty {
+                            AppCard {
+                                VStack(spacing: 16) {
+                                    HStack {
+                                        Text("Debug Log")
+                                            .cardTitle()
+                                        Spacer()
+                                        SmallButton("Copy", style: .secondary) {
+                                            copyLogToClipboard()
+                                        }
+                                    }
+                                    
+                                    ScrollView {
+                                        Text(routerManager.executionLog)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundColor(.primaryText)
+                                            .textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .padding(12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.inputBackground)
+                                            )
+                                    }
+                                    .frame(maxHeight: 200)
+                                }
+                            }
+                        }
+                        
+                        Spacer(minLength: 40)
+                    }
+                    .padding()
+                }
             .navigationTitle("Debug")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    SmallButton("Done", style: .secondary) {
                         dismiss()
                     }
                 }
             }
         }
+        .preferredColorScheme(.dark)
     }
     
     private func executeTestTransaction() {
@@ -128,22 +117,7 @@ struct DebugView: View {
     }
 }
 
-struct DebugInfoRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
-        }
-    }
-}
+// DebugInfoRow replaced by InfoCard in design system
 
 #Preview {
     DebugView()
