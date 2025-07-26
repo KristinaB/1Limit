@@ -368,6 +368,7 @@ struct TradeView: View {
 
 struct OrderConfirmationView: View {
   @Environment(\.dismiss) private var dismiss
+  @StateObject private var orderService = OrderPlacementService()
   let fromAmount: String
   let fromToken: String
   let toToken: String
@@ -441,9 +442,18 @@ struct OrderConfirmationView: View {
 
             // Confirmation buttons
             VStack(spacing: 12) {
-              PrimaryButton("Place Order") {
-                // TODO: Implement order submission
-                dismiss()
+              if orderService.isExecuting {
+                SecondaryButton("Placing Order...", icon: "hourglass") {
+                  // Disabled while executing
+                }
+                .disabled(true)
+                .opacity(0.6)
+              } else {
+                PrimaryButton("Place Order") {
+                  Task {
+                    await placeOrder()
+                  }
+                }
               }
 
               SecondaryButton("Cancel") {
@@ -469,6 +479,66 @@ struct OrderConfirmationView: View {
     }
     .preferredColorScheme(.dark)
   }
+  
+  private func placeOrder() async {
+    do {
+      let result = try await orderService.placeOrder(
+        fromAmount: fromAmount,
+        fromToken: fromToken,
+        toToken: toToken,
+        limitPrice: limitPrice
+      )
+      
+      if result.success {
+        // Order placed successfully - dismiss and redirect to transactions
+        dismiss()
+        // TODO: Navigate to transactions tab with pending filter
+      }
+    } catch {
+      // TODO: Show error to user
+      print("Order placement failed: \(error)")
+    }
+  }
+}
+
+// MARK: - Order Placement Service
+
+@MainActor
+class OrderPlacementService: ObservableObject {
+  @Published var isExecuting = false
+  @Published var lastResult: OrderPlacementResult?
+  
+  private let routerManager = RouterV6ManagerFactory.createProductionManager()
+  
+  func placeOrder(
+    fromAmount: String,
+    fromToken: String, 
+    toToken: String,
+    limitPrice: String
+  ) async throws -> OrderPlacementResult {
+    isExecuting = true
+    defer { isExecuting = false }
+    
+    // For now, use the existing executeTestTransaction
+    // TODO: Create dynamic version that uses the actual form values
+    await routerManager.executeTestTransaction()
+    
+    // Mock successful result for now
+    let result = OrderPlacementResult(
+      success: true,
+      transactionHash: "0x1234...abcd",
+      error: nil
+    )
+    
+    lastResult = result
+    return result
+  }
+}
+
+struct OrderPlacementResult {
+  let success: Bool
+  let transactionHash: String?
+  let error: Error?
 }
 
 // OrderDetailRow replaced by InfoRow in design system
