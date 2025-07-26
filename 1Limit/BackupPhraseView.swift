@@ -10,6 +10,8 @@ import SwiftUI
 struct BackupPhraseView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var proceedToSetup = false
+    var useStackNavigation: Bool = false
+    var onComplete: (() -> Void)?
     
     // Sample 12-word recovery phrase
     private let recoveryWords = [
@@ -20,8 +22,7 @@ struct BackupPhraseView: View {
     ]
     
     var body: some View {
-        NavigationView {
-            ZStack {
+        let content = ZStack {
                 Color.appBackground
                     .ignoresSafeArea()
                 
@@ -128,10 +129,27 @@ struct BackupPhraseView: View {
                     }
                 }
             }
-        }
-        .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: $proceedToSetup) {
-            SetupCompleteView()
+            .background(
+                NavigationLink(
+                    destination: SetupCompleteView(useStackNavigation: true, onComplete: onComplete),
+                    isActive: $proceedToSetup
+                ) {
+                    EmptyView()
+                }
+                .hidden()
+            )
+        
+        if useStackNavigation {
+            return AnyView(content
+                .preferredColorScheme(.dark))
+        } else {
+            return AnyView(NavigationView {
+                content
+            }
+            .preferredColorScheme(.dark)
+            .fullScreenCover(isPresented: $proceedToSetup) {
+                SetupCompleteView(onComplete: onComplete)
+            })
         }
     }
 }

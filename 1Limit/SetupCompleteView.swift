@@ -10,6 +10,8 @@ import SwiftUI
 struct SetupCompleteView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showLoadFunds = false
+    var useStackNavigation: Bool = false
+    var onComplete: (() -> Void)?
     
     var body: some View {
         ZStack {
@@ -73,7 +75,12 @@ struct SetupCompleteView: View {
                     }
                     
                     SecondaryButton("Start Trading") {
-                        dismiss()
+                        if useStackNavigation {
+                            onComplete?()
+                        } else {
+                            dismiss()
+                            onComplete?()
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -81,10 +88,24 @@ struct SetupCompleteView: View {
                 Spacer(minLength: 40)
             }
         }
-        .fullScreenCover(isPresented: $showLoadFunds) {
-            LoadFundsView()
-        }
+        .background(
+            NavigationLink(
+                destination: LoadFundsView(useStackNavigation: true, onComplete: onComplete),
+                isActive: $showLoadFunds
+            ) {
+                EmptyView()
+            }
+            .hidden()
+        )
         .preferredColorScheme(.dark)
+        .onAppear {
+            if useStackNavigation {
+                // Auto-dismiss after 2 seconds when in stack navigation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    onComplete?()
+                }
+            }
+        }
     }
 }
 

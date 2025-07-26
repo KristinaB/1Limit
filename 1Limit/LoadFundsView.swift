@@ -10,6 +10,8 @@ import SwiftUI
 struct LoadFundsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var addressCopied = false
+    var useStackNavigation: Bool = false
+    var onComplete: (() -> Void)?
     
     // Sample wallet address
     private let walletAddress = "0x742d35Cc6634C0532925a3b8D2eF8d89e8F2F3C4"
@@ -123,7 +125,12 @@ struct LoadFundsView: View {
                         
                         // Continue button
                         PrimaryButton("Continue to Trade") {
-                            dismiss()
+                            if useStackNavigation {
+                                onComplete?()
+                            } else {
+                                dismiss()
+                                onComplete?()
+                            }
                         }
                         
                         Spacer(minLength: 40)
@@ -137,7 +144,12 @@ struct LoadFundsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     SmallButton("Done", style: .secondary) {
-                        dismiss()
+                        if useStackNavigation {
+                            onComplete?()
+                        } else {
+                            dismiss()
+                            onComplete?()
+                        }
                     }
                 }
             }

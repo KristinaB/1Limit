@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HomeView: View {
+  @Binding var selectedTab: Int
   @State private var showingWalletCreation = false
   @State private var showingDebug = false
 
@@ -95,7 +96,7 @@ struct HomeView: View {
     .navigationBarTitleDisplayMode(.large)
     .toolbarBackground(Color.appBackground, for: .navigationBar)
     .sheet(isPresented: $showingWalletCreation) {
-      BackupPhraseView()
+      WalletSetupFlow(selectedTab: $selectedTab)
     }
     .sheet(isPresented: $showingDebug) {
       DebugView()
@@ -106,5 +107,5 @@ struct HomeView: View {
 // WalletInfoRow replaced by InfoRow in design system
 
 #Preview {
-  HomeView()
+  HomeView(selectedTab: .constant(0))
 }

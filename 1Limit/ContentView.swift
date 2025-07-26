@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selectedTab = 0
     
     var body: some View {
         NavigationView {
@@ -16,24 +17,27 @@ struct ContentView: View {
                 Color.appBackground
                     .ignoresSafeArea()
                 
-                TabView {
-                    HomeView()
+                TabView(selection: $selectedTab) {
+                    HomeView(selectedTab: $selectedTab)
                         .tabItem {
                             Image(systemName: "house.fill")
                             Text("Home")
                         }
+                        .tag(0)
                     
                     TradeView()
                         .tabItem {
                             Image(systemName: "arrow.left.arrow.right")
                             Text("Trade")
                         }
+                        .tag(1)
                     
                     TransactionsView()
                         .tabItem {
                             Image(systemName: "list.bullet")
                             Text("Transactions")
                         }
+                        .tag(2)
                 }
                 .background(Color.appBackground)
             }
