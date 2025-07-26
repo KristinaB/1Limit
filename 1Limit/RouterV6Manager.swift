@@ -187,7 +187,7 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 5: Signing Router V6 order with EIP-712...")
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         
-        let signature = signRouterV6Order(order: order, domain: domain)
+        let signature = try signRouterV6Order(order: order, domain: domain)
         await addLog("🔐 EIP-712 signature generated (65 bytes)")
         await addLog("🔧 Converting to EIP-2098 compact format...")
         
@@ -489,10 +489,10 @@ class RouterV6Manager: ObservableObject {
         )
     }
     
-    private func signRouterV6Order(order: RouterV6OrderInfo, domain: EIP712DomainInfo) -> String {
+    private func signRouterV6Order(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
         // Real EIP-712 signature implementation (ported from Go/Swift RouterV6)
         guard let wallet = wallet else {
-            return generateMockSignature()
+            throw RouterV6Error.signingFailed
         }
         
         do {
@@ -504,7 +504,7 @@ class RouterV6Manager: ObservableObject {
             return "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
         } catch {
             // Fallback to mock if real signing fails
-            return generateMockSignature()
+            throw RouterV6Error.signingFailed
         }
     }
     
@@ -545,7 +545,7 @@ class RouterV6Manager: ObservableObject {
         encoded.append(versionHash)
         encoded.append(Data(count: 32 - 8)) // pad chainId to 32 bytes
         encoded.append(withUnsafeBytes(of: UInt64(domain.chainID).bigEndian) { Data($0) })
-        encoded.append(Data(hex: domain.verifyingContract.dropFirst(2)).padded(to: 32))
+        encoded.append(Data(hex: String(domain.verifyingContract.dropFirst(2))).padded(to: 32))
         
         return keccak256(encoded)
     }
@@ -553,14 +553,14 @@ class RouterV6Manager: ObservableObject {
     private func createStructHash(order: RouterV6OrderInfo, typeHash: Data) -> Data {
         var encoded = Data()
         encoded.append(typeHash)
-        encoded.append(order.salt.data.padded(to: 32))
-        encoded.append(Data(hex: order.maker.dropFirst(2)).padded(to: 32))
-        encoded.append(Data(hex: order.receiver.dropFirst(2)).padded(to: 32))
-        encoded.append(Data(hex: order.makerAsset.dropFirst(2)).padded(to: 32))
-        encoded.append(Data(hex: order.takerAsset.dropFirst(2)).padded(to: 32))
-        encoded.append(BigUInt(order.makingAmount)?.serialize() ?? Data(count: 32))
-        encoded.append(BigUInt(order.takingAmount)?.serialize() ?? Data(count: 32))
-        encoded.append(order.makerTraits.data.padded(to: 32))
+        encoded.append(bigUIntToData(order.salt).padded(to: 32))
+        encoded.append(Data(hex: String(order.maker.dropFirst(2))).padded(to: 32))
+        encoded.append(Data(hex: String(order.receiver.dropFirst(2))).padded(to: 32))
+        encoded.append(Data(hex: String(order.makerAsset.dropFirst(2))).padded(to: 32))
+        encoded.append(Data(hex: String(order.takerAsset.dropFirst(2))).padded(to: 32))
+        encoded.append((BigUInt(order.makingAmount) ?? BigUInt(0)).serialize().padded(to: 32))
+        encoded.append((BigUInt(order.takingAmount) ?? BigUInt(0)).serialize().padded(to: 32))
+        encoded.append(bigUIntToData(order.makerTraits).padded(to: 32))
         
         return keccak256(encoded)
     }
@@ -578,6 +578,12 @@ class RouterV6Manager: ObservableObject {
         }
         
         return signature
+    }
+    
+    private func bigUIntToData(_ bigUInt: BigUInt) -> Data {
+        let string = String(bigUInt, radix: 16)
+        let paddedString = string.count % 2 == 0 ? string : "0" + string
+        return Data(hex: paddedString)
     }
     
     private func toCompactSignature(_ signature: String) -> CompactSignature {
@@ -1112,6 +1118,15 @@ extension Data {
             }
             index = nextIndex
         }
+    }
+    
+    func padded(to length: Int) -> Data {
+        if self.count >= length {
+            return Data(self.suffix(length))
+        }
+        var padded = Data(count: length - self.count)
+        padded.append(self)
+        return padded
     }
     
     static func randomOfLength(_ length: Int) -> Data? {
