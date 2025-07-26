@@ -8,6 +8,42 @@
 import Foundation
 import BigInt
 
+// MARK: - Core Data Structures
+
+/// Router V6 order information
+struct RouterV6OrderInfo {
+    let salt: BigUInt
+    let maker: String        // Address as hex string
+    let receiver: String     // Address as hex string  
+    let makerAsset: String   // Address as hex string
+    let takerAsset: String   // Address as hex string
+    let makingAmount: BigUInt
+    let takingAmount: BigUInt
+    let makerTraits: BigUInt
+}
+
+/// EIP-712 domain information
+struct EIP712DomainInfo {
+    let name: String
+    let version: String
+    let chainID: Int
+    let verifyingContract: String
+}
+
+/// Network configuration
+struct NetworkConfig {
+    let name: String
+    let nodeURL: String
+    let routerV6: String
+    let wmatic: String
+    let usdc: String
+    let chainID: Int
+    let domainName: String
+    let domainVersion: String
+}
+
+// Note: WalletData is defined in WalletLoader.swift
+
 // MARK: - Core Protocol Definitions
 
 /// Protocol for generating order parameters (salt, nonce)
@@ -41,6 +77,7 @@ protocol GasPriceEstimatorProtocol {
 protocol BalanceCheckerProtocol {
     func checkWalletBalance(walletAddress: String, nodeURL: String) async -> Bool
     func checkTokenAllowances(order: RouterV6OrderInfo, walletAddress: String, routerAddress: String, nodeURL: String) async -> Bool
+    func performComprehensiveCheck(order: RouterV6OrderInfo, walletAddress: String, routerAddress: String, nodeURL: String) async -> ComprehensiveBalanceResult
 }
 
 /// Protocol for submitting transactions to blockchain
@@ -61,6 +98,16 @@ protocol OrderFactoryProtocol {
         makerTraits: BigUInt,
         config: NetworkConfig
     ) -> RouterV6OrderInfo
+    
+    func createCompleteOrder(
+        walletAddress: String,
+        makerAsset: String,
+        takerAsset: String,
+        makingAmount: BigUInt,
+        takingAmount: BigUInt,
+        config: NetworkConfig,
+        orderConfig: OrderConfiguration
+    ) async -> OrderCreationResult
 }
 
 /// Protocol for logging operations
@@ -86,3 +133,6 @@ struct TransactionResult {
     let gasUsed: UInt64?
     let error: String?
 }
+
+// Note: Types like OrderConfiguration, OrderCreationResult, OrderParameters, 
+// ComprehensiveBalanceResult, and TokenBalanceResult are defined in their respective service files

@@ -35,7 +35,7 @@ class GasPriceEstimator: GasPriceEstimatorProtocol {
     
     func estimateGasPrice() async -> UInt64 {
         switch estimationStrategy {
-        case .static(let gasPrice):
+        case .fixed(let gasPrice):
             return gasPrice
         case .dynamic:
             return await estimateDynamicGasPrice()
@@ -131,7 +131,7 @@ class GasPriceEstimator: GasPriceEstimatorProtocol {
 
 /// Strategy pattern for different gas estimation approaches
 enum GasEstimationStrategy {
-    case static(UInt64)  // Use fixed gas price
+    case fixed(UInt64)   // Use fixed gas price
     case dynamic         // Query network for current gas price
     case eip1559        // Use EIP-1559 estimation
 }
@@ -221,7 +221,7 @@ class GasPriceAnalyzer {
     
     /// Predict optimal gas price based on history
     func predictOptimalGasPrice(targetConfirmationTime: TimeInterval = 60) -> UInt64? {
-        guard let stats = getGasPriceStatistics() else { return nil }
+        guard getGasPriceStatistics() != nil else { return nil }
         
         // Simple prediction: use 75th percentile for reasonable confirmation time
         let sortedPrices = priceHistory.map { $0.price }.sorted()
@@ -306,7 +306,7 @@ class GasEstimatorFactory {
         
         return GasPriceEstimator(
             networkConfig: mockConfig,
-            strategy: .static(fixedGasPrice),
+            strategy: .fixed(fixedGasPrice),
             web3Provider: MockWeb3Provider()
         )
     }

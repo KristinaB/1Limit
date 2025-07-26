@@ -448,7 +448,7 @@ class TransactionMonitor {
     }
     
     /// Update transaction status
-    func updateTransactionStatus(_ hash: String, status: TransactionStatus, gasUsed: UInt64? = nil) {
+    func updateTransactionSubmissionStatus(_ hash: String, status: TransactionSubmissionStatus, gasUsed: UInt64? = nil) {
         guard var info = pendingTransactions[hash] else { return }
         info.status = status
         info.gasUsed = gasUsed
@@ -475,13 +475,13 @@ struct TransactionInfo {
     let hash: String
     let order: RouterV6OrderInfo
     let submittedAt: Date
-    var status: TransactionStatus
+    var status: TransactionSubmissionStatus
     var gasUsed: UInt64?
     var confirmedAt: Date?
 }
 
-/// Transaction status enumeration
-enum TransactionStatus {
+/// Transaction submission status enumeration
+enum TransactionSubmissionStatus {
     case pending
     case confirmed
     case failed

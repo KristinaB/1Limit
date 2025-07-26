@@ -82,16 +82,16 @@ class EIP712SignerWeb3 {
         print("   Using hex addresses in EIP-712 message, NOT uint256")
         
         Task { @MainActor in
-            await RouterV6Manager.sharedInstance?.addLog("🔍 EIP-712 Message Values:")
-            await RouterV6Manager.sharedInstance?.addLog("   salt: \(order.salt.description)")
-            await RouterV6Manager.sharedInstance?.addLog("   maker: \(order.maker)")
-            await RouterV6Manager.sharedInstance?.addLog("   receiver: \(order.receiver)")
-            await RouterV6Manager.sharedInstance?.addLog("   makerAsset: \(order.makerAsset)")
-            await RouterV6Manager.sharedInstance?.addLog("   takerAsset: \(order.takerAsset)")
-            await RouterV6Manager.sharedInstance?.addLog("   makingAmount: \(order.makingAmount.description)")
-            await RouterV6Manager.sharedInstance?.addLog("   takingAmount: \(order.takingAmount.description)")
-            await RouterV6Manager.sharedInstance?.addLog("   makerTraits: \(order.makerTraits.description)")
-            await RouterV6Manager.sharedInstance?.addLog("✅ EIP-712 Message (matches working RouterV6Wallet exactly)")
+            // Log EIP-712 message values (removed shared instance dependency)
+            // await RouterV6Manager.sharedInstance?.addLog("   salt: \(order.salt.description)")
+            // await RouterV6Manager.sharedInstance?.addLog("   maker: \(order.maker)")
+            // await RouterV6Manager.sharedInstance?.addLog("   receiver: \(order.receiver)")
+            // await RouterV6Manager.sharedInstance?.addLog("   makerAsset: \(order.makerAsset)")
+            // await RouterV6Manager.sharedInstance?.addLog("   takerAsset: \(order.takerAsset)")
+            // await RouterV6Manager.sharedInstance?.addLog("   makingAmount: \(order.makingAmount.description)")
+            // await RouterV6Manager.sharedInstance?.addLog("   takingAmount: \(order.takingAmount.description)")
+            // await RouterV6Manager.sharedInstance?.addLog("   makerTraits: \(order.makerTraits.description)")
+            // await RouterV6Manager.sharedInstance?.addLog("✅ EIP-712 Message (matches working RouterV6Wallet exactly)")
         }
         
         return [
@@ -144,10 +144,10 @@ class EIP712SignerWeb3 {
         
         // Also add to iOS debug logging system
         Task { @MainActor in
-            await RouterV6Manager.sharedInstance?.addLog("🔐 EIP-712 Hash Components:")
-            await RouterV6Manager.sharedInstance?.addLog("   Domain Hash: 0x\(domainHash.toHexString())")
-            await RouterV6Manager.sharedInstance?.addLog("   Struct Hash: 0x\(structHash.toHexString())")
-            await RouterV6Manager.sharedInstance?.addLog("   Final Hash: 0x\(finalHash.toHexString())")
+            // await RouterV6Manager.sharedInstance?.addLog("🔐 EIP-712 Hash Components:")
+            // await RouterV6Manager.sharedInstance?.addLog("   Domain Hash: 0x\(domainHash.toHexString())")
+            // await RouterV6Manager.sharedInstance?.addLog("   Struct Hash: 0x\(structHash.toHexString())")
+            // await RouterV6Manager.sharedInstance?.addLog("   Final Hash: 0x\(finalHash.toHexString())")
         }
         
         // Sign with SECP256K1 from web3swift

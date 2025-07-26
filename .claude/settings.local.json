@@ -12,7 +12,9 @@
       "Bash(python:*)",
       "Bash(swift run:*)",
       "Bash(grep:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

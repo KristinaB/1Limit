@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct DebugView: View {
-    @StateObject private var routerManager = RouterV6Manager()
+    @StateObject private var routerManager = RouterV6ManagerFactory.createProductionManager()
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
