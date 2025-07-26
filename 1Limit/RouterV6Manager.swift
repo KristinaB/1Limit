@@ -399,17 +399,6 @@ class RouterV6Manager: ObservableObject {
         }
         
         await addLog("🎉 Router V6 Debug Flow Complete! 🎊")
-        await addLog("💎 Implementation Summary:")
-        await addLog("   ✅ Real wallet loaded with cryptographic validation")
-        await addLog("   ✅ 96-bit salt generation (1inch SDK compatible)")
-        await addLog("   ✅ MakerTraits with nonce in bits 120-160 (Router V6 spec)")
-        await addLog("   ✅ Proper EIP-712 signing with keccak256 hashing")
-        await addLog("   ✅ EIP-2098 compact signatures (r, vs format)")
-        await addLog("   ✅ Address to uint256 conversion for Router V6")
-        await addLog("   ✅ Transaction validation and fee estimation")
-        await addLog("   ✅ Real Router V6 fillOrder parameters generated")
-        await addLog("🚀 Next: Add web3swift for actual blockchain submission")
-        await addLog("💖❤️💕 Ported from Go with infinite love by Claude Code 🤖❤️💕💖")
         
         await MainActor.run {
             isExecuting = false
@@ -491,21 +480,16 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> BigUInt {
-        // Calculate maker traits exactly like working test script
+        // Calculate maker traits exactly like SwiftOrderSubmitter working implementation
         var traits = BigUInt(0)
         
         // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce)
         let nonceBits = BigUInt(nonce) << 120
         traits |= nonceBits
         
-        // Add expiry in bits 160-191 (32 bits) - FIXED to match working script
-        let expiryTimestamp = BigUInt(Date().timeIntervalSince1970 + 10 * 3600) // 10 hours from now
-        let expiryBits = expiryTimestamp << 160
+        // Add expiry in bits 160-192 (32 bits) - MATCH working implementation exactly
+        let expiryBits = BigUInt(expiry) << 160
         traits |= expiryBits
-        
-        // Set ALLOW_PARTIAL_FILLS flag (bit 253) - FIXED to match working script
-        let allowPartialFills = BigUInt(1) << 253
-        traits |= allowPartialFills
         
         return traits
     }
