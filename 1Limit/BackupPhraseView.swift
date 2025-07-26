@@ -34,7 +34,9 @@ struct BackupPhraseView: View {
                                 .foregroundColor(.primaryGradientStart)
                             
                             Text("Save Your Recovery Phrase")
-                                .appTitle()
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primaryText)
                             
                             Text("Write down these 12 words in order. You'll need them to recover your wallet.")
                                 .secondaryText()
@@ -57,6 +59,12 @@ struct BackupPhraseView: View {
                             }
                         }
                         
+                        // Continue button
+                        PrimaryButton("I've Saved My Phrase") {
+                            proceedToSetup = true
+                        }
+                        .padding(.top, 20)
+                        
                         // Security warning
                         AppCard {
                             VStack(alignment: .leading, spacing: 12) {
@@ -76,18 +84,12 @@ struct BackupPhraseView: View {
                             }
                         }
                         
-                        // Continue button
-                        PrimaryButton("I've Saved My Phrase") {
-                            proceedToSetup = true
-                        }
-                        .padding(.top, 20)
-                        
                         Spacer(minLength: 40)
                     }
                     .padding()
                 }
             }
-            .navigationTitle("Backup Phrase")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbar {
