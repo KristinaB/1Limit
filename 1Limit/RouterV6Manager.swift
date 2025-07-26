@@ -7,6 +7,90 @@
 
 import Foundation
 import CryptoKit
+import Security
+
+// MARK: - Lightweight BigUInt Implementation (for Router V6)
+struct SimpleBigUInt {
+    private let data: Data
+    
+    init(_ value: UInt64) {
+        var data = Data(8)
+        data.withUnsafeMutableBytes { bytes in
+            bytes.storeBytes(of: value.bigEndian, as: UInt64.self)
+        }
+        self.data = data
+    }
+    
+    init(_ data: Data) {
+        // Ensure we have at least enough bytes, pad with zeros if needed
+        if data.count < 32 {
+            let padding = Data(repeating: 0, count: 32 - data.count)
+            self.data = padding + data
+        } else {
+            self.data = data.prefix(32) // Take first 32 bytes
+        }
+    }
+    
+    // Create from random data (for salt generation)
+    static func random96Bit() -> SimpleBigUInt {
+        guard let randomData = Data.randomOfLength(12) else { // 96 bits = 12 bytes
+            return SimpleBigUInt(UInt64.random(in: 1...UInt64.max))
+        }
+        return SimpleBigUInt(randomData)
+    }
+    
+    // Left shift operation for bit positioning
+    func leftShift(_ positions: Int) -> SimpleBigUInt {
+        guard positions > 0 && positions < 256 else { return self }
+        
+        let byteShift = positions / 8
+        let bitShift = positions % 8
+        
+        var result = Data(repeating: 0, count: 32)
+        
+        if byteShift < 32 {
+            // Copy shifted bytes
+            let sourceEnd = min(data.count, 32 - byteShift)
+            for i in 0..<sourceEnd {
+                result[i + byteShift] = data[i]
+            }
+            
+            // Handle bit shifting within bytes
+            if bitShift > 0 {
+                var carry: UInt8 = 0
+                for i in stride(from: 31, through: 0, by: -1) {
+                    let newCarry = result[i] >> (8 - bitShift)
+                    result[i] = (result[i] << bitShift) | carry
+                    carry = newCarry
+                }
+            }
+        }
+        
+        return SimpleBigUInt(result)
+    }
+    
+    // Bitwise OR operation
+    func or(_ other: SimpleBigUInt) -> SimpleBigUInt {
+        var result = Data(count: 32)
+        for i in 0..<32 {
+            result[i] = data[i] | other.data[i]
+        }
+        return SimpleBigUInt(result)
+    }
+    
+    // Convert to string for display
+    var description: String {
+        // Convert to hex string, removing leading zeros
+        let hex = data.map { String(format: "%02hhx", $0) }.joined()
+        let trimmed = hex.drop { $0 == "0" }
+        return trimmed.isEmpty ? "0" : String(trimmed)
+    }
+    
+    // Convert to UInt64 for compatibility (truncated)
+    var uint64Value: UInt64 {
+        return data.suffix(8).withUnsafeBytes { $0.load(as: UInt64.self).bigEndian }
+    }
+}
 
 // MARK: - Router V6 Manager (Ported from Go)
 class RouterV6Manager: ObservableObject {
@@ -61,13 +145,13 @@ class RouterV6Manager: ObservableObject {
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         let salt = generateSDKStyleSalt()
-        await addLog("🧂 Generated SDK-style salt: \(salt)")
+        await addLog("🧂 Generated SDK-style salt: \(salt.description) (96-bit like 1inch SDK)")
         
         let nonce = generateRandomNonce()
         await addLog("📦 Generated nonce: \(nonce) (slot: \(nonce >> 8), bit: \(nonce & 0xff))")
         
         let makerTraits = calculateMakerTraitsV6(nonce: nonce, expiry: 1800)
-        await addLog("🎛️ Calculated MakerTraits: \(makerTraits)\n")
+        await addLog("🎛️ Calculated MakerTraits: \(makerTraits.description) (nonce in bits 120-160)\n")
         
         // Step 3: Create EIP-712 domain (ported from Go)
         await addLog("📋 Step 3: Creating EIP-712 domain...")
@@ -188,9 +272,10 @@ class RouterV6Manager: ObservableObject {
     
     // MARK: - Private Implementation (Ported from Go)
     
-    private func generateSDKStyleSalt() -> UInt64 {
-        // Generate 96-bit salt like 1inch SDK (simplified to UInt64 for demo)
-        return UInt64.random(in: 1...UInt64.max) & 0xFFFFFFFFFFFF // 48-bit for demo
+    private func generateSDKStyleSalt() -> SimpleBigUInt {
+        // Generate 96-bit salt exactly like 1inch SDK (matching Go implementation)
+        let salt = SimpleBigUInt.random96Bit()
+        return salt
     }
     
     private func generateRandomNonce() -> UInt64 {
@@ -198,16 +283,22 @@ class RouterV6Manager: ObservableObject {
         return UInt64.random(in: 1...UInt64.max) & 0xFFFFFFFFFF // 40-bit mask
     }
     
-    private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> UInt64 {
+    private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> SimpleBigUInt {
         // Calculate maker traits exactly like Go implementation
-        var traits: UInt64 = 0
+        var traits = SimpleBigUInt(0)
         
-        // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce)
-        // For demo with UInt64, we'll use lower bits
-        traits |= nonce & 0xFFFFFFFF // Lower 32 bits
+        // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce) - FIXED!
+        let nonceBits = SimpleBigUInt(nonce).leftShift(120)
+        traits = traits.or(nonceBits)
         
-        // Add expiry in higher bits
-        traits |= (UInt64(expiry) & 0xFFFFFFFF) << 32
+        // Add expiry in bits 160-192 (32 bits for expiry)
+        let expiryBits = SimpleBigUInt(UInt64(expiry)).leftShift(160)
+        traits = traits.or(expiryBits)
+        
+        // Add Router V6 flags (matching Go implementation)
+        let allowPartialFills = SimpleBigUInt(1).leftShift(80)  // ALLOW_PARTIAL_FILLS flag
+        let allowMultipleFills = SimpleBigUInt(1).leftShift(81) // ALLOW_MULTIPLE_FILLS flag
+        traits = traits.or(allowPartialFills).or(allowMultipleFills)
         
         return traits
     }
@@ -221,7 +312,7 @@ class RouterV6Manager: ObservableObject {
         )
     }
     
-    private func createRouterV6Order(salt: UInt64, nonce: UInt64, makerTraits: UInt64) -> RouterV6OrderInfo {
+    private func createRouterV6Order(salt: SimpleBigUInt, nonce: UInt64, makerTraits: SimpleBigUInt) -> RouterV6OrderInfo {
         // Use real wallet address from loaded wallet
         let walletAddress = wallet?.address ?? "0x3f847d4390b5a2783ea4aed6887474de8ffffa95"
         
@@ -354,14 +445,14 @@ class RouterV6Manager: ObservableObject {
         ]
         
         let message: [String: Any] = [
-            "salt": String(order.salt),
+            "salt": order.salt.description,
             "maker": order.maker,
             "receiver": order.receiver,
             "makerAsset": order.makerAsset,
             "takerAsset": order.takerAsset,
             "makingAmount": order.makingAmount,
             "takingAmount": order.takingAmount,
-            "makerTraits": String(order.makerTraits)
+            "makerTraits": order.makerTraits.description
         ]
         
         return [
@@ -516,14 +607,14 @@ struct EIP712DomainInfo {
 }
 
 struct RouterV6OrderInfo {
-    let salt: UInt64
+    let salt: SimpleBigUInt
     let maker: String
     let receiver: String
     let makerAsset: String
     let takerAsset: String
     let makingAmount: String
     let takingAmount: String
-    let makerTraits: UInt64
+    let makerTraits: SimpleBigUInt
 }
 
 struct CompactSignature {
@@ -575,5 +666,16 @@ extension Data {
             }
             index = nextIndex
         }
+    }
+    
+    static func randomOfLength(_ length: Int) -> Data? {
+        var data = Data(count: length)
+        let result = data.withUnsafeMutableBytes { bytes in
+            if let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress {
+                return SecRandomCopyBytes(kSecRandomDefault, length, baseAddress)
+            }
+            return errSecAllocate
+        }
+        return result == errSecSuccess ? data : nil
     }
 }
