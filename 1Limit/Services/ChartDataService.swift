@@ -174,18 +174,17 @@ class ChartDataService: ObservableObject {
     // MARK: - Private Methods
     
     private func loadAPIKey() -> String? {
-        // Try to load from project directory first
-        let currentDir = FileManager.default.currentDirectoryPath
-        let path = "\(currentDir)/tmp/.1inch_api_key"
-        
-        if let content = try? String(contentsOfFile: path).trimmingCharacters(in: .whitespacesAndNewlines),
+        // Try to load from app bundle first (for iOS app)
+        if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt"),
+           let content = try? String(contentsOfFile: path).trimmingCharacters(in: .whitespacesAndNewlines),
            !content.isEmpty {
             return content
         }
         
-        // Try to load from config directory
-        let configPath = "/Users/makevoid/apps/1Limit/config/api_keys.txt"
-        if let content = try? String(contentsOfFile: configPath).trimmingCharacters(in: .whitespacesAndNewlines),
+        // Try to load from config directory (fallback for development)
+        if let homeDir = NSHomeDirectory() as String?,
+           let configPath = URL(string: homeDir)?.appendingPathComponent("config/api_keys.txt").path,
+           let content = try? String(contentsOfFile: configPath).trimmingCharacters(in: .whitespacesAndNewlines),
            !content.isEmpty {
             return content
         }

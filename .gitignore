@@ -10,4 +10,5 @@ wallet_*.json
 
 # API Keys - Never commit sensitive keys
 config/api_keys.txt
+1Limit/api_keys.txt
 *.api_key
