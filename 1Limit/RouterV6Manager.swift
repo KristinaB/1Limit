@@ -199,8 +199,8 @@ class RouterV6Manager: ObservableObject {
         
         let compactSig = toCompactSignature(signature)
         await addLog("✅ Compact signature ready:")
-        await addLog("   r:  \(String(compactSig.r.prefix(20)))...")
-        await addLog("   vs: \(String(compactSig.vs.prefix(20)))...\n")
+        await addLog("   r:  0x\(compactSig.r.prefix(10).map { String(format: "%02hhx", $0) }.joined())...")
+        await addLog("   vs: 0x\(compactSig.vs.prefix(10).map { String(format: "%02hhx", $0) }.joined())...\n")
         
         // Step 6: Prepare fillOrder transaction (ported from Go)
         await addLog("📋 Step 6: Preparing fillOrder transaction...")
@@ -290,12 +290,12 @@ class RouterV6Manager: ObservableObject {
             let takerTraitsBig = BigUInt(0)
             
             // Use compact signature r,vs as Data (exactly 32 bytes each for bytes32)
-            await addLog("🔍 DEBUG: Compact signature strings:")
-            await addLog("   compactSig.r: '\(compactSig.r)' (length: \(compactSig.r.count))")
-            await addLog("   compactSig.vs: '\(compactSig.vs)' (length: \(compactSig.vs.count))")
+            await addLog("🔍 DEBUG: Compact signature data:")
+            await addLog("   compactSig.r: 0x\(compactSig.r.map { String(format: "%02hhx", $0) }.joined()) (\(compactSig.r.count) bytes)")
+            await addLog("   compactSig.vs: 0x\(compactSig.vs.map { String(format: "%02hhx", $0) }.joined()) (\(compactSig.vs.count) bytes)")
             
-            let rData = Data(hex: compactSig.r.replacingOccurrences(of: "0x", with: ""))
-            let vsData = Data(hex: compactSig.vs.replacingOccurrences(of: "0x", with: ""))
+            let rData = compactSig.r
+            let vsData = compactSig.vs
             
             let orderTuple = [
                 order.salt as AnyObject,
@@ -639,11 +639,8 @@ class RouterV6Manager: ObservableObject {
             vs[0] |= 0x80 // Set high bit for recovery when v == 28
         }
         
-        let rHex = "0x" + r.map { String(format: "%02hhx", $0) }.joined()
-        let vsHex = "0x" + vs.map { String(format: "%02hhx", $0) }.joined()
-        
-        print("🔍 DEBUG toCompactSignature: Final rHex length=\(rHex.count), vsHex length=\(vsHex.count)")
-        return CompactSignature(r: rHex, vs: vsHex)
+        print("🔍 DEBUG toCompactSignature: Final r length=\(r.count) bytes, vs length=\(vs.count) bytes")
+        return CompactSignature(r: r, vs: vs)
     }
     
     // MARK: - Real EIP-712 Signature Implementation (Ported from Go/Swift RouterV6)
@@ -1148,8 +1145,8 @@ struct RouterV6OrderInfo {
 }
 
 struct CompactSignature {
-    let r: String
-    let vs: String
+    let r: Data
+    let vs: Data
 }
 
 // MARK: - Router V6 Errors
