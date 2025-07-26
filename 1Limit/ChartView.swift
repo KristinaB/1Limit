@@ -68,83 +68,88 @@ struct ChartView: View {
         return (from: components.first ?? "WMATIC", to: components.last ?? "USDC")
     }
     
+    private var headerView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.title)
+                    .foregroundColor(.blue)
+                
+                Text(currencyPair)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+            }
+            
+            if let latest = chartService.candlestickData.last {
+                HStack {
+                    Text("Current: \(latest.formattedClose)")
+                        .font(.headline)
+                        .foregroundColor(latest.isBullish ? .green : .red)
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: latest.isBullish ? "arrow.up" : "arrow.down")
+                        Text(latest.formattedPercentChange)
+                    }
+                    .font(.caption)
+                    .foregroundColor(latest.isBullish ? .green : .red)
+                }
+            }
+            
+            if chartService.isLoading {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading chart data...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+    
+    private var timeframeSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(ChartTimeframe.allCases, id: \.self) { timeframe in
+                    Button(action: {
+                        selectedTimeframe = timeframe
+                        Task {
+                            await chartService.fetchChartData(
+                                fromToken: tokenPair.from,
+                                toToken: tokenPair.to,
+                                timeframe: timeframe
+                            )
+                            // Auto-scroll to latest data after timeframe change
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                visibleRange = latestDataRange
+                            }
+                        }
+                    }) {
+                        Text(timeframe.displayName)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(selectedTimeframe == timeframe ? Color.blue : Color(.systemGray6))
+                            .foregroundColor(selectedTimeframe == timeframe ? .white : .primary)
+                            .cornerRadius(8)
+                    }
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header with currency pair info 🎀
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.title)
-                                .foregroundColor(.blue)
-                            
-                            Text(currencyPair)
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
-                        }
-                        
-                        if let latest = chartService.candlestickData.last {
-                            HStack {
-                                Text("Current: \(latest.formattedClose)")
-                                    .font(.headline)
-                                    .foregroundColor(latest.isBullish ? .green : .red)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: latest.isBullish ? "arrow.up" : "arrow.down")
-                                    Text(latest.formattedPercentChange)
-                                }
-                                .font(.caption)
-                                .foregroundColor(latest.isBullish ? .green : .red)
-                            }
-                        }
-                        
-                        // Loading indicator
-                        if chartService.isLoading {
-                            HStack {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                Text("Loading chart data...")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    
-                    // Timeframe selector 💎
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(ChartTimeframe.allCases, id: \.self) { timeframe in
-                                Button(action: {
-                                    selectedTimeframe = timeframe
-                                    Task {
-                                        await chartService.fetchChartData(
-                                            fromToken: tokenPair.from,
-                                            toToken: tokenPair.to,
-                                            timeframe: timeframe
-                                        )
-                                        // Auto-scroll to latest data after timeframe change
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                            visibleRange = latestDataRange
-                                        }
-                                    }
-                                }) {
-                                    Text(timeframe.displayName)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(selectedTimeframe == timeframe ? Color.blue : Color(.systemGray6))
-                                        .foregroundColor(selectedTimeframe == timeframe ? .white : .primary)
-                                        .cornerRadius(8)
-                                }
-                            }
-                        }
+                    headerView
                         .padding(.horizontal)
-                    }
+                    
+                    timeframeSelector
                     
                     // Selected candle details 💖
                     if let selected = selectedData {
