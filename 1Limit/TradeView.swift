@@ -24,14 +24,14 @@ struct TradeView: View {
       ScrollView {
         VStack(spacing: 24) {
           headerView
-          
+
           orderFormView
-          
+
           orderPreviewView
-          
-          orderDetailsView
-          
+
           createOrderButton
+
+          orderDetailsView
         }
         .padding()
       }
@@ -59,15 +59,16 @@ struct TradeView: View {
   }
 
   // MARK: - Computed Properties
-  
+
   private var calculatedReceiveAmount: String {
-    guard let amount = Double(fromAmount), let price = Double(limitPrice), amount > 0, price > 0 else { 
-      return "0.00" 
+    guard let amount = Double(fromAmount), let price = Double(limitPrice), amount > 0, price > 0
+    else {
+      return "0.00"
     }
     let receiveAmount = amount / price
     return String(format: "%.6f", receiveAmount)
   }
-  
+
   private var headerView: some View {
     AppCard {
       VStack(spacing: 16) {
@@ -150,7 +151,7 @@ struct TradeView: View {
       }
     }
   }
-  
+
   private var orderFormView: some View {
     VStack(spacing: 16) {
       // Currency selection with swap button
@@ -167,7 +168,7 @@ struct TradeView: View {
                 ]
               )
             }
-            
+
             // USD price display
             if let fromPrice = priceService.getPrice(for: fromToken) {
               HStack {
@@ -178,7 +179,7 @@ struct TradeView: View {
             }
           }
         }
-        
+
         // Swap button
         Button(action: swapTokens) {
           ZStack {
@@ -215,7 +216,7 @@ struct TradeView: View {
           }
         }
         .padding(.vertical, 8)
-        
+
         // Buying currency
         InputCard(title: "Buying") {
           VStack(spacing: 12) {
@@ -228,7 +229,7 @@ struct TradeView: View {
                 ]
               )
             }
-            
+
             // USD price display
             if let toPrice = priceService.getPrice(for: toToken) {
               HStack {
@@ -240,7 +241,7 @@ struct TradeView: View {
           }
         }
       }
-      
+
       // Amount input
       InputCard(title: "Amount") {
         VStack(spacing: 12) {
@@ -248,10 +249,11 @@ struct TradeView: View {
             .onChange(of: fromAmount) {
               updatePreview()
             }
-          
+
           // USD value display
-          if let fromPrice = priceService.getPrice(for: fromToken), 
-             let amount = Double(fromAmount), amount > 0 {
+          if let fromPrice = priceService.getPrice(for: fromToken),
+            let amount = Double(fromAmount), amount > 0
+          {
             HStack {
               Text("~\(String(format: "%.2f", fromPrice.usdPrice * amount)) USD")
                 .priceText(color: .secondaryText)
@@ -260,7 +262,7 @@ struct TradeView: View {
           }
         }
       }
-      
+
       // Limit price input
       InputCard(title: "Limit Price") {
         VStack(spacing: 12) {
@@ -268,14 +270,14 @@ struct TradeView: View {
             .onChange(of: limitPrice) {
               updatePreview()
             }
-          
+
           Text("Price per \(toToken) in \(fromToken)")
             .captionText()
         }
       }
     }
   }
-  
+
   @ViewBuilder
   private var orderPreviewView: some View {
     if !fromAmount.isEmpty && !limitPrice.isEmpty {
@@ -283,7 +285,7 @@ struct TradeView: View {
         VStack(spacing: 12) {
           Text("Order Preview")
             .cardTitle()
-          
+
           VStack(spacing: 8) {
             HStack {
               Text("You will spend")
@@ -292,7 +294,7 @@ struct TradeView: View {
               Text("\(fromAmount) \(fromToken)")
                 .bodyText()
             }
-            
+
             HStack {
               Text("You will receive")
                 .secondaryText()
@@ -300,20 +302,12 @@ struct TradeView: View {
               Text("\(calculatedReceiveAmount) \(toToken)")
                 .bodyText()
             }
-            
-            HStack {
-              Text("Limit price")
-                .secondaryText()
-              Spacer()
-              Text("\(limitPrice) \(fromToken)/\(toToken)")
-                .bodyText()
-            }
           }
         }
       }
     }
   }
-  
+
   private var orderDetailsView: some View {
     InfoCard(
       title: "Order Details",
@@ -321,11 +315,11 @@ struct TradeView: View {
         ("Order Type", "Limit Order", nil),
         ("Router Version", "V6", nil),
         ("Network", "Polygon", nil),
-        ("Expiry", "30 minutes", nil)
+        ("Expiry", "30 minutes", nil),
       ]
     )
   }
-  
+
   private var createOrderButton: some View {
     PrimaryButton("Create Limit Order", icon: "plus.circle") {
       showOrderConfirmation = true
@@ -355,13 +349,13 @@ struct OrderConfirmationView: View {
   let toToken: String
   let limitPrice: String
   let receiveAmount: String
-  
+
   var body: some View {
     NavigationView {
       ZStack {
         Color.appBackground
           .ignoresSafeArea()
-        
+
         ScrollView {
           VStack(spacing: 24) {
             // Header
@@ -374,7 +368,7 @@ struct OrderConfirmationView: View {
                         colors: [
                           Color.white.opacity(0.25),
                           Color.white.opacity(0.15),
-                          Color.white.opacity(0.1)
+                          Color.white.opacity(0.1),
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -394,21 +388,21 @@ struct OrderConfirmationView: View {
                     )
                     .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
                     .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                  
+
                   Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 36, weight: .medium))
                     .foregroundColor(.white)
                 }
-                
+
                 Text("Confirm Your Order")
                   .appTitle()
-                
+
                 Text("Please review your order details carefully before submitting.")
                   .secondaryText()
                   .multilineTextAlignment(.center)
               }
             }
-            
+
             // Order summary
             InfoCard(
               title: "Order Summary",
@@ -417,22 +411,22 @@ struct OrderConfirmationView: View {
                 ("Receiving", "\(receiveAmount) \(toToken)", nil),
                 ("Limit Price", "\(limitPrice) \(fromToken)/\(toToken)", nil),
                 ("Order Type", "Limit Order", nil),
-                ("Network", "Polygon", nil)
+                ("Network", "Polygon", nil),
               ]
             )
-            
+
             // Confirmation buttons
             VStack(spacing: 12) {
               PrimaryButton("Place Order") {
                 // TODO: Implement order submission
                 dismiss()
               }
-              
+
               SecondaryButton("Cancel") {
                 dismiss()
               }
             }
-            
+
             Spacer(minLength: 40)
           }
           .padding()
