@@ -265,9 +265,11 @@ class RouterV6Manager: ObservableObject {
             // Prepare fillOrder parameters for web3swift
             let makingAmountBig = BigUInt(order.makingAmount) ?? BigUInt(0)
             let takingAmountBig = BigUInt(order.takingAmount) ?? BigUInt(0)
-            let rBig = BigUInt(compactSig.r, radix: 16) ?? BigUInt(0)
-            let vsBig = BigUInt(compactSig.vs, radix: 16) ?? BigUInt(0)
             let takerTraitsBig = BigUInt(0)
+            
+            // Use compact signature r,vs as Data (not BigUInt!)
+            let rData = Data(hex: compactSig.r)
+            let vsData = Data(hex: compactSig.vs)
             
             let orderTuple = [
                 order.salt as AnyObject,
@@ -282,8 +284,8 @@ class RouterV6Manager: ObservableObject {
             
             let fillParams = [
                 orderTuple as AnyObject,
-                rBig as AnyObject,
-                vsBig as AnyObject,
+                rData as AnyObject,
+                vsData as AnyObject,
                 makingAmountBig as AnyObject,
                 takerTraitsBig as AnyObject
             ]
