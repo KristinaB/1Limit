@@ -73,6 +73,8 @@ struct DebugView: View {
                     ScrollView {
                         Text(routerManager.executionLog)
                             .font(.system(.caption, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
                             .background(Color(.systemGray6))
                             .cornerRadius(8)
