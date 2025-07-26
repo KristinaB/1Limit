@@ -28,7 +28,7 @@ class EIP712SignerWeb3 {
     }
     
     // Create EIP-712 typed data exactly like Go implementation
-    static func createRouterV6TypedData(order: RouterV6Order, domain: EIP712Domain) -> [String: Any] {
+    static func createRouterV6TypedData(order: RouterV6Order, domain: EIP712Domain) throws -> [String: Any] {
         let types: [String: Any] = [
             "EIP712Domain": [
                 ["name": "name", "type": "string"],
@@ -55,16 +55,45 @@ class EIP712SignerWeb3 {
             "verifyingContract": domain.verifyingContract
         ]
         
+        // CRITICAL FIX: Convert addresses to uint256 strings for EIP-712 message (like working RouterV6Wallet)
+        let makerUint256 = try addressToUint256(order.maker)
+        let receiverUint256 = try addressToUint256(order.receiver)
+        let makerAssetUint256 = try addressToUint256(order.makerAsset)
+        let takerAssetUint256 = try addressToUint256(order.takerAsset)
+        
         let message: [String: Any] = [
             "salt": order.salt.description,
-            "maker": order.maker,
-            "receiver": order.receiver,
-            "makerAsset": order.makerAsset,
-            "takerAsset": order.takerAsset,
+            "maker": makerUint256.description,
+            "receiver": receiverUint256.description,
+            "makerAsset": makerAssetUint256.description,
+            "takerAsset": takerAssetUint256.description,
             "makingAmount": order.makingAmount.description,
             "takingAmount": order.takingAmount.description,
             "makerTraits": order.makerTraits.description
         ]
+        
+        // DEBUG: Log exact EIP-712 message values for comparison
+        print("🔍 EIP-712 Message Values:")
+        print("   salt: \(order.salt.description)")
+        print("   maker: \(order.maker)")
+        print("   receiver: \(order.receiver)")
+        print("   makerAsset: \(order.makerAsset)")
+        print("   takerAsset: \(order.takerAsset)")
+        print("   makingAmount: \(order.makingAmount.description)")
+        print("   takingAmount: \(order.takingAmount.description)")
+        print("   makerTraits: \(order.makerTraits.description)")
+        
+        Task { @MainActor in
+            await RouterV6Manager.sharedInstance?.addLog("🔍 EIP-712 Message Values:")
+            await RouterV6Manager.sharedInstance?.addLog("   salt: \(order.salt.description)")
+            await RouterV6Manager.sharedInstance?.addLog("   maker: \(order.maker)")
+            await RouterV6Manager.sharedInstance?.addLog("   receiver: \(order.receiver)")
+            await RouterV6Manager.sharedInstance?.addLog("   makerAsset: \(order.makerAsset)")
+            await RouterV6Manager.sharedInstance?.addLog("   takerAsset: \(order.takerAsset)")
+            await RouterV6Manager.sharedInstance?.addLog("   makingAmount: \(order.makingAmount.description)")
+            await RouterV6Manager.sharedInstance?.addLog("   takingAmount: \(order.takingAmount.description)")
+            await RouterV6Manager.sharedInstance?.addLog("   makerTraits: \(order.makerTraits.description)")
+        }
         
         return [
             "types": types,
@@ -81,7 +110,7 @@ class EIP712SignerWeb3 {
         privateKey: String
     ) throws -> Data {
         // Create EIP712 typed data
-        let eip712Data = createRouterV6TypedData(order: order, domain: domain)
+        let eip712Data = try createRouterV6TypedData(order: order, domain: domain)
         
         // Remove 0x prefix if present
         let cleanPrivateKey = privateKey.hasPrefix("0x") ? String(privateKey.dropFirst(2)) : privateKey
@@ -97,9 +126,9 @@ class EIP712SignerWeb3 {
             throw EIP712Error.invalidTypedData
         }
         
-        // Hash the struct data using our own implementation
-        let structHash = try hashStruct(primaryType: "Order", data: message, types: types)
-        let domainHash = try hashStruct(primaryType: "EIP712Domain", data: domainData, types: types)
+        // Use the exact same EIP-712 implementation from EIP712Signer
+        let structHash = try EIP712Signer.hashStruct(primaryType: "Order", data: message, types: types)
+        let domainHash = try EIP712Signer.hashStruct(primaryType: "EIP712Domain", data: domainData, types: types)
         
         // Create final hash with EIP-191 prefix
         var finalHashData = Data()
@@ -113,6 +142,14 @@ class EIP712SignerWeb3 {
         print("   Domain Hash: 0x\(domainHash.toHexString())")
         print("   Struct Hash: 0x\(structHash.toHexString())")
         print("   Final Hash: 0x\(finalHash.toHexString())")
+        
+        // Also add to iOS debug logging system
+        Task { @MainActor in
+            await RouterV6Manager.sharedInstance?.addLog("🔐 EIP-712 Hash Components:")
+            await RouterV6Manager.sharedInstance?.addLog("   Domain Hash: 0x\(domainHash.toHexString())")
+            await RouterV6Manager.sharedInstance?.addLog("   Struct Hash: 0x\(structHash.toHexString())")
+            await RouterV6Manager.sharedInstance?.addLog("   Final Hash: 0x\(finalHash.toHexString())")
+        }
         
         // Sign with SECP256K1 from web3swift
         let signResult = SECP256K1.signForRecovery(
@@ -151,6 +188,18 @@ class EIP712SignerWeb3 {
         }
         
         return CompactSignature(r: r, vs: vs)
+    }
+    
+    // Convert address to uint256 (critical for Router V6 EIP-712 compatibility)
+    static func addressToUint256(_ address: String) throws -> BigUInt {
+        let cleanAddress = address.hasPrefix("0x") ? String(address.dropFirst(2)) : address
+        guard cleanAddress.count == 40 else {
+            throw EIP712Error.invalidAddress
+        }
+        guard let result = BigUInt(cleanAddress, radix: 16) else {
+            throw EIP712Error.invalidAddress
+        }
+        return result
     }
     
     // Hash struct according to EIP-712
@@ -246,9 +295,14 @@ enum EIP712Error: Error {
     case invalidPrivateKey
     case invalidTypedData
     case signingFailed
+    case invalidType
+    case missingField
+    case invalidValue
+    case unsupportedType
+    case invalidAddress
 }
 
-// EIP-712 signer helper (needed for struct hashing)
+// EIP-712 signer helper (exact copy from working RouterV6Wallet)
 class EIP712Signer {
     
     // Hash struct according to EIP-712

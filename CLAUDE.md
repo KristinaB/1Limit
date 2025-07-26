@@ -145,3 +145,30 @@ This iOS implementation directly ports the Go Router V6 SDK:
 - **Matching Signatures**: Produces identical EIP-712 signatures
 - **Shared Test Wallet**: Uses same wallet JSON format
 - **Router V6 Compliance**: Full compatibility with Go implementation
+
+## Debug and Testing Commands
+
+### Check Latest Debug Logs
+```bash
+# View the latest debug log file
+ls -la logs/ | tail -1
+cat logs/$(ls -t logs/ | head -1)
+
+# Or tail the most recent log in real-time
+tail -f logs/$(ls -t logs/ | head -1)
+```
+
+### Analyze Router V6 Transactions
+```bash
+# Check a specific transaction hash
+python3 scripts/check_wallet_transactions.py --tx 0x<transaction_hash>
+
+# Check wallet transaction history
+python3 scripts/check_wallet_transactions.py
+```
+
+### Current Status
+- **Latest Log**: `logs/1limit_debug_2025-07-26_09-51-52.log`
+- **Last Transaction**: `0x679a6668920ab963bfbc1796358023cb566a849b885f9829952e8026da0a2c13` (FAILED)
+- **Issue**: Transaction reaches Polygon mainnet but Router V6 contract rejects it (30k gas used vs 96k for working transactions)
+- **Next Steps**: Need to debug parameter encoding differences with working RouterV6Wallet implementation

@@ -105,11 +105,17 @@ struct SimpleBigUInt {
 
 // MARK: - Router V6 Manager (Ported from Go)
 class RouterV6Manager: ObservableObject {
+    static var sharedInstance: RouterV6Manager?
+    
     @Published var isExecuting = false
     @Published var executionLog = ""
     
     private var wallet: WalletData?
     private var logFileURL: URL?
+    
+    init() {
+        RouterV6Manager.sharedInstance = self
+    }
     
     // Network configuration for Polygon mainnet
     private let polygonConfig = NetworkConfig(
@@ -281,49 +287,37 @@ class RouterV6Manager: ObservableObject {
             }
             await addLog("📄 Router V6 contract loaded")
             
-            // Convert addresses to BigUInt for Router V6
-            let makerUint256 = try addressToUint256(order.maker)
-            let makerAssetUint256 = try addressToUint256(order.makerAsset)
-            let takerAssetUint256 = try addressToUint256(order.takerAsset)
-            
-            // Prepare fillOrder parameters for web3swift
-            let makingAmountBig = order.makingAmount
-            let takingAmountBig = order.takingAmount
-            let takerTraitsBig = BigUInt(0)
-            
-            // Use compact signature r,vs as Data (exactly 32 bytes each for bytes32)
+            // EXACT COPY from working SwiftManualEIP1559Submitter implementation
             await addLog("🔍 DEBUG: Compact signature data:")
             await addLog("   compactSig.r: 0x\(compactSig.r.map { String(format: "%02hhx", $0) }.joined()) (\(compactSig.r.count) bytes)")
             await addLog("   compactSig.vs: 0x\(compactSig.vs.map { String(format: "%02hhx", $0) }.joined()) (\(compactSig.vs.count) bytes)")
             
-            let rData = compactSig.r
-            let vsData = compactSig.vs
-            
+            // Prepare fillOrder parameters EXACTLY like working implementation
             let orderTuple = [
                 order.salt as AnyObject,
-                makerUint256 as AnyObject,
-                makerUint256 as AnyObject, // receiver = maker
-                makerAssetUint256 as AnyObject,
-                takerAssetUint256 as AnyObject,
-                makingAmountBig as AnyObject,
-                takingAmountBig as AnyObject,
-                order.makerTraits as AnyObject // Use same makerTraits as signed in EIP-712
+                try addressToUint256(order.maker) as AnyObject,
+                try addressToUint256(order.maker) as AnyObject, // receiver = maker  
+                try addressToUint256(order.makerAsset) as AnyObject,
+                try addressToUint256(order.takerAsset) as AnyObject,
+                order.makingAmount as AnyObject,
+                order.takingAmount as AnyObject,
+                order.makerTraits as AnyObject
             ]
             
             let fillParams = [
                 orderTuple as AnyObject,
-                rData as AnyObject,
-                vsData as AnyObject,
-                makingAmountBig as AnyObject,
-                takerTraitsBig as AnyObject
+                compactSig.r as AnyObject,
+                compactSig.vs as AnyObject,
+                order.makingAmount as AnyObject,
+                BigUInt(0) as AnyObject
             ]
             
             await addLog("🔍 DEBUG: Parameter types and values:")
             await addLog("   orderTuple: \(type(of: orderTuple)) with \(orderTuple.count) elements")
-            await addLog("   rData: \(type(of: rData)) (\(rData.count) bytes)")
-            await addLog("   vsData: \(type(of: vsData)) (\(vsData.count) bytes)")
-            await addLog("   makingAmount: \(type(of: makingAmountBig)) = \(makingAmountBig)")
-            await addLog("   takerTraits: \(type(of: takerTraitsBig)) = \(takerTraitsBig)")
+            await addLog("   rData: \(type(of: compactSig.r)) (\(compactSig.r.count) bytes)")
+            await addLog("   vsData: \(type(of: compactSig.vs)) (\(compactSig.vs.count) bytes)")
+            await addLog("   makingAmount: \(type(of: order.makingAmount)) = \(order.makingAmount)")
+            await addLog("   takerTraits: BigUInt = 0")
             await addLog("   fillParams count: \(fillParams.count)")
             
             guard let writeOp = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
@@ -333,6 +327,7 @@ class RouterV6Manager: ObservableObject {
             
             // Get encoded data for manual EIP-1559 transaction (like SwiftManualEIP1559Submitter)
             let encodedData = writeOp.transaction.data
+            await addLog("📦 FillOrder data encoded: \(encodedData.toHexString())")
             await addLog("📦 FillOrder data encoded successfully")
             
             // Get transaction parameters for EIP-1559
@@ -408,7 +403,7 @@ class RouterV6Manager: ObservableObject {
     }
     
     @MainActor
-    private func addLog(_ message: String) async {
+    func addLog(_ message: String) async {
         let logMessage = message + "\n"
         executionLog += logMessage
         
@@ -493,6 +488,14 @@ class RouterV6Manager: ObservableObject {
         let expiryBits = BigUInt(expiry) << 160
         traits |= expiryBits
         
+        // DEBUG: Log bit positioning for comparison with working implementation
+        print("🔍 DEBUG MakerTraits calculation:")
+        print("   Nonce: \(nonce) (40-bit)")
+        print("   Expiry: \(expiry) (32-bit)")
+        print("   Nonce << 120: \(nonceBits)")
+        print("   Expiry << 160: \(expiryBits)")
+        print("   Final traits: \(traits)")
+        
         return traits
     }
     
@@ -515,8 +518,8 @@ class RouterV6Manager: ObservableObject {
             receiver: walletAddress, // Self-fill
             makerAsset: polygonConfig.wmatic,
             takerAsset: polygonConfig.usdc,
-            makingAmount: BigUInt("10000000000000000") ?? BigUInt(0), // 0.01 WMATIC
-            takingAmount: BigUInt("10000") ?? BigUInt(0), // 0.01 USDC
+            makingAmount: BigUInt(10000000000000000), // 0.01 WMATIC
+            takingAmount: BigUInt(10000), // 0.01 USDC
             makerTraits: makerTraits
         )
     }

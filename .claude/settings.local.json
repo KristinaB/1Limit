@@ -11,7 +11,8 @@
       "Bash(find:*)",
       "Bash(python:*)",
       "Bash(swift run:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(xcodebuild:*)"
     ],
     "deny": []
   }
