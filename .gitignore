@@ -1,1 +1,6 @@
 tmp
+
+# Security - Wallet files with private keys
+*.json
+wallet_*.json
+1Limit/wallet_*.json
