@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TradeView: View {
-  @State private var fromAmount = ""
+  @State private var fromAmount = "0.01"
   @State private var limitPrice = ""
   @State private var fromToken = "WMATIC"
   @State private var toToken = "USDC"
@@ -54,6 +54,7 @@ struct TradeView: View {
     .onAppear {
       Task {
         await priceService.fetchPrices()
+        updateLimitPriceToMarket()
       }
     }
   }
@@ -333,12 +334,35 @@ struct TradeView: View {
       let tempToken = fromToken
       fromToken = toToken
       toToken = tempToken
+      
+      // Clear limit price so it gets updated to new market rate
+      limitPrice = ""
+      updateLimitPriceToMarket()
     }
   }
 
   private func updatePreview() {
     // This method is called when amount or limit price changes
     // The calculated receive amount is automatically updated via the computed property
+  }
+  
+  private func updateLimitPriceToMarket() {
+    // Only set if limit price is empty to avoid overriding user input
+    guard limitPrice.isEmpty else { return }
+    
+    if let fromPrice = priceService.getPrice(for: fromToken),
+       let toPrice = priceService.getPrice(for: toToken) {
+      
+      // Calculate market rate (fromToken per toToken)
+      let marketRate = fromPrice.usdPrice / toPrice.usdPrice
+      
+      // Round to 3 decimal places for USDC pairs
+      if toToken == "USDC" || fromToken == "USDC" {
+        limitPrice = String(format: "%.3f", marketRate)
+      } else {
+        limitPrice = String(format: "%.6f", marketRate)
+      }
+    }
   }
 }
 
