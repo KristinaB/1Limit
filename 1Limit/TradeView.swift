@@ -12,19 +12,46 @@ struct TradeView: View {
     @State private var toAmount = ""
     @State private var fromToken = "WMATIC"
     @State private var toToken = "USDC"
+    @State private var showingChart = false
     
     var body: some View {
-        NavigationView {
+        ScrollView {
             VStack(spacing: 24) {
-                // Header
+                // Header with chart button 📈
                 VStack(spacing: 8) {
-                    Image(systemName: "arrow.left.arrow.right")
-                        .font(.system(size: 40))
-                        .foregroundColor(.blue)
+                    HStack {
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 40))
+                            .foregroundColor(.blue)
+                        
+                        Spacer()
+                        
+                        Button(action: { showingChart = true }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                Text("Chart")
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.purple)
+                            .cornerRadius(8)
+                        }
+                    }
                     
                     Text("Create Limit Order")
                         .font(.title2)
                         .fontWeight(.semibold)
+                    
+                    // Currency pair display 🎀
+                    Text("\(fromToken)/\(toToken)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(6)
                 }
                 
                 // Trading form
@@ -95,8 +122,6 @@ struct TradeView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
-                Spacer()
-                
                 // Create order button
                 Button(action: createLimitOrder) {
                     Text("Create Limit Order")
@@ -108,20 +133,27 @@ struct TradeView: View {
                         .cornerRadius(12)
                 }
                 .disabled(fromAmount.isEmpty || toAmount.isEmpty)
+                .padding(.top, 20)
             }
             .padding()
-            .navigationTitle("Trade")
+        }
+        .navigationTitle("Trade")
+        .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $showingChart) {
+            ChartView(currencyPair: "\(fromToken)/\(toToken)")
         }
     }
     
     private func swapTokens() {
-        let tempToken = fromToken
-        fromToken = toToken
-        toToken = tempToken
-        
-        let tempAmount = fromAmount
-        fromAmount = toAmount
-        toAmount = tempAmount
+        withAnimation(.easeInOut(duration: 0.3)) {
+            let tempToken = fromToken
+            fromToken = toToken
+            toToken = tempToken
+            
+            let tempAmount = fromAmount
+            fromAmount = toAmount
+            toAmount = tempAmount
+        }
     }
     
     private func createLimitOrder() {

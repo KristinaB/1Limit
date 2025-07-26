@@ -12,28 +12,30 @@ struct TransactionsView: View {
     private let filters = ["All", "Pending", "Filled", "Cancelled"]
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                // Filter picker
-                Picker("Filter", selection: $selectedFilter) {
-                    ForEach(filters, id: \.self) { filter in
-                        Text(filter).tag(filter)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
-                
-                // Transactions list
-                if mockTransactions.isEmpty {
-                    EmptyTransactionsView()
-                } else {
-                    List(filteredTransactions) { transaction in
-                        TransactionRow(transaction: transaction)
-                    }
+        VStack(spacing: 0) {
+            // Filter picker
+            Picker("Filter", selection: $selectedFilter) {
+                ForEach(filters, id: \.self) { filter in
+                    Text(filter).tag(filter)
                 }
             }
-            .navigationTitle("Transactions")
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+            
+            // Transactions list
+            if mockTransactions.isEmpty {
+                ScrollView {
+                    EmptyTransactionsView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                List(filteredTransactions) { transaction in
+                    TransactionRow(transaction: transaction)
+                }
+            }
         }
+        .navigationTitle("Transactions")
+        .navigationBarTitleDisplayMode(.large)
     }
     
     private var filteredTransactions: [MockTransaction] {

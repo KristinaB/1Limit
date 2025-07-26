@@ -9,7 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     var body: some View {
-        NavigationView {
+        ScrollView {
             VStack(spacing: 20) {
                 Image(systemName: "house.fill")
                     .font(.system(size: 60))
@@ -32,16 +32,16 @@ struct HomeView: View {
                 .background(Color(.systemGray6))
                 .cornerRadius(12)
                 
-                Spacer()
-                
                 Text("Use the Trade tab to create limit orders 🚀")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .padding(.top, 40)
             }
             .padding()
-            .navigationTitle("Home")
         }
+        .navigationTitle("Home")
+        .navigationBarTitleDisplayMode(.large)
     }
 }
 
