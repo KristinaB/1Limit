@@ -9,11 +9,24 @@ import SwiftUI
 
 @main
 struct _LimitApp: App {
+  @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+  
   var body: some Scene {
     WindowGroup {
       ContentView()
         .preferredColorScheme(.dark)
-        .supportedInterfaceOrientations(.portrait)
+        .onAppear {
+          // Lock orientation to portrait
+          AppDelegate.orientationLock = UIInterfaceOrientationMask.portrait
+        }
     }
+  }
+}
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+  static var orientationLock = UIInterfaceOrientationMask.portrait
+  
+  func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+    return AppDelegate.orientationLock
   }
 }
