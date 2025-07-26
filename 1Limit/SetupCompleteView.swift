@@ -88,15 +88,9 @@ struct SetupCompleteView: View {
                 Spacer(minLength: 40)
             }
         }
-        .background(
-            NavigationLink(
-                destination: LoadFundsView(useStackNavigation: true, onComplete: onComplete),
-                isActive: $showLoadFunds
-            ) {
-                EmptyView()
-            }
-            .hidden()
-        )
+        .navigationDestination(isPresented: $showLoadFunds) {
+            LoadFundsView(useStackNavigation: true, onComplete: onComplete)
+        }
         .preferredColorScheme(.dark)
     }
 }

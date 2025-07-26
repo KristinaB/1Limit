@@ -129,15 +129,9 @@ struct BackupPhraseView: View {
                     }
                 }
             }
-            .background(
-                NavigationLink(
-                    destination: SetupCompleteView(useStackNavigation: true, onComplete: onComplete),
-                    isActive: $proceedToSetup
-                ) {
-                    EmptyView()
-                }
-                .hidden()
-            )
+            .navigationDestination(isPresented: $proceedToSetup) {
+                SetupCompleteView(useStackNavigation: true, onComplete: onComplete)
+            }
         
         if useStackNavigation {
             return AnyView(content
