@@ -29,9 +29,9 @@ struct WalletCreationView: View {
                                 .fill(
                                     LinearGradient(
                                         colors: [
-                                            Color.blue.opacity(0.8),
-                                            Color.purple.opacity(0.6),
-                                            Color.gray.opacity(0.4)
+                                            Color.primaryGradientStart.opacity(0.8),
+                                            Color.primaryGradientEnd.opacity(0.6),
+                                            Color.borderGray.opacity(0.4)
                                         ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
@@ -39,19 +39,14 @@ struct WalletCreationView: View {
                                 )
                                 .frame(width: 80, height: 80)
                             
-                            Text("1")
-                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 36, weight: .medium))
                                 .foregroundColor(.white)
-                            
-                            Text("Limit")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white.opacity(0.9))
-                                .offset(x: 8, y: 20)
                         }
                         
                         // Title and description
                         VStack(spacing: 8) {
-                            Text("Crypto Trade")
+                            Text("1Limit")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
