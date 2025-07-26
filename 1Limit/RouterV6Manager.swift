@@ -257,14 +257,14 @@ class RouterV6Manager: ObservableObject {
         
         // Prepare fillOrder parameters as [AnyObject] for web3swift
         let orderTuple = [
-            order.salt.toBigUInt(),
-            makerUint256.toBigUInt(),
-            makerUint256.toBigUInt(), // receiver = maker
-            makerAssetUint256.toBigUInt(),
-            takerAssetUint256.toBigUInt(),
+            order.salt,
+            makerUint256,
+            makerUint256, // receiver = maker
+            makerAssetUint256,
+            takerAssetUint256,
             BigUInt(order.makingAmount) ?? BigUInt(0),
             BigUInt(order.takingAmount) ?? BigUInt(0),
-            order.makerTraits.toBigUInt()
+            order.makerTraits
         ]
         
         let fillParams = [
@@ -423,7 +423,7 @@ class RouterV6Manager: ObservableObject {
         )
     }
     
-    private func createRouterV6Order(salt: SimpleBigUInt, nonce: UInt64, makerTraits: SimpleBigUInt) -> RouterV6OrderInfo {
+    private func createRouterV6Order(salt: BigUInt, nonce: UInt64, makerTraits: BigUInt) -> RouterV6OrderInfo {
         // Use real wallet address from loaded wallet
         let walletAddress = wallet?.address ?? "0x3f847d4390b5a2783ea4aed6887474de8ffffa95"
         
@@ -752,7 +752,7 @@ class RouterV6Manager: ObservableObject {
     // MARK: - Router V6 Specific Functions
     
     /// Convert Ethereum address to uint256 (required by Router V6)
-    private func addressToUint256(_ address: String) throws -> SimpleBigUInt {
+    private func addressToUint256(_ address: String) throws -> BigUInt {
         guard address.hasPrefix("0x") && address.count == 42 else {
             throw RouterV6Error.invalidAddress
         }
@@ -762,7 +762,7 @@ class RouterV6Manager: ObservableObject {
             throw RouterV6Error.invalidAddress
         }
         
-        return SimpleBigUInt(addressData)
+        return BigUInt(addressData)
     }
     
     /// Prepare Router V6 fillOrder parameters (ported from RouterV6Wallet)
@@ -917,7 +917,7 @@ enum RouterV6Error: LocalizedError {
 /// Keccak-256 hash function (for EIP-712 compliance)
 func keccak256(_ data: Data) -> Data {
     // REAL keccak256 using CryptoSwift (matching 1inch Router V6 spec)
-    return Data(data.keccak256())
+    return Data(data.bytes.keccak256())
 }
 
 // MARK: - Data Extensions
