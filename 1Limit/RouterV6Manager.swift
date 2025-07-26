@@ -521,8 +521,38 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func signRouterV6Order(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
-        // Use the simpler, working real signature implementation
-        return try generateRealSignature(order: order, domain: domain)
+        // Use the exact same EIP712SignerWeb3 implementation as the working RouterV6Wallet
+        guard let wallet = wallet else {
+            throw RouterV6Error.signingFailed
+        }
+        
+        // Convert our types to match EIP712SignerWeb3.RouterV6Order
+        let web3Order = EIP712SignerWeb3.RouterV6Order(
+            salt: order.salt,
+            maker: order.maker,
+            receiver: order.receiver,
+            makerAsset: order.makerAsset,
+            takerAsset: order.takerAsset,
+            makingAmount: BigUInt(order.makingAmount) ?? BigUInt(0),
+            takingAmount: BigUInt(order.takingAmount) ?? BigUInt(0),
+            makerTraits: order.makerTraits
+        )
+        
+        let web3Domain = EIP712SignerWeb3.EIP712Domain(
+            name: domain.name,
+            version: domain.version,
+            chainId: BigUInt(domain.chainID),
+            verifyingContract: domain.verifyingContract
+        )
+        
+        // Sign using the exact same implementation that works
+        let signature = try EIP712SignerWeb3.signRouterV6Order(
+            order: web3Order,
+            domain: web3Domain,
+            privateKey: wallet.privateKey
+        )
+        
+        return "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
     }
     
     private func generateRealSignature(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
