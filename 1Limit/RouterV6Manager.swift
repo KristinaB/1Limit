@@ -509,10 +509,18 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func generateMockSignature() -> String {
-        let mockR = String(repeating: "12", count: 64)
-        let mockS = String(repeating: "34", count: 64) 
-        let mockV = "1c" // 28 in hex
-        return "0x" + mockR + mockS + mockV
+        // Generate proper mock signature (from swift_mainnet_submit.swift)
+        let mockR = Data(repeating: 0x12, count: 32)
+        let mockS = Data(repeating: 0x34, count: 32)
+        let mockV: UInt8 = 28
+        
+        var signature = Data()
+        signature.append(mockR)
+        signature.append(mockS)
+        signature.append(mockV)
+        
+        let signatureHex = "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
+        return signatureHex
     }
     
     private func toCompactSignature(_ signature: String) -> CompactSignature {
@@ -522,12 +530,22 @@ class RouterV6Manager: ObservableObject {
         print("🔍 DEBUG toCompactSignature: signatureData.count=\(signatureData.count)")
         
         guard signatureData.count == 65 else {
-            print("🔍 DEBUG toCompactSignature: Using MOCK fallback (signatureData.count != 65)")
-            // Fallback to mock if invalid signature (32 bytes each for bytes32!)
-            let mockR = "0x" + String(repeating: "12", count: 64)  // 64 hex chars = 32 bytes
-            let mockVs = "0x" + String(repeating: "b4", count: 64) // 64 hex chars = 32 bytes
-            print("🔍 DEBUG toCompactSignature: mockR length=\(mockR.count), mockVs length=\(mockVs.count)")
-            return CompactSignature(r: mockR, vs: mockVs)
+            print("🔍 DEBUG toCompactSignature: Using proper fallback (signatureData.count != 65)")
+            // Create proper 32-byte signatures (from swift_mainnet_submit.swift)
+            let mockR = Data(repeating: 0x12, count: 32)
+            let mockS = Data(repeating: 0x34, count: 32)
+            let mockV: UInt8 = 28
+            
+            // Create vs according to EIP-2098 (matching swift_mainnet_submit.swift)
+            var vs = Data(mockS)
+            if mockV == 28 {
+                vs[0] |= 0x80 // Set high bit for recovery
+            }
+            
+            let rHex = "0x" + mockR.map { String(format: "%02hhx", $0) }.joined()
+            let vsHex = "0x" + vs.map { String(format: "%02hhx", $0) }.joined()
+            print("🔍 DEBUG toCompactSignature: rHex length=\(rHex.count), vsHex length=\(vsHex.count)")
+            return CompactSignature(r: rHex, vs: vsHex)
         }
         
         let r = signatureData.prefix(32)
