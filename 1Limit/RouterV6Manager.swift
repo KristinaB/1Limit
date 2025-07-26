@@ -290,7 +290,16 @@ class RouterV6Manager: ObservableObject {
                 takerTraitsBig as AnyObject
             ]
             
+            await addLog("🔍 DEBUG: Parameter types and values:")
+            await addLog("   orderTuple: \(type(of: orderTuple)) with \(orderTuple.count) elements")
+            await addLog("   rData: \(type(of: rData)) (\(rData.count) bytes)")
+            await addLog("   vsData: \(type(of: vsData)) (\(vsData.count) bytes)")
+            await addLog("   makingAmount: \(type(of: makingAmountBig)) = \(makingAmountBig)")
+            await addLog("   takerTraits: \(type(of: takerTraitsBig)) = \(takerTraitsBig)")
+            await addLog("   fillParams count: \(fillParams.count)")
+            
             guard let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
+                await addLog("❌ createWriteOperation returned nil - parameter/ABI mismatch")
                 throw RouterV6Error.transactionCreationFailed
             }
             
