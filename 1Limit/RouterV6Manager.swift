@@ -508,19 +508,76 @@ class RouterV6Manager: ObservableObject {
         }
     }
     
-    private func generateMockSignature() -> String {
-        // Generate proper mock signature (from swift_mainnet_submit.swift)
-        let mockR = Data(repeating: 0x12, count: 32)
-        let mockS = Data(repeating: 0x34, count: 32)
-        let mockV: UInt8 = 28
+    private func generateRealSignature(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
+        // REAL signature generation using actual cryptographic functions
+        guard let wallet = wallet else {
+            throw RouterV6Error.signingFailed
+        }
         
-        var signature = Data()
-        signature.append(mockR)
-        signature.append(mockS)
-        signature.append(mockV)
+        // Create EIP-712 typed data hash
+        let typeHash = keccak256("Order(uint256 salt,address maker,address receiver,address makerAsset,address takerAsset,uint256 makingAmount,uint256 takingAmount,uint256 makerTraits)".data(using: .utf8)!)
         
-        let signatureHex = "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
-        return signatureHex
+        let domainSeparator = createDomainSeparator(domain: domain)
+        let structHash = createStructHash(order: order, typeHash: typeHash)
+        
+        // Create final message hash for signing
+        var messageHash = Data()
+        messageHash.append(Data([0x19, 0x01])) // EIP-712 prefix
+        messageHash.append(domainSeparator)
+        messageHash.append(structHash)
+        let finalHash = keccak256(messageHash)
+        
+        // Sign with real secp256k1 (using web3swift's built-in signing)
+        let privateKeyData = Data(hex: String(wallet.privateKey.dropFirst(2)))
+        let signature = try signWithSecp256k1(hash: finalHash, privateKey: privateKeyData)
+        
+        return "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
+    }
+    
+    private func createDomainSeparator(domain: EIP712DomainInfo) -> Data {
+        let domainTypeHash = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)".data(using: .utf8)!)
+        let nameHash = keccak256(domain.name.data(using: .utf8)!)
+        let versionHash = keccak256(domain.version.data(using: .utf8)!)
+        
+        var encoded = Data()
+        encoded.append(domainTypeHash)
+        encoded.append(nameHash)
+        encoded.append(versionHash)
+        encoded.append(Data(count: 32 - 8)) // pad chainId to 32 bytes
+        encoded.append(withUnsafeBytes(of: UInt64(domain.chainID).bigEndian) { Data($0) })
+        encoded.append(Data(hex: domain.verifyingContract.dropFirst(2)).padded(to: 32))
+        
+        return keccak256(encoded)
+    }
+    
+    private func createStructHash(order: RouterV6OrderInfo, typeHash: Data) -> Data {
+        var encoded = Data()
+        encoded.append(typeHash)
+        encoded.append(order.salt.data.padded(to: 32))
+        encoded.append(Data(hex: order.maker.dropFirst(2)).padded(to: 32))
+        encoded.append(Data(hex: order.receiver.dropFirst(2)).padded(to: 32))
+        encoded.append(Data(hex: order.makerAsset.dropFirst(2)).padded(to: 32))
+        encoded.append(Data(hex: order.takerAsset.dropFirst(2)).padded(to: 32))
+        encoded.append(BigUInt(order.makingAmount)?.serialize() ?? Data(count: 32))
+        encoded.append(BigUInt(order.takingAmount)?.serialize() ?? Data(count: 32))
+        encoded.append(order.makerTraits.data.padded(to: 32))
+        
+        return keccak256(encoded)
+    }
+    
+    private func signWithSecp256k1(hash: Data, privateKey: Data) throws -> Data {
+        // Use web3swift's real secp256k1 signing
+        guard let keystore = try? EthereumKeystoreV3(privateKey: privateKey, password: "") else {
+            throw RouterV6Error.signingFailed
+        }
+        
+        // Sign the hash using web3swift's built-in secp256k1
+        // This will produce a real 65-byte signature (r + s + v)
+        guard let signature = try? Web3Signer.signPersonalMessage(hash, keystore: keystore, account: EthereumAddress(wallet!.address)!, password: "") else {
+            throw RouterV6Error.signingFailed
+        }
+        
+        return signature
     }
     
     private func toCompactSignature(_ signature: String) -> CompactSignature {
