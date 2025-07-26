@@ -165,7 +165,16 @@ class PriceService: ObservableObject {
         // Fetch each token price individually
         for (symbol, address) in tokenAddresses {
             do {
-                let url = URL(string: "\(baseURL)/\(address.lowercased())")!
+                // Add currency=USD parameter to get prices in USD
+                var components = URLComponents(string: "\(baseURL)/\(address.lowercased())")!
+                components.queryItems = [
+                    URLQueryItem(name: "currency", value: "USD")
+                ]
+                
+                guard let url = components.url else {
+                    print("⚠️ Failed to create URL for \(symbol)")
+                    continue
+                }
                 
                 var request = URLRequest(url: url)
                 request.httpMethod = "GET"
@@ -180,27 +189,16 @@ class PriceService: ObservableObject {
                     continue
                 }
                 
-                // Parse the JSON response: {"0x...": "4247330692545463675"}
+                // Parse the JSON response: {"0x...": "0.9996755210754397"}
                 guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: String],
                       let priceString = jsonObject[address.lowercased()],
-                      let priceWei = Double(priceString) else {
+                      let usdPrice = Double(priceString) else {
                     print("⚠️ Invalid price data for \(symbol)")
                     continue
                 }
                 
-                // 1inch API returns prices in different formats
-                // Convert to USD based on token type and expected values
-                let usdPrice: Double
-                if symbol == "USDC" {
-                    // USDC should be around $1.00, divide by appropriate factor
-                    usdPrice = priceWei / pow(10, 18)
-                } else if symbol == "WMATIC" {
-                    // WMATIC should be around $0.40-0.60, divide by appropriate factor  
-                    usdPrice = priceWei / pow(10, 6)
-                } else {
-                    // Default fallback
-                    usdPrice = priceWei / pow(10, 18)
-                }
+                // With currency=USD parameter, API returns direct USD prices as decimals
+                // No conversion needed - the value is already in USD
                 
                 tokenPrices[symbol] = TokenPrice(
                     symbol: symbol,
