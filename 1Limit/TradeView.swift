@@ -108,18 +108,38 @@ struct TradeView: View {
                     
                     // Swap button
                     Button(action: swapTokens) {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.title2)
-                            .foregroundColor(.primaryGradientStart)
-                            .padding(12)
-                            .background(
-                                Circle()
-                                    .fill(Color.inputBackground)
-                                    .overlay(
-                                        Circle()
-                                            .strokeBorder(Color.borderGray.opacity(0.3), lineWidth: 1)
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.25),
+                                            Color.white.opacity(0.15),
+                                            Color.white.opacity(0.1)
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
                                     )
-                            )
+                                )
+                                .frame(width: 50, height: 50)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
+                                .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white)
+                        }
                     }
                     .padding(.vertical, 8)
                     
