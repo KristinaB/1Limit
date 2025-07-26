@@ -262,24 +262,30 @@ class RouterV6Manager: ObservableObject {
             let makerAssetUint256 = try addressToUint256(order.makerAsset)
             let takerAssetUint256 = try addressToUint256(order.takerAsset)
             
-            // Prepare fillOrder parameters as [AnyObject] for web3swift
+            // Prepare fillOrder parameters for web3swift
+            let makingAmountBig = BigUInt(order.makingAmount) ?? BigUInt(0)
+            let takingAmountBig = BigUInt(order.takingAmount) ?? BigUInt(0)
+            let rBig = BigUInt(compactSig.r, radix: 16) ?? BigUInt(0)
+            let vsBig = BigUInt(compactSig.vs, radix: 16) ?? BigUInt(0)
+            let takerTraitsBig = BigUInt(0)
+            
             let orderTuple = [
-                order.salt as AnyObject,
-                makerUint256 as AnyObject,
-                makerUint256 as AnyObject, // receiver = maker
-                makerAssetUint256 as AnyObject,
-                takerAssetUint256 as AnyObject,
-                BigUInt(order.makingAmount) ?? BigUInt(0) as AnyObject,
-                BigUInt(order.takingAmount) ?? BigUInt(0) as AnyObject,
-                order.makerTraits as AnyObject
+                order.salt,
+                makerUint256,
+                makerUint256, // receiver = maker
+                makerAssetUint256,
+                takerAssetUint256,
+                makingAmountBig,
+                takingAmountBig,
+                order.makerTraits
             ]
             
             let fillParams = [
-                orderTuple as AnyObject,
-                BigUInt(compactSig.r, radix: 16) ?? BigUInt(0) as AnyObject,
-                BigUInt(compactSig.vs, radix: 16) ?? BigUInt(0) as AnyObject,
-                BigUInt(order.makingAmount) ?? BigUInt(0) as AnyObject,
-                BigUInt(0) as AnyObject // takerTraits
+                orderTuple,
+                rBig,
+                vsBig,
+                makingAmountBig,
+                takerTraitsBig
             ]
             
             guard let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
@@ -954,6 +960,8 @@ enum RouterV6Error: LocalizedError {
     case invalidPrivateKey
     case invalidOrderData
     case signingFailed
+    case contractCreationFailed
+    case transactionCreationFailed
     
     var errorDescription: String? {
         switch self {
@@ -973,6 +981,10 @@ enum RouterV6Error: LocalizedError {
             return "Invalid Router V6 order data"
         case .signingFailed:
             return "Failed to sign Router V6 order"
+        case .contractCreationFailed:
+            return "Failed to create Router V6 contract instance"
+        case .transactionCreationFailed:
+            return "Failed to create Router V6 transaction"
         }
     }
 }
