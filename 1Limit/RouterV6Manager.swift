@@ -496,22 +496,8 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func signRouterV6Order(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
-        // Real EIP-712 signature implementation (ported from Go/Swift RouterV6)
-        guard let wallet = wallet else {
-            throw RouterV6Error.signingFailed
-        }
-        
-        do {
-            let signature = try createRealEIP712Signature(
-                order: order,
-                domain: domain,
-                privateKey: wallet.privateKey
-            )
-            return "0x" + signature.map { String(format: "%02hhx", $0) }.joined()
-        } catch {
-            // Fallback to mock if real signing fails
-            throw RouterV6Error.signingFailed
-        }
+        // Use the simpler, working real signature implementation
+        return try generateRealSignature(order: order, domain: domain)
     }
     
     private func generateRealSignature(order: RouterV6OrderInfo, domain: EIP712DomainInfo) throws -> String {
@@ -599,22 +585,8 @@ class RouterV6Manager: ObservableObject {
         print("🔍 DEBUG toCompactSignature: signatureData.count=\(signatureData.count)")
         
         guard signatureData.count == 65 else {
-            print("🔍 DEBUG toCompactSignature: Using proper fallback (signatureData.count != 65)")
-            // Create proper 32-byte signatures (from swift_mainnet_submit.swift)
-            let mockR = Data(repeating: 0x12, count: 32)
-            let mockS = Data(repeating: 0x34, count: 32)
-            let mockV: UInt8 = 28
-            
-            // Create vs according to EIP-2098 (matching swift_mainnet_submit.swift)
-            var vs = Data(mockS)
-            if mockV == 28 {
-                vs[0] |= 0x80 // Set high bit for recovery
-            }
-            
-            let rHex = "0x" + mockR.map { String(format: "%02hhx", $0) }.joined()
-            let vsHex = "0x" + vs.map { String(format: "%02hhx", $0) }.joined()
-            print("🔍 DEBUG toCompactSignature: rHex length=\(rHex.count), vsHex length=\(vsHex.count)")
-            return CompactSignature(r: rHex, vs: vsHex)
+            print("❌ ERROR: Invalid signature length: \(signatureData.count) bytes, expected 65")
+            fatalError("Signature generation failed - no mock fallbacks allowed")
         }
         
         let r = signatureData.prefix(32)
@@ -630,6 +602,7 @@ class RouterV6Manager: ObservableObject {
         let rHex = "0x" + r.map { String(format: "%02hhx", $0) }.joined()
         let vsHex = "0x" + vs.map { String(format: "%02hhx", $0) }.joined()
         
+        print("🔍 DEBUG toCompactSignature: Final rHex length=\(rHex.count), vsHex length=\(vsHex.count)")
         return CompactSignature(r: rHex, vs: vsHex)
     }
     
