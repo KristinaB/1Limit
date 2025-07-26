@@ -92,6 +92,7 @@ struct DebugView: View {
                     }
                     .padding()
                 }
+            }
             .navigationTitle("Debug")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
