@@ -98,14 +98,6 @@ struct SetupCompleteView: View {
             .hidden()
         )
         .preferredColorScheme(.dark)
-        .onAppear {
-            if useStackNavigation {
-                // Auto-dismiss after 2 seconds when in stack navigation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    onComplete?()
-                }
-            }
-        }
     }
 }
 
