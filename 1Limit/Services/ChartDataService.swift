@@ -176,7 +176,7 @@ class ChartDataService: ObservableObject {
     private func loadAPIKey() -> String? {
         // Try to load from app bundle first (for iOS app)
         if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt"),
-           let content = try? String(contentsOfFile: path).trimmingCharacters(in: .whitespacesAndNewlines),
+           let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
            !content.isEmpty {
             return content
         }
@@ -184,7 +184,7 @@ class ChartDataService: ObservableObject {
         // Try to load from config directory (fallback for development)
         if let homeDir = NSHomeDirectory() as String?,
            let configPath = URL(string: homeDir)?.appendingPathComponent("config/api_keys.txt").path,
-           let content = try? String(contentsOfFile: configPath).trimmingCharacters(in: .whitespacesAndNewlines),
+           let content = try? String(contentsOfFile: configPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
            !content.isEmpty {
             return content
         }
