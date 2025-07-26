@@ -519,15 +519,18 @@ class OrderPlacementService: ObservableObject {
     isExecuting = true
     defer { isExecuting = false }
     
-    // For now, use the existing executeTestTransaction
-    // TODO: Create dynamic version that uses the actual form values
-    await routerManager.executeTestTransaction()
+    // Execute dynamic order with real form values
+    let success = await routerManager.executeDynamicOrder(
+      fromAmount: fromAmount,
+      fromToken: fromToken,
+      toToken: toToken,
+      limitPrice: limitPrice
+    )
     
-    // Mock successful result for now
     let result = OrderPlacementResult(
-      success: true,
-      transactionHash: "0x1234...abcd",
-      error: nil
+      success: success,
+      transactionHash: success ? "0x1234...abcd" : nil,
+      error: success ? nil : NSError(domain: "OrderPlacement", code: 1, userInfo: [NSLocalizedDescriptionKey: "Order placement failed"])
     )
     
     lastResult = result

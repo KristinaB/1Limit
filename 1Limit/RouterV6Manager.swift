@@ -98,6 +98,58 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     isExecuting = false
   }
 
+  func executeDynamicOrder(
+    fromAmount: String,
+    fromToken: String,
+    toToken: String,
+    limitPrice: String
+  ) async -> Bool {
+    isExecuting = true
+    executionLog = ""
+
+    await addLog("🚀 1inch Router V6 Dynamic Order Execution")
+    await addLog("=====================================\n")
+    await addLog("📊 Order Parameters:")
+    await addLog("   From: \(fromAmount) \(fromToken)")
+    await addLog("   To: \(toToken)")
+    await addLog("   Limit Price: \(limitPrice)")
+    await addLog("")
+
+    do {
+      // Step 1: Load wallet
+      wallet = try await loadWallet()
+
+      // Step 2: Create dynamic order
+      let orderResult = try await createDynamicOrder(
+        fromAmount: fromAmount,
+        fromToken: fromToken,
+        toToken: toToken,
+        limitPrice: limitPrice
+      )
+
+      // Step 3: Sign order
+      let signature = try await signOrder(orderResult.order)
+
+      // Step 4: Validate and check balances
+      try await performPreflightChecks(orderResult.order)
+
+      // Step 5: Submit transaction
+      _ = try await submitTransaction(
+        order: orderResult.order,
+        signature: signature
+      )
+
+      await addLog("🎉 Dynamic Order Placed Successfully! 🎊")
+      isExecuting = false
+      return true
+
+    } catch {
+      await addLog("❌ Order placement failed: \(error.localizedDescription)")
+      isExecuting = false
+      return false
+    }
+  }
+
   // MARK: - Private Execution Steps
 
   private func loadWallet() async throws -> WalletData {
@@ -128,6 +180,85 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       takerAsset: networkConfig.usdc,
       makingAmount: BigUInt(10_000_000_000_000_000),  // 0.01 WMATIC
       takingAmount: BigUInt(10000),  // 0.01 USDC
+      config: networkConfig,
+      orderConfig: .default
+    )
+
+    if !orderResult.isValid {
+      await addLog("⚠️ Order validation warnings:")
+      for issue in orderResult.validation.issues {
+        await addLog("   • \(issue)")
+      }
+    }
+
+    await addLog("")
+    return orderResult
+  }
+
+  private func createDynamicOrder(
+    fromAmount: String,
+    fromToken: String,
+    toToken: String,
+    limitPrice: String
+  ) async throws -> OrderCreationResult {
+    await addLog("📋 Step 2: Generating Dynamic Router V6 order...")
+
+    guard let wallet = wallet else {
+      throw RouterV6Error.invalidOrderData
+    }
+
+    // Convert string amounts to BigUInt
+    guard let amountDouble = Double(fromAmount),
+          let priceDouble = Double(limitPrice) else {
+      throw RouterV6Error.invalidOrderData
+    }
+
+    // Calculate amounts in wei/smallest units
+    let makingAmount: BigUInt
+    let takingAmount: BigUInt
+    let makerAsset: String
+    let takerAsset: String
+
+    if fromToken == "WMATIC" {
+      // WMATIC has 18 decimals
+      makingAmount = BigUInt(amountDouble * 1e18)
+      makerAsset = networkConfig.wmatic
+      
+      if toToken == "USDC" {
+        // USDC has 6 decimals
+        let receiveAmount = amountDouble / priceDouble
+        takingAmount = BigUInt(receiveAmount * 1e6)
+        takerAsset = networkConfig.usdc
+      } else {
+        throw RouterV6Error.invalidOrderData
+      }
+    } else if fromToken == "USDC" {
+      // USDC has 6 decimals
+      makingAmount = BigUInt(amountDouble * 1e6)
+      makerAsset = networkConfig.usdc
+      
+      if toToken == "WMATIC" {
+        // WMATIC has 18 decimals
+        let receiveAmount = amountDouble / priceDouble
+        takingAmount = BigUInt(receiveAmount * 1e18)
+        takerAsset = networkConfig.wmatic
+      } else {
+        throw RouterV6Error.invalidOrderData
+      }
+    } else {
+      throw RouterV6Error.invalidOrderData
+    }
+
+    await addLog("💰 Making: \(fromAmount) \(fromToken) (\(makingAmount) units)")
+    await addLog("🎯 Taking: \(toToken) (\(takingAmount) units)")
+    await addLog("💱 Rate: \(limitPrice) \(fromToken)/\(toToken)")
+
+    let orderResult = await orderFactory.createCompleteOrder(
+      walletAddress: wallet.address,
+      makerAsset: makerAsset,
+      takerAsset: takerAsset,
+      makingAmount: makingAmount,
+      takingAmount: takingAmount,
       config: networkConfig,
       orderConfig: .default
     )
