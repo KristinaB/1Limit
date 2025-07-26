@@ -9,6 +9,7 @@ import SwiftUI
 
 struct WalletCreationView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var showBackupPhrase = false
     
     var body: some View {
         NavigationView {
@@ -69,8 +70,7 @@ struct WalletCreationView: View {
                     VStack(spacing: 16) {
                         // Create Wallet button
                         Button(action: {
-                            // TODO: Implement wallet creation
-                            print("Create new wallet tapped")
+                            showBackupPhrase = true
                         }) {
                             Text("Create Wallet")
                                 .font(.headline)
@@ -120,6 +120,9 @@ struct WalletCreationView: View {
                     .foregroundColor(.white)
                 }
             }
+        }
+        .fullScreenCover(isPresented: $showBackupPhrase) {
+            BackupPhraseView()
         }
     }
 }
