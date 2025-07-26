@@ -177,6 +177,7 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 4: Creating Router V6 order structure...")
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         
+        // Use the same makerTraits value throughout (like working implementation)
         let order = createRouterV6Order(salt: salt, nonce: nonce, makerTraits: makerTraits)
         await addLog("📊 Making: 0.01 WMATIC (\(order.makingAmount) wei)")
         await addLog("🎯 Taking: 0.01 USDC (\(order.takingAmount) units)")
@@ -305,7 +306,7 @@ class RouterV6Manager: ObservableObject {
                 takerAssetUint256 as AnyObject,
                 makingAmountBig as AnyObject,
                 takingAmountBig as AnyObject,
-                order.makerTraits as AnyObject
+                order.makerTraits as AnyObject // Use same makerTraits as signed in EIP-712
             ]
             
             let fillParams = [
