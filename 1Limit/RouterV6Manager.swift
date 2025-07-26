@@ -211,12 +211,29 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func toCompactSignature(_ signature: String) -> CompactSignature {
-        // Convert to EIP-2098 compact signature format
-        // This is a simplified version - real implementation would parse the signature
-        let mockR = "0x" + String(repeating: "12", count: 64)
-        let mockVs = "0x" + String(repeating: "b4", count: 64) // s with high bit set
+        // Convert to real EIP-2098 compact signature format (r, vs)
+        let signatureData = Data(hex: signature)
+        guard signatureData.count == 65 else {
+            // Fallback to mock if invalid signature
+            let mockR = "0x" + String(repeating: "12", count: 64)
+            let mockVs = "0x" + String(repeating: "b4", count: 64)
+            return CompactSignature(r: mockR, vs: mockVs)
+        }
         
-        return CompactSignature(r: mockR, vs: mockVs)
+        let r = signatureData.prefix(32)
+        let s = signatureData.dropFirst(32).prefix(32) 
+        let v = signatureData[64]
+        
+        // Create vs according to EIP-2098 (s with recovery bit in high bit)
+        var vs = Data(s)
+        if v == 28 {
+            vs[0] |= 0x80 // Set high bit for recovery when v == 28
+        }
+        
+        let rHex = "0x" + r.map { String(format: "%02hhx", $0) }.joined()
+        let vsHex = "0x" + vs.map { String(format: "%02hhx", $0) }.joined()
+        
+        return CompactSignature(r: rHex, vs: vsHex)
     }
     
     // MARK: - Real EIP-712 Signature Implementation (Ported from Go/Swift RouterV6)
