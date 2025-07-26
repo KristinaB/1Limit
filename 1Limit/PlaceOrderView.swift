@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+enum OrderType: String, CaseIterable {
+    case buy = "buy"
+    case sell = "sell"
+    
+    var displayName: String {
+        return rawValue.capitalized
+    }
+}
+
 struct PlaceOrderView: View {
     @Environment(\.dismiss) private var dismiss
     let orderType: OrderType

@@ -72,8 +72,7 @@ struct SetupCompleteView: View {
                         showLoadFunds = true
                     }
                     
-                    SecondaryButton("Skip for Now") {
-                        // Skip to main app - could navigate to ContentView
+                    SecondaryButton("Start Trading") {
                         dismiss()
                     }
                 }

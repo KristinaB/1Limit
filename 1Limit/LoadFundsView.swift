@@ -9,7 +9,6 @@ import SwiftUI
 
 struct LoadFundsView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var showPortfolio = false
     @State private var addressCopied = false
     
     // Sample wallet address
@@ -123,8 +122,8 @@ struct LoadFundsView: View {
                         }
                         
                         // Continue button
-                        PrimaryButton("Continue") {
-                            showPortfolio = true
+                        PrimaryButton("Continue to Trade") {
+                            dismiss()
                         }
                         
                         Spacer(minLength: 40)
@@ -138,15 +137,12 @@ struct LoadFundsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     SmallButton("Done", style: .secondary) {
-                        showPortfolio = true
+                        dismiss()
                     }
                 }
             }
         }
         .preferredColorScheme(.dark)
-        .fullScreenCover(isPresented: $showPortfolio) {
-            PortfolioView()
-        }
     }
     
     private func copyAddress() {
