@@ -22,9 +22,38 @@ struct DebugView: View {
                         // Header
                         AppCard {
                             VStack(spacing: 16) {
-                                Image(systemName: "hammer.fill")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(.primaryGradientStart)
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.25),
+                                                    Color.white.opacity(0.15),
+                                                    Color.white.opacity(0.1)
+                                                ],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .frame(width: 80, height: 80)
+                                        .overlay(
+                                            Circle()
+                                                .strokeBorder(
+                                                    LinearGradient(
+                                                        colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 2
+                                                )
+                                        )
+                                        .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                    
+                                    Image(systemName: "hammer.fill")
+                                        .font(.system(size: 36, weight: .medium))
+                                        .foregroundColor(.white)
+                                }
                                 
                                 Text("Debug Console")
                                     .appTitle()

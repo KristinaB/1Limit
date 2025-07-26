@@ -20,9 +20,38 @@ struct HomeView: View {
         VStack(spacing: 24) {
           // App branding
           VStack(spacing: 16) {
-            Image(systemName: "chart.line.uptrend.xyaxis")
-              .font(.system(size: 60))
-              .foregroundColor(.primaryGradientStart)
+            ZStack {
+              Circle()
+                .fill(
+                  LinearGradient(
+                    colors: [
+                      Color.white.opacity(0.25),
+                      Color.white.opacity(0.15),
+                      Color.white.opacity(0.1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                  )
+                )
+                .frame(width: 100, height: 100)
+                .overlay(
+                  Circle()
+                    .strokeBorder(
+                      LinearGradient(
+                        colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                      ),
+                      lineWidth: 2
+                    )
+                )
+                .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+
+              Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 48, weight: .medium))
+                .foregroundColor(.white)
+            }
 
             Text("1Limit")
               .appTitle()
