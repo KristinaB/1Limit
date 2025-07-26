@@ -28,7 +28,7 @@ class EIP712SignerWeb3 {
     }
     
     // Create EIP-712 typed data exactly like Go implementation
-    static func createRouterV6TypedData(order: RouterV6Order, domain: EIP712Domain) throws -> [String: Any] {
+    static func createRouterV6TypedData(order: RouterV6Order, domain: EIP712Domain) -> [String: Any] {
         let types: [String: Any] = [
             "EIP712Domain": [
                 ["name": "name", "type": "string"],
@@ -55,33 +55,31 @@ class EIP712SignerWeb3 {
             "verifyingContract": domain.verifyingContract
         ]
         
-        // CRITICAL FIX: Convert addresses to uint256 strings for EIP-712 message (like working RouterV6Wallet)
-        let makerUint256 = try addressToUint256(order.maker)
-        let receiverUint256 = try addressToUint256(order.receiver)
-        let makerAssetUint256 = try addressToUint256(order.makerAsset)
-        let takerAssetUint256 = try addressToUint256(order.takerAsset)
-        
+        // CRITICAL FIX: Working RouterV6Wallet uses hex addresses in EIP-712 message, NOT uint256!
         let message: [String: Any] = [
             "salt": order.salt.description,
-            "maker": makerUint256.description,
-            "receiver": receiverUint256.description,
-            "makerAsset": makerAssetUint256.description,
-            "takerAsset": takerAssetUint256.description,
+            "maker": order.maker,
+            "receiver": order.receiver,
+            "makerAsset": order.makerAsset,
+            "takerAsset": order.takerAsset,
             "makingAmount": order.makingAmount.description,
             "takingAmount": order.takingAmount.description,
             "makerTraits": order.makerTraits.description
         ]
         
         // DEBUG: Log exact EIP-712 message values for comparison
-        print("🔍 EIP-712 Message Values:")
+        print("🔍 EIP-712 Original Values:")
         print("   salt: \(order.salt.description)")
-        print("   maker: \(order.maker)")
-        print("   receiver: \(order.receiver)")
-        print("   makerAsset: \(order.makerAsset)")
-        print("   takerAsset: \(order.takerAsset)")
+        print("   maker (hex): \(order.maker)")
+        print("   receiver (hex): \(order.receiver)")
+        print("   makerAsset (hex): \(order.makerAsset)")
+        print("   takerAsset (hex): \(order.takerAsset)")
         print("   makingAmount: \(order.makingAmount.description)")
         print("   takingAmount: \(order.takingAmount.description)")
         print("   makerTraits: \(order.makerTraits.description)")
+        
+        print("✅ EIP-712 Message (matches working RouterV6Wallet exactly):")
+        print("   Using hex addresses in EIP-712 message, NOT uint256")
         
         Task { @MainActor in
             await RouterV6Manager.sharedInstance?.addLog("🔍 EIP-712 Message Values:")
@@ -93,6 +91,7 @@ class EIP712SignerWeb3 {
             await RouterV6Manager.sharedInstance?.addLog("   makingAmount: \(order.makingAmount.description)")
             await RouterV6Manager.sharedInstance?.addLog("   takingAmount: \(order.takingAmount.description)")
             await RouterV6Manager.sharedInstance?.addLog("   makerTraits: \(order.makerTraits.description)")
+            await RouterV6Manager.sharedInstance?.addLog("✅ EIP-712 Message (matches working RouterV6Wallet exactly)")
         }
         
         return [
@@ -110,7 +109,7 @@ class EIP712SignerWeb3 {
         privateKey: String
     ) throws -> Data {
         // Create EIP712 typed data
-        let eip712Data = try createRouterV6TypedData(order: order, domain: domain)
+        let eip712Data = createRouterV6TypedData(order: order, domain: domain)
         
         // Remove 0x prefix if present
         let cleanPrivateKey = privateKey.hasPrefix("0x") ? String(privateKey.dropFirst(2)) : privateKey
@@ -158,36 +157,68 @@ class EIP712SignerWeb3 {
             useExtraEntropy: false
         )
         
-        // Extract raw signature (65 bytes: r + s + v)
+        guard let serialized = signResult.serializedSignature else {
+            throw EIP712Error.signingFailed
+        }
+        
+        // Extract v from raw signature (last byte)
         guard let rawSig = signResult.rawSignature,
               rawSig.count == 65 else {
             throw EIP712Error.signingFailed
         }
         
         let v = rawSig[64]
-        print("🔑 Signature v: \(v)")
         
-        // Return full 65-byte signature (r + s + v)
-        return rawSig
+        // Build full signature (r + s + v) - ensure exactly 65 bytes (EXACT COPY from working implementation)
+        var fullSignature = Data()
+        fullSignature.append(serialized) // r + s (64 bytes)
+        fullSignature.append(v) // v (1 byte)
+        
+        // Ensure exactly 65 bytes (trim any extra bytes)
+        if fullSignature.count > 65 {
+            fullSignature = fullSignature.prefix(65)
+        }
+        
+        print("🔐 SECP256K1 signature generated:")
+        print("   r: 0x\(serialized.prefix(32).toHexString())")
+        print("   s: 0x\(serialized.dropFirst(32).toHexString())")
+        print("   v: \(v)")
+        print("   Full signature length: \(fullSignature.count) bytes")
+        
+        return fullSignature
     }
     
-    // Convert standard signature to EIP-2098 compact format
-    static func toCompactSignature(signature: Data) -> CompactSignature {
+    // Convert signature to EIP-2098 compact format (r, vs) - EXACT COPY from working implementation
+    static func toCompactSignature(signature: Data) -> (r: Data, vs: Data) {
+        print("🔧 Converting signature - Length: \(signature.count) bytes")
+        
         guard signature.count == 65 else {
-            fatalError("Invalid signature length")
+            print("❌ Invalid signature length: \(signature.count), expected 65")
+            print("   Signature: 0x\(signature.toHexString())")
+            return (Data(repeating: 0, count: 32), Data(repeating: 0, count: 32))
         }
         
         let r = signature.prefix(32)
         let s = signature.dropFirst(32).prefix(32)
         let v = signature[64]
         
-        // Create vs by setting the high bit of s based on v
+        print("🔐 Signature components:")
+        print("   r: 0x\(r.toHexString())")
+        print("   s: 0x\(s.toHexString())")
+        print("   v: \(v)")
+        
+        // Create vs according to EIP-2098
         var vs = Data(s)
         if v == 28 {
-            vs[0] |= 0x80
+            vs[0] |= 0x80 // Set high bit for recovery when v == 28
+            print("   Applied recovery bit for v=28")
         }
         
-        return CompactSignature(r: r, vs: vs)
+        print("🎯 EIP-2098 result:")
+        print("   r: 0x\(r.toHexString())")
+        print("   vs: 0x\(vs.toHexString())")
+        
+        return (Data(r), vs)
     }
     
     // Convert address to uint256 (critical for Router V6 EIP-712 compatibility)

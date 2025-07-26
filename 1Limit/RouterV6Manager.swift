@@ -205,7 +205,7 @@ class RouterV6Manager: ObservableObject {
         await addLog("🔐 EIP-712 signature generated (65 bytes)")
         await addLog("🔧 Converting to EIP-2098 compact format...")
         
-        let compactSig = toCompactSignature(signature)
+        let compactSig = EIP712SignerWeb3.toCompactSignature(signature: Data(hex: String(signature.dropFirst(2))))
         await addLog("✅ Compact signature ready:")
         await addLog("   r:  0x\(compactSig.r.prefix(10).map { String(format: "%02hhx", $0) }.joined())...")
         await addLog("   vs: 0x\(compactSig.vs.prefix(10).map { String(format: "%02hhx", $0) }.joined())...\n")
