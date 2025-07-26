@@ -245,6 +245,19 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 7: Submitting to Polygon Mainnet...")
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         
+        // Pre-flight checks (like reference script)
+        await addLog("🔍 Running pre-flight checks...")
+        guard await checkWalletBalance() else {
+            await addLog("❌ Insufficient MATIC balance for gas")
+            return
+        }
+        
+        await addLog("🔍 Checking token allowances...")
+        guard await checkTokenAllowances(order: order) else {
+            await addLog("❌ Insufficient token allowances for Router V6")
+            return
+        }
+        
         // REAL BLOCKCHAIN SUBMISSION - WEB3SWIFT ENABLED!
         await addLog("🌐 Connecting to Polygon mainnet...")
         
@@ -820,6 +833,85 @@ class RouterV6Manager: ObservableObject {
         
         // Add 20% boost like Go implementation
         return totalGasPrice * 120 / 100
+    }
+    
+    /// Check wallet balance like reference script
+    private func checkWalletBalance() async -> Bool {
+        guard let wallet = wallet else { return false }
+        
+        do {
+            guard let rpcURL = URL(string: polygonConfig.rpcUrl) else { return false }
+            let web3 = try await Web3.new(rpcURL)
+            
+            guard let address = EthereumAddress(wallet.address) else { return false }
+            let balanceResult = try await web3.eth.getBalance(for: address)
+            
+            let balanceEth = Double(balanceResult) / 1e18
+            await addLog("💰 MATIC Balance: \(String(format: "%.6f", balanceEth)) MATIC")
+            
+            // Need at least 0.02 MATIC for gas (conservative estimate)
+            let hasBalance = balanceResult > BigUInt("20000000000000000") // 0.02 MATIC
+            if hasBalance {
+                await addLog("✅ Sufficient balance for transaction")
+            } else {
+                await addLog("❌ Insufficient balance - need at least 0.02 MATIC")
+            }
+            
+            return hasBalance
+        } catch {
+            await addLog("❌ Balance check failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+    
+    /// Check token allowances like reference script
+    private func checkTokenAllowances(order: RouterV6OrderInfo) async -> Bool {
+        guard let wallet = wallet else { return false }
+        
+        do {
+            guard let rpcURL = URL(string: polygonConfig.rpcUrl) else { return false }
+            let web3 = try await Web3.new(rpcURL)
+            
+            guard let walletAddress = EthereumAddress(wallet.address),
+                  let routerAddress = EthereumAddress(polygonConfig.routerV6),
+                  let tokenAddress = EthereumAddress(order.makerAsset) else { return false }
+            
+            // ERC20 ABI for allowance check
+            let erc20ABI = """
+            [{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"}]
+            """
+            
+            guard let tokenContract = web3.contract(erc20ABI, at: tokenAddress) else {
+                await addLog("❌ Failed to create token contract")
+                return false
+            }
+            
+            guard let allowanceTransaction = tokenContract.createReadOperation("allowance", parameters: [walletAddress, routerAddress]) else {
+                await addLog("❌ Failed to create allowance check")
+                return false
+            }
+            
+            let allowanceResult = try await allowanceTransaction.callContractMethod()
+            if let allowance = allowanceResult["0"] as? BigUInt {
+                let requiredAmount = BigUInt(order.makingAmount) ?? BigUInt(0)
+                await addLog("📊 Token allowance: \(allowance)")
+                await addLog("📊 Required amount: \(requiredAmount)")
+                
+                let hasAllowance = allowance >= requiredAmount
+                if hasAllowance {
+                    await addLog("✅ Sufficient token allowance")
+                } else {
+                    await addLog("❌ Need to approve Router V6 to spend tokens first")
+                    await addLog("💡 Try: token.approve(\(polygonConfig.routerV6), \(requiredAmount))")
+                }
+                return hasAllowance
+            }
+            
+            return false
+        } catch {
+            await addLog("❌ Token allowance check failed: \(error.localizedDescription)")
+            return false
+        }
     }
     
     /// Calculate estimated transaction fee
