@@ -7,6 +7,11 @@
 
 import Foundation
 import CryptoKit
+
+// TODO: Add web3swift imports when available
+// import web3swift
+// import Web3Core
+// import BigInt
 import Security
 import CommonCrypto
 
@@ -235,12 +240,68 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 7: Submitting to Polygon Mainnet...")
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         
-        // Generate realistic transaction hash based on actual order data
-        let realisticTxHash = generateRealisticTxHash(order: order, signature: signature)
-        await addLog("✅ fillOrder transaction prepared for Polygon!")
-        await addLog("🔗 Ready to submit TX: \(realisticTxHash)")
-        await addLog("🌍 Polygonscan: https://polygonscan.com/tx/\(realisticTxHash)")
-        await addLog("⏳ Status: Real parameters generated, ready for web3 submission\n")
+        // REAL BLOCKCHAIN SUBMISSION NEEDED HERE
+        // The RouterV6Wallet reference shows this requires:
+        // 1. web3swift package dependency in Xcode project
+        // 2. Web3.new(URL) connection to Polygon RPC
+        // 3. contract.createWriteOperation("fillOrder", parameters)
+        // 4. transaction.writeToChain() for actual submission
+        
+        /*
+        // REAL IMPLEMENTATION (requires web3swift dependency):
+        
+        let web3URL = URL(string: "https://polygon-rpc.com")!
+        let web3 = try await Web3.new(web3URL)
+        
+        let contractAddress = EthereumAddress("0x111111125421cA6dc452d289314280a0f8842A65")!
+        let contract = web3.contract(routerV6ABI, at: contractAddress)!
+        
+        // Prepare fillOrder parameters as [AnyObject] for web3swift
+        let orderTuple = [
+            order.salt.toBigUInt(),
+            makerUint256.toBigUInt(),
+            makerUint256.toBigUInt(), // receiver = maker
+            makerAssetUint256.toBigUInt(),
+            takerAssetUint256.toBigUInt(),
+            SimpleBigUInt(order.makingAmount).toBigUInt(),
+            SimpleBigUInt(order.takingAmount).toBigUInt(),
+            order.makerTraits.toBigUInt()
+        ]
+        
+        let fillParams = [
+            orderTuple,
+            BigUInt(compactSig.r),
+            BigUInt(compactSig.vs),
+            SimpleBigUInt(order.makingAmount).toBigUInt(),
+            BigUInt(0) // takerTraits
+        ]
+        
+        let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams)!
+        transaction.transaction.gasLimit = BigUInt(300_000)
+        transaction.transaction.gasPrice = try await web3.eth.gasPrice() * BigUInt(120) / BigUInt(100)
+        transaction.transaction.from = EthereumAddress(order.maker)!
+        
+        let privateKeyData = Data(hex: String(wallet!.privateKey.dropFirst(2)))
+        let keystore = try EthereumKeystoreV3(privateKey: privateKeyData, password: "")!
+        
+        let result = try await transaction.writeToChain(password: "")
+        let realTxHash = result.hash
+        
+        await addLog("✅ REAL transaction submitted: \(realTxHash)")
+        */
+        
+        await addLog("🚨 MISSING: web3swift dependency for real blockchain submission")
+        await addLog("📋 TO FIX:")
+        await addLog("   1. Add web3swift package to Xcode project")
+        await addLog("   2. Import web3swift, Web3Core, BigInt")
+        await addLog("   3. Replace mock with real Web3.new(URL) connection")
+        await addLog("   4. Use contract.createWriteOperation + writeToChain()")
+        
+        // Generate mock hash to show current implementation limitation
+        let mockTxHash = generateRealisticTxHash(order: order, signature: signature)
+        await addLog("🔧 MOCK TX Hash: \(mockTxHash)")
+        await addLog("🌍 Would be on Polygonscan: https://polygonscan.com/tx/\(mockTxHash)")
+        await addLog("⚠️ Status: Parameters ready, but NO actual blockchain submission\n")
         
         await addLog("🎉 Router V6 Debug Flow Complete! 🎊")
         await addLog("💎 Implementation Summary:")
@@ -740,6 +801,39 @@ class RouterV6Manager: ObservableObject {
         let hashData = keccak256(orderData.data(using: .utf8)!)
         return "0x" + hashData.map { String(format: "%02hhx", $0) }.joined()
     }
+    
+    // MARK: - Router V6 ABI (for future web3swift integration)
+    
+    private static let routerV6ABI = """
+    [
+        {
+            "inputs": [
+                {
+                    "components": [
+                        {"name": "salt", "type": "uint256"},
+                        {"name": "maker", "type": "address"},
+                        {"name": "receiver", "type": "address"},
+                        {"name": "makerAsset", "type": "address"},
+                        {"name": "takerAsset", "type": "address"},
+                        {"name": "makingAmount", "type": "uint256"},
+                        {"name": "takingAmount", "type": "uint256"},
+                        {"name": "makerTraits", "type": "uint256"}
+                    ],
+                    "name": "order",
+                    "type": "tuple"
+                },
+                {"name": "r", "type": "bytes32"},
+                {"name": "vs", "type": "bytes32"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "takerTraits", "type": "uint256"}
+            ],
+            "name": "fillOrder",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ]
+    """
 }
 
 // MARK: - Supporting Data Structures
