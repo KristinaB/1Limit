@@ -69,40 +69,14 @@ struct WalletCreationView: View {
                     // Action buttons
                     VStack(spacing: 16) {
                         // Create Wallet button
-                        Button(action: {
+                        PrimaryButton("Create Wallet", icon: "wallet.pass.fill") {
                             showBackupPhrase = true
-                        }) {
-                            Text("Create Wallet")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.blue, Color.purple.opacity(0.8)],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                )
                         }
                         
                         // Restore Wallet button
-                        Button(action: {
+                        SecondaryButton("Restore Wallet", icon: "arrow.down.circle") {
                             // TODO: Implement wallet restoration
                             print("Restore wallet tapped")
-                        }) {
-                            Text("Restore Wallet")
-                                .font(.headline)
-                                .foregroundColor(.gray)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
                         }
                     }
                     .padding(.horizontal, 32)
