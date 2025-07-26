@@ -29,7 +29,7 @@ struct LoadFundsView: View {
                                 .font(.system(size: 60))
                                 .foregroundColor(.primaryGradientStart)
                             
-                            Text("Receive Ethereum")
+                            Text("Receive Funds")
                                 .appTitle()
                             
                             Text("Send ETH or WMATIC to this address to fund your wallet")
@@ -103,7 +103,7 @@ struct LoadFundsView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Receive Funds")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbar {
