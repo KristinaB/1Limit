@@ -20,7 +20,9 @@
       "Bash(./enhanced_test_runner.sh:*)",
       "Bash(./run_actual_tests.sh:*)",
       "Bash(./run_tests.sh:*)",
-      "Bash(./quick_test_docs.sh:*)"
+      "Bash(./quick_test_docs.sh:*)",
+      "Bash(true)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }
