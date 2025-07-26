@@ -142,13 +142,18 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func setupDebugLogFile() {
-        let tempDir = NSTemporaryDirectory()
+        // Use project directory for easy access
+        let projectDir = "/Users/makevoid/apps/1Limit/logs"
+        
+        // Create logs directory if it doesn't exist
+        try? FileManager.default.createDirectory(atPath: projectDir, withIntermediateDirectories: true, attributes: nil)
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = formatter.string(from: Date())
         
         let fileName = "1limit_debug_\(timestamp).log"
-        logFileURL = URL(fileURLWithPath: tempDir).appendingPathComponent(fileName)
+        logFileURL = URL(fileURLWithPath: projectDir).appendingPathComponent(fileName)
         
         if let logFileURL = logFileURL {
             // Create initial log file
