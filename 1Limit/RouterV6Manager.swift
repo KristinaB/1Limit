@@ -187,7 +187,13 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 5: Signing Router V6 order with EIP-712...")
         try? await Task.sleep(nanoseconds: 1_000_000_000)
         
-        let signature = try signRouterV6Order(order: order, domain: domain)
+        let signature: String
+        do {
+            signature = try signRouterV6Order(order: order, domain: domain)
+        } catch {
+            await addLog("❌ Signature generation failed: \(error)")
+            return
+        }
         await addLog("🔐 EIP-712 signature generated (65 bytes)")
         await addLog("🔧 Converting to EIP-2098 compact format...")
         
