@@ -518,10 +518,15 @@ class RouterV6Manager: ObservableObject {
     private func toCompactSignature(_ signature: String) -> CompactSignature {
         // Convert to real EIP-2098 compact signature format (r, vs)
         let signatureData = Data(hex: signature)
+        print("🔍 DEBUG toCompactSignature: signature='\(signature)' (length: \(signature.count))")
+        print("🔍 DEBUG toCompactSignature: signatureData.count=\(signatureData.count)")
+        
         guard signatureData.count == 65 else {
-            // Fallback to mock if invalid signature
-            let mockR = "0x" + String(repeating: "12", count: 64)
-            let mockVs = "0x" + String(repeating: "b4", count: 64)
+            print("🔍 DEBUG toCompactSignature: Using MOCK fallback (signatureData.count != 65)")
+            // Fallback to mock if invalid signature (32 bytes each for bytes32!)
+            let mockR = "0x" + String(repeating: "12", count: 64)  // 64 hex chars = 32 bytes
+            let mockVs = "0x" + String(repeating: "b4", count: 64) // 64 hex chars = 32 bytes
+            print("🔍 DEBUG toCompactSignature: mockR length=\(mockR.count), mockVs length=\(mockVs.count)")
             return CompactSignature(r: mockR, vs: mockVs)
         }
         
