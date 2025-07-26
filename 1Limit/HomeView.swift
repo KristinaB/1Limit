@@ -95,7 +95,7 @@ struct HomeView: View {
     .navigationBarTitleDisplayMode(.large)
     .toolbarBackground(Color.appBackground, for: .navigationBar)
     .sheet(isPresented: $showingWalletCreation) {
-      WalletCreationView()
+      BackupPhraseView()
     }
     .sheet(isPresented: $showingDebug) {
       DebugView()
