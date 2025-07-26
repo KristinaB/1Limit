@@ -77,7 +77,7 @@ struct TransactionRow: View {
                 
                 Spacer()
                 
-                if let txHash = transaction.txHash {
+                if transaction.txHash != nil {
                     Button("View") {
                         // TODO: Open transaction in explorer
                     }
