@@ -38,7 +38,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 1: Load wallet (ported from Go)
         await addLog("📋 Step 1: Loading wallet...")
-        await Task.sleep(500_000_000)
+        try? await Task.sleep(nanoseconds: 500_000_000)
         
         guard let loadedWallet = WalletLoader.shared.loadWallet() else {
             await addLog("❌ Failed to load wallet!")
@@ -54,7 +54,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 2: Generate order parameters (ported from Go)
         await addLog("📋 Step 2: Generating Router V6 order parameters...")
-        await Task.sleep(1_000_000_000)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         let salt = generateSDKStyleSalt()
         await addLog("🧂 Generated SDK-style salt: \(salt)")
@@ -67,7 +67,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 3: Create EIP-712 domain (ported from Go)
         await addLog("📋 Step 3: Creating EIP-712 domain...")
-        await Task.sleep(1_000_000_000)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         let domain = createEIP712Domain()
         await addLog("🌐 Domain: \(domain.name) v\(domain.version)")
@@ -76,7 +76,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 4: Create Router V6 order (ported from Go)
         await addLog("📋 Step 4: Creating Router V6 order structure...")
-        await Task.sleep(1_000_000_000)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         let order = createRouterV6Order(salt: salt, nonce: nonce, makerTraits: makerTraits)
         await addLog("📊 Making: 0.01 WMATIC (\(order.makingAmount) wei)")
@@ -86,7 +86,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 5: Sign order with EIP-712 (ported from Go)
         await addLog("📋 Step 5: Signing Router V6 order with EIP-712...")
-        await Task.sleep(1_000_000_000)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         let signature = signRouterV6Order(order: order, domain: domain)
         await addLog("🔐 EIP-712 signature generated (65 bytes)")
@@ -99,7 +99,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 6: Prepare fillOrder transaction (ported from Go)
         await addLog("📋 Step 6: Preparing fillOrder transaction...")
-        await Task.sleep(1_000_000_000)
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
         
         await addLog("📊 Contract: Router V6 (\(polygonConfig.routerV6))")
         await addLog("🔧 Method: fillOrder(order, r, vs, amount, takerTraits)")
@@ -109,7 +109,7 @@ class RouterV6Manager: ObservableObject {
         
         // Step 7: Submit to Polygon network (real transaction preparation)
         await addLog("📋 Step 7: Submitting to Polygon Mainnet...")
-        await Task.sleep(2_000_000_000)
+        try? await Task.sleep(nanoseconds: 2_000_000_000)
         
         // This would be the real transaction submission in production
         let mockTxHash = generateRealisticTxHash()
