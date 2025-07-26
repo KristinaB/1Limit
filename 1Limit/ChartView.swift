@@ -87,15 +87,7 @@ struct ChartView: View {
                 }
             }
 
-            if chartService.isLoading {
-                HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Loading chart data...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
+            // Loading indicator is now positioned absolutely in the chart section
         }
     }
 
@@ -162,28 +154,57 @@ struct ChartView: View {
 
     @ViewBuilder
     private var chartSection: some View {
-        if !chartService.candlestickData.isEmpty {
-            HStack(spacing: 0) {
-                mainChart
-                yAxisChart
+        ZStack {
+            if !chartService.candlestickData.isEmpty {
+                HStack(spacing: 0) {
+                    mainChart
+                    yAxisChart
+                }
+                .padding(.horizontal)
+            } else if !chartService.isLoading {
+                emptyStateView
             }
-            .padding(.horizontal)
-        } else if !chartService.isLoading {
-            emptyStateView
+            
+            // Centered loading overlay
+            if chartService.isLoading {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            ProgressView()
+                                .scaleEffect(1.2)
+                            Text("Loading chart data...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(20)
+                        .background(Color(.systemBackground).opacity(0.9))
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                        Spacer()
+                    }
+                    Spacer()
+                    Spacer() // Push slightly toward center-bottom
+                }
+            }
         }
     }
 
-    private var mainChart: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            Chart(visibleData) { item in
-                CandlestickMark(data: item, width: 12)
+    private var candlestickChart: some View {
+        Chart(visibleData) { item in
+            CandlestickMark(data: item, width: 12)
 
-                if item.id == selectedData?.id {
-                    RuleMark(x: .value("Selected", item.timestamp))
-                        .foregroundStyle(.gray.opacity(0.3))
-                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
-                }
+            if item.id == selectedData?.id {
+                RuleMark(x: .value("Selected", item.timestamp))
+                    .foregroundStyle(.gray.opacity(0.3))
+                    .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
             }
+        }
+    }
+    
+    private var chartModifiers: some View {
+        candlestickChart
             .frame(width: CGFloat(visibleData.count) * 20, height: 400)
             .chartYScale(domain: (minPrice - minPrice*0.02)...(maxPrice + maxPrice*0.02))
             .chartXAxis {
@@ -193,24 +214,42 @@ struct ChartView: View {
                 }
             }
             .chartYAxis(.hidden)
-            .chartBackground { chartProxy in
-                GeometryReader { geometry in
-                    Rectangle()
-                        .fill(Color.clear)
-                        .contentShape(Rectangle())
-                        .onTapGesture { location in
-                            let xPosition = location.x
-                            let chartWidth = geometry.size.width
-                            let candleWidth = chartWidth / CGFloat(visibleData.count)
-                            let index = Int(xPosition / candleWidth)
+    }
+    
+    private func chartBackground(geometry: GeometryProxy) -> some View {
+        Rectangle()
+            .fill(Color.clear)
+            .contentShape(Rectangle())
+            .onTapGesture { location in
+                let xPosition = location.x
+                let chartWidth = geometry.size.width
+                let candleWidth = chartWidth / CGFloat(visibleData.count)
+                let index = Int(xPosition / candleWidth)
 
-                            if index >= 0 && index < visibleData.count {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    selectedData = visibleData[index]
-                                }
-                            }
-                        }
+                if index >= 0 && index < visibleData.count {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedData = visibleData[index]
+                    }
                 }
+            }
+    }
+    
+    private var mainChart: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack {
+                chartModifiers
+                    .chartBackground { chartProxy in
+                        GeometryReader { geometry in
+                            chartBackground(geometry: geometry)
+                        }
+                    }
+                    .onAppear {
+                        // Auto-scroll to show latest candles by scrolling to end
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            // The chart will naturally show the latest data since it's at the trailing edge
+                        }
+                    }
+                Spacer()
             }
         }
         .clipped()

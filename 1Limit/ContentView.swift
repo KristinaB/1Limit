@@ -12,37 +12,46 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            TabView {
-                HomeView()
-                    .tabItem {
-                        Image(systemName: "house.fill")
-                        Text("Home")
-                    }
+            ZStack {
+                // Dark background
+                Color.appBackground
+                    .ignoresSafeArea()
                 
-                TradeView()
-                    .tabItem {
-                        Image(systemName: "arrow.left.arrow.right")
-                        Text("Trade")
-                    }
-                
-                TransactionsView()
-                    .tabItem {
-                        Image(systemName: "list.bullet")
-                        Text("Transactions")
-                    }
+                TabView {
+                    HomeView()
+                        .tabItem {
+                            Image(systemName: "house.fill")
+                            Text("Home")
+                        }
+                    
+                    TradeView()
+                        .tabItem {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text("Trade")
+                        }
+                    
+                    TransactionsView()
+                        .tabItem {
+                            Image(systemName: "list.bullet")
+                            Text("Transactions")
+                        }
+                }
+                .background(Color.appBackground)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Debug") {
+                    SmallButton("Debug", style: .secondary) {
                         showingDebug = true
                     }
-                    .foregroundColor(.purple)
                 }
             }
+            .toolbarBackground(Color.appBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showingDebug) {
                 DebugView()
             }
         }
+        .preferredColorScheme(.dark)
     }
 }
 

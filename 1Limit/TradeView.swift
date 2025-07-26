@@ -16,92 +16,80 @@ struct TradeView: View {
     @StateObject private var priceService = PriceService.shared
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Header with chart button 📈
-                VStack(spacing: 8) {
-                    HStack {
-                        Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 40))
-                            .foregroundColor(.blue)
-                        
-                        Spacer()
-                        
-                        Button(action: { showingChart = true }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "chart.line.uptrend.xyaxis")
-                                Text("Chart")
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.purple)
-                            .cornerRadius(8)
-                        }
-                    }
-                    
-                    Text("Create Limit Order")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    // Currency pair with prices 🎀
-                    VStack(spacing: 4) {
-                        Text("\(fromToken)/\(toToken)")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        
-                        if priceService.isLoading {
-                            HStack(spacing: 4) {
-                                ProgressView()
-                                    .scaleEffect(0.7)
-                                Text("Loading prices...")
-                                    .font(.caption2)
-                            }
-                            .foregroundColor(.secondary)
-                        } else {
-                            HStack(spacing: 8) {
-                                if let fromPrice = priceService.getPrice(for: fromToken) {
-                                    Text("\(fromToken): \(fromPrice.formattedPrice)")
-                                }
-                                Text("•")
-                                if let toPrice = priceService.getPrice(for: toToken) {
-                                    Text("\(toToken): \(toPrice.formattedPrice)")
+        ZStack {
+            Color.appBackground
+                .ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header with chart button 📈
+                    AppCard {
+                        VStack(spacing: 16) {
+                            HStack {
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.primaryGradientStart)
+                                
+                                Spacer()
+                                
+                                SmallButton("Chart", style: .primary) {
+                                    showingChart = true
                                 }
                             }
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                            
+                            Text("Create Limit Order")
+                                .sectionTitle()
+                            
+                            // Currency pair with prices 🎀
+                            VStack(spacing: 8) {
+                                Text("\(fromToken)/\(toToken)")
+                                    .cardTitle()
+                                
+                                if priceService.isLoading {
+                                    HStack(spacing: 4) {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                        Text("Loading prices...")
+                                            .captionText()
+                                    }
+                                } else {
+                                    HStack(spacing: 8) {
+                                        if let fromPrice = priceService.getPrice(for: fromToken) {
+                                            Text("\(fromToken): \(fromPrice.formattedPrice)")
+                                                .captionText()
+                                        }
+                                        Text("•")
+                                            .captionText()
+                                        if let toPrice = priceService.getPrice(for: toToken) {
+                                            Text("\(toToken): \(toPrice.formattedPrice)")
+                                                .captionText()
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color.inputBackground)
+                            )
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
-                }
                 
                 // Trading form
                 VStack(spacing: 16) {
                     // From section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("From")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        VStack(spacing: 8) {
-                            HStack {
-                                TextField("0.00", text: $fromAmount)
-                                    .keyboardType(.decimalPad)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    InputCard(title: "From") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
                                     .onChange(of: fromAmount) { _ in
                                         updateToAmount()
                                     }
                                 
-                                Picker("From Token", selection: $fromToken) {
-                                    Text("WMATIC").tag("WMATIC")
-                                    Text("USDC").tag("USDC")
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .frame(width: 100)
+                                AppPicker("From Token", selection: $fromToken, options: [
+                                    ("WMATIC", "WMATIC"),
+                                    ("USDC", "USDC")
+                                ])
                                 .onChange(of: fromToken) { _ in
                                     updateToAmount()
                                 }
@@ -109,9 +97,11 @@ struct TradeView: View {
                             
                             // USD value display 💰
                             if let calculation = currentSwapCalculation, !fromAmount.isEmpty {
-                                Text("~\(calculation.formattedFromValue) USD")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Text("~\(calculation.formattedFromValue) USD")
+                                        .priceText(color: .secondaryText)
+                                    Spacer()
+                                }
                             }
                         }
                     }
@@ -120,29 +110,29 @@ struct TradeView: View {
                     Button(action: swapTokens) {
                         Image(systemName: "arrow.up.arrow.down")
                             .font(.title2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.primaryGradientStart)
+                            .padding(12)
+                            .background(
+                                Circle()
+                                    .fill(Color.inputBackground)
+                                    .overlay(
+                                        Circle()
+                                            .strokeBorder(Color.borderGray.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
                     }
                     .padding(.vertical, 8)
                     
                     // To section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("To")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        VStack(spacing: 8) {
-                            HStack {
-                                TextField("0.00", text: $toAmount)
-                                    .keyboardType(.decimalPad)
-                                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                                    .disabled(true) // Auto-calculated
+                    InputCard(title: "To") {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 12) {
+                                AppTextField("0.00", text: $toAmount, keyboardType: .decimalPad, isDisabled: true)
                                 
-                                Picker("To Token", selection: $toToken) {
-                                    Text("WMATIC").tag("WMATIC")
-                                    Text("USDC").tag("USDC")
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .frame(width: 100)
+                                AppPicker("To Token", selection: $toToken, options: [
+                                    ("WMATIC", "WMATIC"),
+                                    ("USDC", "USDC")
+                                ])
                                 .onChange(of: toToken) { _ in
                                     updateToAmount()
                                 }
@@ -150,53 +140,47 @@ struct TradeView: View {
                             
                             // USD value and exchange rate 💰
                             if let calculation = currentSwapCalculation, !fromAmount.isEmpty {
-                                VStack(spacing: 2) {
-                                    Text("~\(calculation.formattedToValue) USD")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    Text(calculation.formattedRate)
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
+                                VStack(spacing: 4) {
+                                    HStack {
+                                        Text("~\(calculation.formattedToValue) USD")
+                                            .priceText(color: .secondaryText)
+                                        Spacer()
+                                    }
+                                    HStack {
+                                        Text(calculation.formattedRate)
+                                            .captionText()
+                                        Spacer()
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(16)
                 
                 // Order details
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Order Details")
-                        .font(.headline)
-                    
-                    OrderDetailRow(title: "Order Type", value: "Limit Order")
-                    OrderDetailRow(title: "Router Version", value: "V6")
-                    OrderDetailRow(title: "Network", value: "Polygon")
-                    OrderDetailRow(title: "Expiry", value: "30 minutes")
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(12)
+                InfoCard(
+                    title: "Order Details",
+                    items: [
+                        ("Order Type", "Limit Order", nil),
+                        ("Router Version", "V6", nil),
+                        ("Network", "Polygon", nil),
+                        ("Expiry", "30 minutes", nil)
+                    ]
+                )
                 
                 // Create order button
-                Button(action: createLimitOrder) {
-                    Text("Create Limit Order")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .cornerRadius(12)
+                PrimaryButton("Create Limit Order", icon: "plus.circle") {
+                    createLimitOrder()
                 }
                 .disabled(fromAmount.isEmpty || toAmount.isEmpty)
-                .padding(.top, 20)
+                .opacity(fromAmount.isEmpty || toAmount.isEmpty ? 0.6 : 1.0)
             }
-            .padding()
+                .padding()
+            }
         }
         .navigationTitle("Trade")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color.appBackground, for: .navigationBar)
         .sheet(isPresented: $showingChart) {
             ChartView(currencyPair: "\(fromToken)/\(toToken)")
         }
@@ -250,22 +234,7 @@ struct TradeView: View {
     }
 }
 
-struct OrderDetailRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
-        }
-    }
-}
+// OrderDetailRow replaced by InfoRow in design system
 
 #Preview {
     TradeView()
