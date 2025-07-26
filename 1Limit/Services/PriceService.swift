@@ -14,9 +14,12 @@ struct TokenPrice {
     let lastUpdated: Date
     
     var formattedPrice: String {
-        if usdPrice < 0.01 {
-            return String(format: "$%.6f", usdPrice)
+        // Cap all prices at 4 decimal places maximum
+        if usdPrice < 0.0001 {
+            return String(format: "$%.4f", usdPrice)
         } else if usdPrice < 1.0 {
+            return String(format: "$%.4f", usdPrice)
+        } else if usdPrice < 10.0 {
             return String(format: "$%.4f", usdPrice)
         } else {
             return String(format: "$%.2f", usdPrice)
@@ -185,14 +188,17 @@ class PriceService: ObservableObject {
                     continue
                 }
                 
-                // Convert price based on token decimals
-                // USDC has 6 decimals, WMATIC has 18 decimals
+                // 1inch API returns prices in different formats
+                // Convert to USD based on token type and expected values
                 let usdPrice: Double
                 if symbol == "USDC" {
-                    // USDC: divide by 10^6 (6 decimals)
+                    // USDC should be around $1.00, divide by appropriate factor
+                    usdPrice = priceWei / pow(10, 18)
+                } else if symbol == "WMATIC" {
+                    // WMATIC should be around $0.40-0.60, divide by appropriate factor  
                     usdPrice = priceWei / pow(10, 6)
                 } else {
-                    // WMATIC: divide by 10^18 (18 decimals)  
+                    // Default fallback
                     usdPrice = priceWei / pow(10, 18)
                 }
                 
