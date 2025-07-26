@@ -324,38 +324,62 @@ class RouterV6Manager: ObservableObject {
             await addLog("   takerTraits: \(type(of: takerTraitsBig)) = \(takerTraitsBig)")
             await addLog("   fillParams count: \(fillParams.count)")
             
-            guard let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
+            guard let writeOp = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
                 await addLog("❌ createWriteOperation returned nil - parameter/ABI mismatch")
                 throw RouterV6Error.transactionCreationFailed
             }
             
-            // Set gas parameters matching reference script mainnet settings
-            transaction.transaction.gasLimit = BigUInt(500_000) // Higher gas limit for mainnet
-            let baseGasPrice = try await web3.eth.gasPrice()
-            let adjustedGasPrice = baseGasPrice * BigUInt(110) / BigUInt(100) // +10% for mainnet
-            transaction.transaction.gasPrice = adjustedGasPrice
+            // Get encoded data for manual EIP-1559 transaction (like SwiftManualEIP1559Submitter)
+            let encodedData = writeOp.transaction.data
+            await addLog("📦 FillOrder data encoded successfully")
             
+            // Get transaction parameters for EIP-1559
             guard let fromAddress = EthereumAddress(order.maker) else {
                 throw RouterV6Error.invalidAddress
             }
-            transaction.transaction.from = fromAddress
             
-            await addLog("⛽ Gas limit: 500,000")
-            await addLog("💰 Gas price: \(adjustedGasPrice) (+10% boost)")
+            let txNonce = try await web3.eth.getTransactionCount(for: fromAddress)
+            let baseGasPrice = try await web3.eth.gasPrice()
             
-            // Sign transaction with wallet private key
+            // Calculate EIP-1559 gas parameters (matching SwiftManualEIP1559Submitter)
+            let priorityFee = BigUInt("25000000000") // 25 gwei minimum for Polygon
+            let maxFee = baseGasPrice + priorityFee + BigUInt("20000000000") // Extra buffer
+            
+            await addLog("⛽ EIP-1559 Gas Settings:")
+            await addLog("   Nonce: \(txNonce)")
+            await addLog("   Priority Fee: 25 gwei")
+            await addLog("   Max Fee: \(String(format: "%.1f", Double(maxFee) / 1e9)) gwei")
+            await addLog("   Gas Limit: 300,000")
+            
+            // Create manual EIP-1559 transaction (matching working implementation)
+            let manualTransaction = CodableTransaction(
+                type: .eip1559,
+                to: contractAddress,
+                nonce: txNonce,
+                chainID: BigUInt(137),
+                value: BigUInt(0),
+                data: encodedData,
+                gasLimit: BigUInt(300_000),
+                maxFeePerGas: maxFee,
+                maxPriorityFeePerGas: priorityFee
+            )
+            
+            // Sign manually with private key (like SwiftManualEIP1559Submitter)
             let privateKeyHex = String(wallet?.privateKey.dropFirst(2) ?? "")
             let privateKeyData = Data(hex: privateKeyHex)
             
-            guard (try? EthereumKeystoreV3(privateKey: privateKeyData, password: "")) != nil else {
-                throw RouterV6Error.signingFailed
+            var signedTx = manualTransaction
+            try signedTx.sign(privateKey: privateKeyData)
+            
+            await addLog("🔐 EIP-1559 transaction signed manually")
+            await addLog("🚀 Submitting to Polygon mainnet with EIP-1559...")
+            
+            // Encode and send raw transaction (matching working implementation)
+            guard let rawTx = signedTx.encode() else {
+                throw RouterV6Error.transactionCreationFailed
             }
             
-            await addLog("🔐 Transaction signed with wallet")
-            
-            // Submit transaction to Polygon mainnet
-            await addLog("🚀 Submitting to Polygon mainnet...")
-            let result = try await transaction.writeToChain(password: "")
+            let result = try await web3.eth.send(raw: rawTx)
             let realTxHash = result.hash
             
             await addLog("✅ REAL transaction submitted successfully!")
