@@ -1,7 +1,17 @@
 tmp
 1Limit.xcodeproj/project.xcworkspace/xcshareddata/
 1Limit.xcodeproj/project.xcworkspace/xcuserdata/
+1Limit.xcodeproj/xcuserdata/
 logs
+
+# Test results and output
+test_output.log
+test_results
+test_results.xcresult/
+*.xcresult/
+
+# Xcode user data
+xcuserdata/
 
 # Security - Wallet files with private keys
 *.json

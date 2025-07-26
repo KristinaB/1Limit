@@ -157,7 +157,7 @@ class WalletFlowTests: XCTestCase {
             tradeTab.tap()
             
             // Then: Should handle interruption gracefully
-            XCTAssertTrue(app.isRunning, "App should handle wallet creation interruption")
+            XCTAssertTrue(app.state == .runningForeground, "App should handle wallet creation interruption")
             
             // And: Should switch to trade tab
             XCTAssertTrue(tradeTab.isSelected, "Trade tab should be selected")
@@ -308,7 +308,7 @@ class WalletFlowTests: XCTestCase {
         }
         
         // Should handle gracefully without crashes
-        XCTAssertTrue(app.isRunning, "App should handle rapid wallet creation attempts")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle rapid wallet creation attempts")
         
         // Should eventually show backup phrase view
         let backupPhraseTitle = app.staticTexts["Save Recovery Phrase"]
@@ -385,6 +385,6 @@ class WalletFlowTests: XCTestCase {
         }
         
         // App should still be responsive
-        XCTAssertTrue(app.isRunning, "App should handle multiple wallet creation attempts")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle multiple wallet creation attempts")
     }
 }

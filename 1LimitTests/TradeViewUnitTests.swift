@@ -17,6 +17,7 @@ class TradeViewUnitTests: XCTestCase {
     
     // MARK: - Setup & Teardown
     
+    @MainActor
     override func setUpWithError() throws {
         orderService = OrderPlacementService()
     }
@@ -27,6 +28,7 @@ class TradeViewUnitTests: XCTestCase {
     
     // MARK: - Order Placement Service Tests
     
+    @MainActor
     func testOrderPlacementServiceInitialization() throws {
         // Given: OrderPlacementService is created
         
@@ -135,6 +137,7 @@ class TradeViewUnitTests: XCTestCase {
     
     // MARK: - Performance Tests
     
+    @MainActor
     func testOrderServicePerformance() throws {
         measure {
             // Test creation performance

@@ -48,7 +48,7 @@ class ComprehensiveUITests: XCTestCase {
         XCTAssertTrue(homeTab.isSelected, "Home tab should be active again")
         
         // Then: All navigation should be smooth without crashes
-        XCTAssertTrue(app.isRunning, "App should still be running after navigation")
+        XCTAssertTrue(app.state == .runningForeground, "App should still be running after navigation")
     }
     
     func testWalletCreationFlowNavigation() throws {
@@ -315,7 +315,7 @@ class ComprehensiveUITests: XCTestCase {
         
         // Then: Should handle invalid input gracefully
         // The app should not crash with invalid input
-        XCTAssertTrue(app.isRunning, "App should handle invalid input gracefully")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle invalid input gracefully")
     }
     
     func testAppStatePreservation() throws {

@@ -17,7 +17,8 @@
       "Bash(mv:*)",
       "Bash(chmod:*)",
       "Bash(./test_runner.sh)",
-      "Bash(./enhanced_test_runner.sh:*)"
+      "Bash(./enhanced_test_runner.sh:*)",
+      "Bash(./run_actual_tests.sh:*)"
     ],
     "deny": []
   }

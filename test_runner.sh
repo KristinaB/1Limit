@@ -81,6 +81,26 @@ fi
 
 echo "✅ Code Syntax PASSED"
 
+# Test 3.5: UI Element Verification
+echo ""
+echo "🔍 Test 3.5: UI Element Verification"
+
+# Check for Create Wallet button in HomeView
+if grep -q 'PrimaryButton("Create Wallet"' 1Limit/HomeView.swift && ! grep -q '//.*PrimaryButton("Create Wallet"' 1Limit/HomeView.swift; then
+    echo "✅ Create Wallet button found in HomeView"
+else
+    echo "❌ Create Wallet button missing or commented out in HomeView"
+    echo "⚠️  This will cause UI tests to fail!"
+fi
+
+# Check for Import Wallet button
+if grep -q 'SecondaryButton("Import Wallet"' 1Limit/HomeView.swift && ! grep -q '//.*SecondaryButton("Import Wallet"' 1Limit/HomeView.swift; then
+    echo "✅ Import Wallet button found in HomeView"
+else
+    echo "❌ Import Wallet button missing or commented out in HomeView"
+    echo "⚠️  This will cause UI tests to fail!"
+fi
+
 # Test 4: Test file validation
 echo ""
 echo "🧪 Test 4: Test File Validation"

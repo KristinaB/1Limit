@@ -40,7 +40,7 @@ class TradeFormInteractionTests: XCTestCase {
         
         // When: Tapping amount field
         amountField.tap()
-        XCTAssertTrue(amountField.hasKeyboardFocus, "Amount field should have keyboard focus")
+        XCTAssertTrue(amountField.hasFocus, "Amount field should have keyboard focus")
         
         // When: Entering valid amount
         amountField.typeText("1.5")
@@ -56,7 +56,7 @@ class TradeFormInteractionTests: XCTestCase {
         
         // When: Testing keyboard dismissal
         app.tap() // Tap outside field
-        XCTAssertFalse(amountField.hasKeyboardFocus, "Keyboard should be dismissed")
+        XCTAssertFalse(amountField.hasFocus, "Keyboard should be dismissed")
     }
     
     func testLimitPriceFieldInteraction() throws {
@@ -69,7 +69,7 @@ class TradeFormInteractionTests: XCTestCase {
         
         // When: Tapping limit price field
         limitPriceField.tap()
-        XCTAssertTrue(limitPriceField.hasKeyboardFocus, "Limit price field should have focus")
+        XCTAssertTrue(limitPriceField.hasFocus, "Limit price field should have focus")
         
         // When: Entering valid price
         limitPriceField.typeText("0.851")
@@ -114,7 +114,7 @@ class TradeFormInteractionTests: XCTestCase {
     
     func testSwapTokensInteraction() throws {
         // Given: Trade view with tokens selected
-        let initialFromToken = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'WMATIC' OR label CONTAINS 'USDC'")).firstMatch?.label
+        let initialFromToken = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'WMATIC' OR label CONTAINS 'USDC'")).firstMatch.label
         
         // When: Tapping swap button
         let swapButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'arrow'")).firstMatch
@@ -126,7 +126,7 @@ class TradeFormInteractionTests: XCTestCase {
         usleep(500000) // 0.5 seconds
         
         // Verify swap occurred by checking token positions
-        XCTAssertTrue(app.isRunning, "App should handle token swap without crashes")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle token swap without crashes")
     }
     
     // MARK: - Form Validation Tests
@@ -142,7 +142,7 @@ class TradeFormInteractionTests: XCTestCase {
             createOrderButton.tap()
             
             // Should either show validation error or be prevented
-            XCTAssertTrue(app.isRunning, "App should handle empty form submission")
+            XCTAssertTrue(app.state == .runningForeground, "App should handle empty form submission")
         } else {
             XCTAssertFalse(createOrderButton.isEnabled, "Button should be disabled with empty fields")
         }
@@ -165,7 +165,7 @@ class TradeFormInteractionTests: XCTestCase {
         let createOrderButton = app.buttons["Create Limit Order"]
         if createOrderButton.isEnabled {
             createOrderButton.tap()
-            XCTAssertTrue(app.isRunning, "App should handle invalid amount input")
+            XCTAssertTrue(app.state == .runningForeground, "App should handle invalid amount input")
         }
         
         // When: Entering invalid price
@@ -175,7 +175,7 @@ class TradeFormInteractionTests: XCTestCase {
         // Then: Should handle invalid price gracefully
         if createOrderButton.isEnabled {
             createOrderButton.tap()
-            XCTAssertTrue(app.isRunning, "App should handle invalid price input")
+            XCTAssertTrue(app.state == .runningForeground, "App should handle invalid price input")
         }
     }
     
@@ -194,14 +194,14 @@ class TradeFormInteractionTests: XCTestCase {
         
         // Then: Should handle zero amount appropriately
         let createOrderButton = app.buttons["Create Limit Order"]
-        XCTAssertTrue(app.isRunning, "App should handle zero amount")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle zero amount")
         
         // When: Entering zero price
         amountField.clearAndEnterText("1.0")
         limitPriceField.clearAndEnterText("0")
         
         // Then: Should handle zero price appropriately
-        XCTAssertTrue(app.isRunning, "App should handle zero price")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle zero price")
     }
     
     func testFormValidationWithNegativeValues() throws {
@@ -218,7 +218,7 @@ class TradeFormInteractionTests: XCTestCase {
         limitPriceField.typeText("-0.5")
         
         // Then: Should handle negative values appropriately
-        XCTAssertTrue(app.isRunning, "App should handle negative values gracefully")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle negative values gracefully")
     }
     
     // MARK: - Order Preview Tests
@@ -270,7 +270,7 @@ class TradeFormInteractionTests: XCTestCase {
         limitPriceField.clearAndEnterText("1.0")
         
         // Then: Preview should update again
-        XCTAssertTrue(app.isRunning, "App should handle preview updates")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle preview updates")
     }
     
     // MARK: - Chart Integration Tests
@@ -393,21 +393,3 @@ class TradeFormInteractionTests: XCTestCase {
     }
 }
 
-// MARK: - Helper Extensions
-
-extension XCUIElement {
-    func clearAndEnterText(_ text: String) {
-        guard let stringValue = self.value as? String else {
-            return
-        }
-        
-        self.tap()
-        
-        // Clear existing text
-        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: stringValue.count)
-        self.typeText(deleteString)
-        
-        // Enter new text
-        self.typeText(text)
-    }
-}

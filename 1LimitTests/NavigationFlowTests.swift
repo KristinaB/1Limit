@@ -255,7 +255,7 @@ class NavigationFlowTests: XCTestCase {
             tradeTab.tap()
             
             // Then: Should handle interruption gracefully
-            XCTAssertTrue(app.isRunning, "App should handle navigation interruption")
+            XCTAssertTrue(app.state == .runningForeground, "App should handle navigation interruption")
             
             // And: Tab should switch successfully
             XCTAssertTrue(tradeTab.isSelected, "Trade tab should be selected")
@@ -326,7 +326,7 @@ class NavigationFlowTests: XCTestCase {
         }
         
         // App should still be responsive
-        XCTAssertTrue(app.isRunning, "App should recover from rapid navigation")
+        XCTAssertTrue(app.state == .runningForeground, "App should recover from rapid navigation")
         
         // Final state should be valid
         let homeTab = app.tabBars.buttons["Home"]
@@ -358,25 +358,7 @@ class NavigationFlowTests: XCTestCase {
         }
         
         // App should still be responsive
-        XCTAssertTrue(app.isRunning, "App should handle memory pressure during navigation")
+        XCTAssertTrue(app.state == .runningForeground, "App should handle memory pressure during navigation")
     }
 }
 
-// MARK: - Helper Extensions for Navigation Tests
-
-extension XCUIElement {
-    func clearAndEnterText(_ text: String) {
-        guard let stringValue = self.value as? String else {
-            return
-        }
-        
-        self.tap()
-        
-        // Clear existing text
-        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: stringValue.count)
-        self.typeText(deleteString)
-        
-        // Enter new text
-        self.typeText(text)
-    }
-}
