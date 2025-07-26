@@ -8,7 +8,7 @@
 import Foundation
 
 /// OHLC candlestick data point
-struct CandlestickData: Identifiable {
+struct CandlestickData: Identifiable, Equatable {
     let id = UUID()
     let timestamp: Date
     let open: Double
@@ -46,6 +46,16 @@ struct CandlestickData: Identifiable {
     var formattedPercentChange: String {
         let sign = percentageChange >= 0 ? "+" : ""
         return "\(sign)\(String(format: "%.2f", percentageChange))%"
+    }
+    
+    // Custom Equatable implementation (excluding UUID)
+    static func == (lhs: CandlestickData, rhs: CandlestickData) -> Bool {
+        return lhs.timestamp == rhs.timestamp &&
+               lhs.open == rhs.open &&
+               lhs.high == rhs.high &&
+               lhs.low == rhs.low &&
+               lhs.close == rhs.close &&
+               lhs.volume == rhs.volume
     }
 }
 
