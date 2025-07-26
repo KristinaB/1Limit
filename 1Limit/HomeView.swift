@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var showingWalletCreation = false
+    @State private var showingDebug = false
     
     var body: some View {
         ZStack {
@@ -60,6 +61,12 @@ struct HomeView: View {
                         .padding(.top, 20)
                     
                     Spacer(minLength: 40)
+                    
+                    // Debug button at bottom
+                    SmallButton("Debug", style: .secondary) {
+                        showingDebug = true
+                    }
+                    .padding(.bottom, 20)
                 }
                 .padding()
             }
@@ -69,6 +76,9 @@ struct HomeView: View {
         .toolbarBackground(Color.appBackground, for: .navigationBar)
         .sheet(isPresented: $showingWalletCreation) {
             WalletCreationView()
+        }
+        .sheet(isPresented: $showingDebug) {
+            DebugView()
         }
     }
 }

@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var showingDebug = false
     
     var body: some View {
         NavigationView {
@@ -38,18 +37,8 @@ struct ContentView: View {
                 }
                 .background(Color.appBackground)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    SmallButton("Debug", style: .secondary) {
-                        showingDebug = true
-                    }
-                }
-            }
             .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .sheet(isPresented: $showingDebug) {
-                DebugView()
-            }
         }
         .preferredColorScheme(.dark)
     }

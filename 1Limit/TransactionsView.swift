@@ -12,30 +12,49 @@ struct TransactionsView: View {
     private let filters = ["All", "Pending", "Filled", "Cancelled"]
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Filter picker
-            Picker("Filter", selection: $selectedFilter) {
-                ForEach(filters, id: \.self) { filter in
-                    Text(filter).tag(filter)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding()
+        ZStack {
+            Color.appBackground
+                .ignoresSafeArea()
             
-            // Transactions list
-            if mockTransactions.isEmpty {
-                ScrollView {
-                    EmptyTransactionsView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 20) {
+                // Filter picker with dark styling
+                AppCard {
+                    VStack(spacing: 12) {
+                        Text("Filter Transactions")
+                            .cardTitle()
+                        
+                        HStack(spacing: 8) {
+                            ForEach(filters, id: \.self) { filter in
+                                SmallButton(filter, style: selectedFilter == filter ? .primary : .secondary) {
+                                    selectedFilter = filter
+                                }
+                            }
+                        }
+                    }
                 }
-            } else {
-                List(filteredTransactions) { transaction in
-                    TransactionRow(transaction: transaction)
+                .padding(.horizontal)
+                
+                // Transactions list
+                if mockTransactions.isEmpty {
+                    Spacer()
+                    EmptyTransactionsView()
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredTransactions) { transaction in
+                                TransactionRow(transaction: transaction)
+                                    .padding(.horizontal)
+                            }
+                        }
+                        .padding(.vertical)
+                    }
                 }
             }
         }
         .navigationTitle("Transactions")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(Color.appBackground, for: .navigationBar)
     }
     
     private var filteredTransactions: [MockTransaction] {
@@ -50,76 +69,67 @@ struct TransactionRow: View {
     let transaction: MockTransaction
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(transaction.type)
-                            .font(.headline)
-                        Spacer()
-                        Text(transaction.status.rawValue)
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(statusColor(for: transaction.status))
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                    }
+        ListItemCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(transaction.type)
+                        .cardTitle()
                     
-                    Text("\(transaction.fromAmount) \(transaction.fromToken) → \(transaction.toAmount) \(transaction.toToken)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    Spacer()
+                    
+                    Text(transaction.status.rawValue)
+                        .statusText(status: statusType(for: transaction.status))
                 }
-            }
-            
-            HStack {
-                Text(transaction.date.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 
-                Spacer()
+                Text("\(transaction.fromAmount) \(transaction.fromToken) → \(transaction.toAmount) \(transaction.toToken)")
+                    .secondaryText()
                 
-                if transaction.txHash != nil {
-                    Button("View") {
-                        // TODO: Open transaction in explorer
+                HStack {
+                    Text(transaction.date.formatted(date: .abbreviated, time: .shortened))
+                        .captionText()
+                    
+                    Spacer()
+                    
+                    if transaction.txHash != nil {
+                        SmallButton("View", style: .primary) {
+                            // TODO: Open transaction in explorer
+                        }
                     }
-                    .font(.caption)
-                    .foregroundColor(.blue)
                 }
             }
         }
-        .padding(.vertical, 4)
     }
     
-    private func statusColor(for status: TransactionStatus) -> Color {
+    private func statusType(for status: TransactionStatus) -> StatusType {
         switch status {
         case .pending:
-            return .orange
+            return .pending
         case .filled:
-            return .green
+            return .success
         case .cancelled:
-            return .red
+            return .error
         }
     }
 }
 
 struct EmptyTransactionsView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "list.bullet")
-                .font(.system(size: 60))
-                .foregroundColor(.gray)
-            
-            Text("No Transactions Yet")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Text("Your limit orders will appear here once created")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+        AppCard {
+            VStack(spacing: 20) {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.secondaryText)
+                
+                Text("No Transactions Yet")
+                    .sectionTitle()
+                
+                Text("Your limit orders will appear here once created.\nStart trading to see your transaction history.")
+                    .secondaryText()
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
         }
-        .padding()
+        .padding(.horizontal)
     }
 }
 

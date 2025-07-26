@@ -59,95 +59,110 @@ struct ChartView: View {
     }
 
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.title)
-                    .foregroundColor(.blue)
-
-                Text(currencyPair)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-            }
-
-            if let latest = chartService.candlestickData.last {
+        AppCard {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("Current: \(latest.formattedClose)")
-                        .font(.headline)
-                        .foregroundColor(latest.isBullish ? .green : .red)
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.title)
+                        .foregroundColor(.primaryGradientStart)
 
-                    Spacer()
+                    Text(currencyPair)
+                        .appTitle()
+                }
 
-                    HStack(spacing: 4) {
-                        Image(systemName: latest.isBullish ? "arrow.up" : "arrow.down")
-                        Text(latest.formattedPercentChange)
+                if let latest = chartService.candlestickData.last {
+                    HStack {
+                        Text("Current: \(latest.formattedClose)")
+                            .priceText(color: latest.isBullish ? Color.bullishGreen : Color.bearishRed)
+
+                        Spacer()
+
+                        HStack(spacing: 4) {
+                            Image(systemName: latest.isBullish ? "arrow.up" : "arrow.down")
+                                .font(.caption)
+                                .foregroundColor(latest.isBullish ? Color.bullishGreen : Color.bearishRed)
+                            Text(latest.formattedPercentChange)
+                                .captionText()
+                                .foregroundColor(latest.isBullish ? Color.bullishGreen : Color.bearishRed)
+                        }
                     }
-                    .font(.caption)
-                    .foregroundColor(latest.isBullish ? .green : .red)
                 }
             }
-
-            // Loading indicator is now positioned absolutely in the chart section
         }
     }
 
     private var timeframeSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(ChartTimeframe.allCases, id: \.self) { timeframe in
-                    Button(action: {
-                        selectedTimeframe = timeframe
-                        Task {
-                            await chartService.fetchChartData(
-                                fromToken: tokenPair.from,
-                                toToken: tokenPair.to,
-                                timeframe: timeframe
-                            )
-                            // Auto-scroll to latest data after timeframe change
-                            // Chart will automatically show all available data
+        AppCard {
+            VStack(spacing: 12) {
+                Text("Timeframe")
+                    .cardTitle()
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(ChartTimeframe.allCases, id: \.self) { timeframe in
+                            SmallButton(timeframe.displayName, style: selectedTimeframe == timeframe ? .primary : .secondary) {
+                                selectedTimeframe = timeframe
+                                Task {
+                                    await chartService.fetchChartData(
+                                        fromToken: tokenPair.from,
+                                        toToken: tokenPair.to,
+                                        timeframe: timeframe
+                                    )
+                                }
+                            }
                         }
-                    }) {
-                        Text(timeframe.displayName)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(selectedTimeframe == timeframe ? Color.blue : Color(.systemGray6))
-                            .foregroundColor(selectedTimeframe == timeframe ? .white : .primary)
-                            .cornerRadius(8)
                     }
+                    .padding(.horizontal, 4)
                 }
             }
-            .padding(.horizontal)
         }
+        .padding(.horizontal)
     }
 
     @ViewBuilder
     private var selectedCandleDetails: some View {
         if let selected = selectedData {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(selected.timestamp, style: .date)
-                    .font(.headline)
-                HStack(spacing: 20) {
-                    Label("O: \(selected.formattedOpen)", systemImage: "circle")
-                    Label("H: \(selected.formattedHigh)", systemImage: "arrow.up")
-                    Label("L: \(selected.formattedLow)", systemImage: "arrow.down")
-                    Label("C: \(selected.formattedClose)", systemImage: "circle.fill")
-                }
-                .font(.caption)
-                .foregroundColor(selected.isBullish ? .green : .red)
+            AppCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(selected.timestamp, style: .date)
+                        .cardTitle()
+                    
+                    HStack(spacing: 16) {
+                        VStack(spacing: 4) {
+                            Text("Open")
+                                .captionText()
+                            Text(selected.formattedOpen)
+                                .priceText(color: Color.secondaryText)
+                        }
+                        VStack(spacing: 4) {
+                            Text("High")
+                                .captionText()
+                            Text(selected.formattedHigh)
+                                .priceText(color: Color.bullishGreen)
+                        }
+                        VStack(spacing: 4) {
+                            Text("Low")
+                                .captionText()
+                            Text(selected.formattedLow)
+                                .priceText(color: Color.bearishRed)
+                        }
+                        VStack(spacing: 4) {
+                            Text("Close")
+                                .captionText()
+                            Text(selected.formattedClose)
+                                .priceText(color: selected.isBullish ? Color.bullishGreen : Color.bearishRed)
+                        }
+                    }
 
-                HStack {
-                    Text("Change: \(selected.formattedChange)")
-                    Spacer()
-                    Text("Volume: \(selected.formattedVolume)")
+                    HStack {
+                        Text("Change: \(selected.formattedChange)")
+                            .captionText()
+                        Spacer()
+                        Text("Volume: \(selected.formattedVolume)")
+                            .captionText()
+                    }
                 }
-                .font(.caption2)
-                .foregroundColor(.secondary)
             }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
             .padding(.horizontal)
         }
     }
@@ -272,64 +287,88 @@ struct ChartView: View {
     }
 
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "chart.line.downtrend.xyaxis")
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+        AppCard {
+            VStack(spacing: 20) {
+                Image(systemName: "chart.line.downtrend.xyaxis")
+                    .font(.system(size: 60))
+                    .foregroundColor(.secondaryText)
 
-            Text("No chart data available")
-                .font(.headline)
-                .foregroundColor(.secondary)
+                Text("No Chart Data Available")
+                    .sectionTitle()
 
-            Text("Try selecting a different timeframe or check your connection")
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+                Text("Try selecting a different timeframe or check your connection")
+                    .secondaryText()
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+            }
         }
-        .frame(height: 300)
+        .frame(height: 200)
+        .padding(.horizontal)
     }
 
 
     private var chartLegend: some View {
-        HStack(spacing: 30) {
-            Spacer()
+        AppCard {
+            HStack {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.bullishGreen)
+                        .frame(width: 8, height: 8)
+                    Text("Bullish")
+                        .captionText()
+                }
+                
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.bearishRed)
+                        .frame(width: 8, height: 8)
+                    Text("Bearish")
+                        .captionText()
+                }
+                
+                Spacer()
 
-            Text("\(visibleData.count) candles")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                Text("\(visibleData.count) candles")
+                    .captionText()
+            }
         }
-        .font(.caption)
         .padding(.horizontal)
     }
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerView
-                        .padding(.horizontal)
+            ZStack {
+                Color.appBackground
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        headerView
+                            .padding(.horizontal)
 
-                    timeframeSelector
+                        timeframeSelector
 
-                    selectedCandleDetails
+                        selectedCandleDetails
 
-                    chartSection
+                        chartSection
 
-
-                    chartLegend
+                        chartLegend
+                    }
+                    .padding(.vertical)
                 }
-                .padding(.vertical)
             }
             .navigationTitle("Chart")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.appBackground, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    SmallButton("Done", style: .secondary) {
                         dismiss()
                     }
                 }
             }
         }
+        .preferredColorScheme(.dark)
         .onAppear {
             Task {
                 await chartService.fetchChartData(
