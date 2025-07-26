@@ -11,7 +11,7 @@ import Charts
 struct CandlestickMark: ChartContent {
     let data: CandlestickData
     let width: CGFloat
-    
+
     var body: some ChartContent {
         RuleMark(
             x: .value("Date", data.timestamp),
@@ -20,7 +20,7 @@ struct CandlestickMark: ChartContent {
         )
         .foregroundStyle(data.isBullish ? .green : .red)
         .lineStyle(StrokeStyle(lineWidth: 1))
-        
+
         RectangleMark(
             x: .value("Date", data.timestamp),
             yStart: .value("Start", min(data.open, data.close)),
@@ -35,59 +35,49 @@ struct ChartView: View {
     let currencyPair: String
     @Environment(\.dismiss) private var dismiss
     @StateObject private var chartService = ChartDataService.shared
-    
+
     @State private var selectedData: CandlestickData?
-    @State private var visibleRange: Range<Int> = 0..<30
     @State private var selectedTimeframe: ChartTimeframe = .oneHour
-    
+
     var visibleData: [CandlestickData] {
-        let data = chartService.candlestickData
-        return Array(data[visibleRange.clamped(to: 0..<data.count)])
+        // Show all real chart data, no pagination needed
+        return chartService.candlestickData
     }
-    
-    private var latestDataRange: Range<Int> {
-        let data = chartService.candlestickData
-        let count = data.count
-        if count <= 30 {
-            return 0..<count
-        } else {
-            return (count - 30)..<count
-        }
-    }
-    
+
+
     var minPrice: Double {
         visibleData.map { $0.low }.min() ?? 0
     }
-    
+
     var maxPrice: Double {
         visibleData.map { $0.high }.max() ?? 100
     }
-    
+
     private var tokenPair: (from: String, to: String) {
         let components = currencyPair.components(separatedBy: "/")
         return (from: components.first ?? "WMATIC", to: components.last ?? "USDC")
     }
-    
+
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.title)
                     .foregroundColor(.blue)
-                
+
                 Text(currencyPair)
                     .font(.largeTitle)
                     .fontWeight(.bold)
             }
-            
+
             if let latest = chartService.candlestickData.last {
                 HStack {
                     Text("Current: \(latest.formattedClose)")
                         .font(.headline)
                         .foregroundColor(latest.isBullish ? .green : .red)
-                    
+
                     Spacer()
-                    
+
                     HStack(spacing: 4) {
                         Image(systemName: latest.isBullish ? "arrow.up" : "arrow.down")
                         Text(latest.formattedPercentChange)
@@ -96,7 +86,7 @@ struct ChartView: View {
                     .foregroundColor(latest.isBullish ? .green : .red)
                 }
             }
-            
+
             if chartService.isLoading {
                 HStack {
                     ProgressView()
@@ -108,7 +98,7 @@ struct ChartView: View {
             }
         }
     }
-    
+
     private var timeframeSelector: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
@@ -122,9 +112,7 @@ struct ChartView: View {
                                 timeframe: timeframe
                             )
                             // Auto-scroll to latest data after timeframe change
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                visibleRange = latestDataRange
-                            }
+                            // Chart will automatically show all available data
                         }
                     }) {
                         Text(timeframe.displayName)
@@ -141,7 +129,7 @@ struct ChartView: View {
             .padding(.horizontal)
         }
     }
-    
+
     @ViewBuilder
     private var selectedCandleDetails: some View {
         if let selected = selectedData {
@@ -156,7 +144,7 @@ struct ChartView: View {
                 }
                 .font(.caption)
                 .foregroundColor(selected.isBullish ? .green : .red)
-                
+
                 HStack {
                     Text("Change: \(selected.formattedChange)")
                     Spacer()
@@ -171,7 +159,7 @@ struct ChartView: View {
             .padding(.horizontal)
         }
     }
-    
+
     @ViewBuilder
     private var chartSection: some View {
         if !chartService.candlestickData.isEmpty {
@@ -184,12 +172,12 @@ struct ChartView: View {
             emptyStateView
         }
     }
-    
+
     private var mainChart: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             Chart(visibleData) { item in
                 CandlestickMark(data: item, width: 12)
-                
+
                 if item.id == selectedData?.id {
                     RuleMark(x: .value("Selected", item.timestamp))
                         .foregroundStyle(.gray.opacity(0.3))
@@ -215,7 +203,7 @@ struct ChartView: View {
                             let chartWidth = geometry.size.width
                             let candleWidth = chartWidth / CGFloat(visibleData.count)
                             let index = Int(xPosition / candleWidth)
-                            
+
                             if index >= 0 && index < visibleData.count {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     selectedData = visibleData[index]
@@ -227,7 +215,7 @@ struct ChartView: View {
         }
         .clipped()
     }
-    
+
     private var yAxisChart: some View {
         Chart(visibleData.prefix(1)) { item in
             PointMark(x: .value("Date", item.timestamp), y: .value("Price", item.close))
@@ -243,17 +231,17 @@ struct ChartView: View {
         }
         .background(Color.clear)
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Image(systemName: "chart.line.downtrend.xyaxis")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
-            
+
             Text("No chart data available")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            
+
             Text("Try selecting a different timeframe or check your connection")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -261,43 +249,12 @@ struct ChartView: View {
         }
         .frame(height: 300)
     }
-    
-    @ViewBuilder
-    private var paginationView: some View {
-        if chartService.candlestickData.count > 30 {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(0..<(chartService.candlestickData.count / 30 + (chartService.candlestickData.count % 30 > 0 ? 1 : 0)), id: \.self) { page in
-                        Button(action: {
-                            withAnimation {
-                                let start = page * 30
-                                let end = min(start + 30, chartService.candlestickData.count)
-                                visibleRange = start..<end
-                            }
-                        }) {
-                            Text("Page \(page + 1)")
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(visibleRange.lowerBound / 30 == page ? Color.blue : Color(.systemGray6))
-                                .foregroundColor(visibleRange.lowerBound / 30 == page ? .white : .primary)
-                                .cornerRadius(8)
-                        }
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-    }
-    
+
+
     private var chartLegend: some View {
         HStack(spacing: 30) {
-            Label("Bullish", systemImage: "arrow.up.circle.fill")
-                .foregroundColor(.green)
-            Label("Bearish", systemImage: "arrow.down.circle.fill")
-                .foregroundColor(.red)
-            
             Spacer()
-            
+
             Text("\(visibleData.count) candles")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -305,22 +262,21 @@ struct ChartView: View {
         .font(.caption)
         .padding(.horizontal)
     }
-    
+
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     headerView
                         .padding(.horizontal)
-                    
+
                     timeframeSelector
-                    
+
                     selectedCandleDetails
-                    
+
                     chartSection
-                    
-                    paginationView
-                    
+
+
                     chartLegend
                 }
                 .padding(.vertical)
@@ -342,16 +298,6 @@ struct ChartView: View {
                     toToken: tokenPair.to,
                     timeframe: selectedTimeframe
                 )
-                // Auto-scroll to latest data
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    visibleRange = latestDataRange
-                }
-            }
-        }
-        .onChange(of: chartService.candlestickData) { _ in
-            // Auto-scroll to latest data when new data is loaded
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                visibleRange = latestDataRange
             }
         }
     }
