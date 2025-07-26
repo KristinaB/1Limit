@@ -374,7 +374,7 @@ class RouterV6Manager: ObservableObject {
                   let uint64Value = UInt64(stringValue) else { throw RouterV6Error.invalidEIP712Value }
             
             // Convert UInt64 to 32-byte big-endian representation
-            var data = Data(8)
+            var data = Data(count: 8)
             data.withUnsafeMutableBytes { bytes in
                 bytes.storeBytes(of: uint64Value.bigEndian, as: UInt64.self)
             }

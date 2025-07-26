@@ -182,20 +182,3 @@ struct WalletDisplayInfo {
     let isValid: Bool
 }
 
-// MARK: - Data Extension for Hex Conversion
-extension Data {
-    init(hex: String) {
-        let cleanHex = hex.replacingOccurrences(of: "0x", with: "")
-        self.init()
-        
-        var index = cleanHex.startIndex
-        while index < cleanHex.endIndex {
-            let nextIndex = cleanHex.index(index, offsetBy: 2, limitedBy: cleanHex.endIndex) ?? cleanHex.endIndex
-            let hexByte = String(cleanHex[index..<nextIndex])
-            if let byte = UInt8(hexByte, radix: 16) {
-                self.append(byte)
-            }
-            index = nextIndex
-        }
-    }
-}
