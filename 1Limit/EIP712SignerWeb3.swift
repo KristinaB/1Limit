@@ -152,6 +152,91 @@ class EIP712SignerWeb3 {
         
         return CompactSignature(r: r, vs: vs)
     }
+    
+    // Hash struct according to EIP-712
+    static func hashStruct(primaryType: String, data: [String: Any], types: [String: Any]) throws -> Data {
+        let typeHash = try hashType(primaryType: primaryType, types: types)
+        let encodedValues = try encodeData(primaryType: primaryType, data: data, types: types)
+        
+        var toHash = Data()
+        toHash.append(typeHash)
+        toHash.append(encodedValues)
+        
+        return toHash.sha3(.keccak256)
+    }
+    
+    // Hash type string
+    static func hashType(primaryType: String, types: [String: Any]) throws -> Data {
+        let typeString = try encodeType(primaryType: primaryType, types: types)
+        return typeString.data(using: .utf8)!.sha3(.keccak256)
+    }
+    
+    // Encode type string
+    static func encodeType(primaryType: String, types: [String: Any]) throws -> String {
+        guard let fields = types[primaryType] as? [[String: String]] else {
+            throw EIP712Error.invalidTypedData
+        }
+        
+        let fieldStrings = fields.map { field in
+            "\(field["type"]!) \(field["name"]!)"
+        }.joined(separator: ",")
+        
+        return "\(primaryType)(\(fieldStrings))"
+    }
+    
+    // Encode data according to type
+    static func encodeData(primaryType: String, data: [String: Any], types: [String: Any]) throws -> Data {
+        guard let fields = types[primaryType] as? [[String: String]] else {
+            throw EIP712Error.invalidTypedData
+        }
+        
+        var encoded = Data()
+        
+        for field in fields {
+            let fieldName = field["name"]!
+            let fieldType = field["type"]!
+            
+            if let value = data[fieldName] {
+                encoded.append(try encodeValue(value: value, type: fieldType, types: types))
+            } else {
+                // Default value for missing fields
+                encoded.append(Data(repeating: 0, count: 32))
+            }
+        }
+        
+        return encoded
+    }
+    
+    // Encode single value
+    static func encodeValue(value: Any, type: String, types: [String: Any]) throws -> Data {
+        if type == "address" {
+            // Address encoding
+            if let address = value as? String {
+                let cleanAddress = address.hasPrefix("0x") ? String(address.dropFirst(2)) : address
+                let addressData = Data(hex: cleanAddress)
+                return Data(repeating: 0, count: 12) + addressData
+            }
+        } else if type == "uint256" {
+            // Uint256 encoding
+            if let stringValue = value as? String,
+               let bigInt = BigUInt(stringValue) {
+                var data = bigInt.serialize()
+                // Pad to 32 bytes
+                if data.count < 32 {
+                    data = Data(repeating: 0, count: 32 - data.count) + data
+                }
+                return data
+            }
+        } else if type == "string" {
+            // String encoding - return keccak256 hash
+            if let stringValue = value as? String {
+                return stringValue.data(using: .utf8)!.sha3(.keccak256)
+            }
+        }
+        
+        // Default: return 32 zero bytes
+        return Data(repeating: 0, count: 32)
+    }
 }
 
 // CompactSignature is already defined in RouterV6Manager.swift

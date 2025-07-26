@@ -515,8 +515,8 @@ class RouterV6Manager: ObservableObject {
             receiver: walletAddress, // Self-fill
             makerAsset: polygonConfig.wmatic,
             takerAsset: polygonConfig.usdc,
-            makingAmount: BigUInt("10000000000000000")!, // 0.01 WMATIC
-            takingAmount: BigUInt("10000")!, // 0.01 USDC
+            makingAmount: BigUInt("10000000000000000") ?? BigUInt(0), // 0.01 WMATIC
+            takingAmount: BigUInt("10000") ?? BigUInt(0), // 0.01 USDC
             makerTraits: makerTraits
         )
     }
