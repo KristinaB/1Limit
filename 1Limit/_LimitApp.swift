@@ -12,6 +12,8 @@ struct _LimitApp: App {
   var body: some Scene {
     WindowGroup {
       ContentView()
+        .preferredColorScheme(.dark)
+        .supportedInterfaceOrientations(.portrait)
     }
   }
 }

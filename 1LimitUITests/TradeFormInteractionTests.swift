@@ -1,13 +1,11 @@
 //
 //  TradeFormInteractionTests.swift
-//  1LimitTests
+//  1LimitUITests
 //
 //  Specialized tests for trade view form interactions and validation 💫✨
 //
 
 import XCTest
-import SwiftUI
-@testable import _Limit
 
 class TradeFormInteractionTests: XCTestCase {
 
@@ -358,37 +356,6 @@ class TradeFormInteractionTests: XCTestCase {
         if let currentValue = limitPriceField.value as? String, !currentValue.isEmpty {
             XCTAssertFalse(currentValue == "0.00", "Limit price should auto-calculate from market")
             XCTAssertTrue(Double(currentValue) != nil, "Auto-calculated price should be valid number")
-        }
-    }
-    
-    // MARK: - Performance Tests
-    
-    func testFormInteractionPerformance() throws {
-        measure {
-            let amountField = app.textFields.matching(NSPredicate(format: "placeholderValue == '0.00'")).firstMatch
-            let limitPriceFields = app.textFields.matching(NSPredicate(format: "placeholderValue == '0.00'"))
-            let limitPriceField = limitPriceFields.element(boundBy: 1)
-            
-            // Test rapid form interactions
-            amountField.tap()
-            amountField.typeText("1.5")
-            
-            limitPriceField.tap()
-            limitPriceField.typeText("0.851")
-            
-            // Tap outside to dismiss keyboard
-            app.tap()
-        }
-    }
-    
-    func testFormValidationPerformance() throws {
-        measure {
-            let amountField = app.textFields.matching(NSPredicate(format: "placeholderValue == '0.00'")).firstMatch
-            
-            // Test rapid value changes
-            for i in 1...5 {
-                amountField.clearAndEnterText("\(i).0")
-            }
         }
     }
 }

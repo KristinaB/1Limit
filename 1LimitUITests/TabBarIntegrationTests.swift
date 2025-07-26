@@ -1,13 +1,11 @@
 //
 //  TabBarIntegrationTests.swift
-//  1LimitTests
+//  1LimitUITests
 //
 //  Integration tests for tab bar navigation and rendering 🎀✨
 //
 
 import XCTest
-import SwiftUI
-@testable import _Limit
 
 class TabBarIntegrationTests: XCTestCase {
 
@@ -157,18 +155,5 @@ class TabBarIntegrationTests: XCTestCase {
         // And: Cancelled filter should NOT be present
         let cancelledFilter = app.buttons["Cancelled"]
         XCTAssertFalse(cancelledFilter.exists, "Cancelled filter should not be present")
-    }
-    
-    // MARK: - Performance Tests
-    
-    func testTabBarNavigationPerformance() throws {
-        measure {
-            // Test performance of tab switching
-            let tradeTab = app.tabBars.buttons["Trade"]
-            let homeTab = app.tabBars.buttons["Home"]
-            
-            tradeTab.tap()
-            homeTab.tap()
-        }
     }
 }

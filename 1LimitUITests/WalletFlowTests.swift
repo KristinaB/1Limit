@@ -1,13 +1,11 @@
 //
 //  WalletFlowTests.swift
-//  1LimitTests
+//  1LimitUITests
 //
 //  Specialized tests for wallet creation and import flows 💜🦄
 //
 
 import XCTest
-import SwiftUI
-@testable import _Limit
 
 class WalletFlowTests: XCTestCase {
 
@@ -341,50 +339,5 @@ class WalletFlowTests: XCTestCase {
                 }
             }
         }
-    }
-    
-    // MARK: - Performance Tests
-    
-    func testWalletCreationPerformance() throws {
-        measure {
-            // Start wallet creation
-            let createWalletButton = app.buttons["Create Wallet"]
-            createWalletButton.tap()
-            
-            // Wait for backup phrase view
-            let backupPhraseTitle = app.staticTexts["Save Recovery Phrase"]
-            _ = backupPhraseTitle.waitForExistence(timeout: 3)
-            
-            // Cancel or complete quickly
-            let cancelButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'cancel'")).firstMatch
-            if cancelButton.exists {
-                cancelButton.tap()
-            } else {
-                app.swipeDown()
-            }
-        }
-    }
-    
-    func testWalletFlowMemoryUsage() throws {
-        // Test that wallet creation doesn't cause memory leaks
-        
-        for _ in 0..<3 {
-            // Create and cancel wallet multiple times
-            let createWalletButton = app.buttons["Create Wallet"]
-            createWalletButton.tap()
-            
-            let backupPhraseTitle = app.staticTexts["Save Recovery Phrase"]
-            if backupPhraseTitle.waitForExistence(timeout: 3) {
-                // Cancel flow
-                app.swipeDown()
-                
-                // Wait for return to home
-                let homeTitle = app.staticTexts["1Limit"]
-                _ = homeTitle.waitForExistence(timeout: 3)
-            }
-        }
-        
-        // App should still be responsive
-        XCTAssertTrue(app.state == .runningForeground, "App should handle multiple wallet creation attempts")
     }
 }

@@ -1,3 +1,4 @@
+*.log
 tmp
 1Limit.xcodeproj/project.xcworkspace/xcshareddata/
 1Limit.xcodeproj/project.xcworkspace/xcuserdata/

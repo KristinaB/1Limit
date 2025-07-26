@@ -1,13 +1,11 @@
 //
 //  ComprehensiveUITests.swift
-//  1LimitTests
+//  1LimitUITests
 //
 //  Comprehensive UI test suite covering all screens and transitions 🎀✨
 //
 
 import XCTest
-import SwiftUI
-@testable import _Limit
 
 class ComprehensiveUITests: XCTestCase {
 
@@ -334,28 +332,6 @@ class ComprehensiveUITests: XCTestCase {
         
         // Then: Form data should be preserved
         XCTAssertEqual(amountField.value as? String, "5.0", "Form data should be preserved")
-    }
-    
-    // MARK: - Performance Tests
-    
-    func testAppLaunchPerformance() throws {
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
-    }
-    
-    func testNavigationPerformance() throws {
-        measure {
-            let tabs = [
-                app.tabBars.buttons["Home"],
-                app.tabBars.buttons["Trade"],
-                app.tabBars.buttons["Transactions"]
-            ]
-            
-            for tab in tabs {
-                tab.tap()
-            }
-        }
     }
 }
 

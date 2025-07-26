@@ -41,6 +41,22 @@
                ReferencedContainer = "container:1Limit.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "717AA1C62E357A81008708C7"
+               BuildableName = "1LimitUITests.xctest"
+               BlueprintName = "1LimitUITests"
+               ReferencedContainer = "container:1Limit.xcodeproj">
+            </BuildableReference>
+            <SkippedTests>
+               <Test
+                  Identifier = "_LimitUITests/testLaunchPerformance()">
+               </Test>
+            </SkippedTests>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

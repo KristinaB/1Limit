@@ -38,73 +38,18 @@ class TradeViewUnitTests: XCTestCase {
     }
     
     func testOrderPlacementValidInput() async throws {
-        // Given: Valid order parameters
-        let fromAmount = "0.01"
-        let fromToken = "WMATIC"
-        let toToken = "USDC"
-        let limitPrice = "0.851"
-        
-        // When: Placing an order
-        let result = try await orderService.placeOrder(
-            fromAmount: fromAmount,
-            fromToken: fromToken,
-            toToken: toToken,
-            limitPrice: limitPrice
-        )
-        
-        // Then: Result should indicate success or proper error handling
-        XCTAssertNotNil(result, "Result should not be nil")
-        // Note: Result may be success or failure depending on wallet/network state
-        // The important thing is that it doesn't crash and returns a result
+        // ⚠️ SKIPPED: This test would submit real blockchain transactions
+        throw XCTSkip("Skipping real order placement test to prevent accidental transactions")
     }
     
     func testOrderPlacementInvalidAmount() async throws {
-        // Given: Invalid amount parameter
-        let fromAmount = "invalid"
-        let fromToken = "WMATIC"
-        let toToken = "USDC"
-        let limitPrice = "0.851"
-        
-        // When: Placing an order with invalid amount
-        do {
-            let result = try await orderService.placeOrder(
-                fromAmount: fromAmount,
-                fromToken: fromToken,
-                toToken: toToken,
-                limitPrice: limitPrice
-            )
-            
-            // Then: Should handle invalid input gracefully
-            XCTAssertFalse(result.success, "Should fail with invalid amount")
-            XCTAssertNotNil(result.error, "Should provide error information")
-        } catch {
-            // It's also acceptable for it to throw an error
-            XCTAssertTrue(true, "Throwing error for invalid input is acceptable")
-        }
+        // ⚠️ SKIPPED: This test would submit real blockchain transactions
+        throw XCTSkip("Skipping real order placement test to prevent accidental transactions")
     }
     
     func testOrderPlacementEmptyValues() async throws {
-        // Given: Empty parameters
-        let fromAmount = ""
-        let fromToken = "WMATIC"
-        let toToken = "USDC"
-        let limitPrice = ""
-        
-        // When: Placing an order with empty values
-        do {
-            let result = try await orderService.placeOrder(
-                fromAmount: fromAmount,
-                fromToken: fromToken,
-                toToken: toToken,
-                limitPrice: limitPrice
-            )
-            
-            // Then: Should handle empty input gracefully
-            XCTAssertFalse(result.success, "Should fail with empty values")
-        } catch {
-            // It's also acceptable for it to throw an error
-            XCTAssertTrue(true, "Throwing error for empty input is acceptable")
-        }
+        // ⚠️ SKIPPED: This test would submit real blockchain transactions
+        throw XCTSkip("Skipping real order placement test to prevent accidental transactions")
     }
     
     // MARK: - Order Result Tests
@@ -135,15 +80,68 @@ class TradeViewUnitTests: XCTestCase {
         XCTAssertNotNil(failureResult.error, "Failure should have error")
     }
     
-    // MARK: - Performance Tests
+    // MARK: - Safe Mock Tests (No Real Transactions)
     
     @MainActor
-    func testOrderServicePerformance() throws {
-        measure {
-            // Test creation performance
-            let service = OrderPlacementService()
-            XCTAssertNotNil(service)
-        }
+    func testMockOrderPlacementSuccess() throws {
+        // Given: Valid parameters for mock test
+        let result = orderService.mockPlaceOrder(
+            fromAmount: "1.5",
+            fromToken: "WMATIC",
+            toToken: "USDC", 
+            limitPrice: "0.851",
+            shouldSucceed: true
+        )
+        
+        // Then: Mock should succeed
+        XCTAssertTrue(result.success, "Mock order should succeed")
+        XCTAssertNotNil(result.transactionHash, "Should have mock transaction hash")
+        XCTAssertNil(result.error, "Success should not have error")
+    }
+    
+    @MainActor
+    func testMockOrderPlacementFailure() throws {
+        // Given: Parameters that should cause mock failure
+        let result = orderService.mockPlaceOrder(
+            fromAmount: "1.0",
+            fromToken: "WMATIC",
+            toToken: "USDC",
+            limitPrice: "0.851", 
+            shouldSucceed: false
+        )
+        
+        // Then: Mock should fail
+        XCTAssertFalse(result.success, "Mock order should fail")
+        XCTAssertNil(result.transactionHash, "Failed order should not have hash")
+        XCTAssertNotNil(result.error, "Failure should have error")
+    }
+    
+    @MainActor
+    func testMockValidationErrorHandling() throws {
+        // Test various validation scenarios with mock
+        let invalidAmountResult = orderService.mockPlaceOrder(
+            fromAmount: "abc",
+            fromToken: "WMATIC", 
+            toToken: "USDC",
+            limitPrice: "0.851"
+        )
+        XCTAssertFalse(invalidAmountResult.success, "Should reject invalid amount")
+        
+        let emptyAmountResult = orderService.mockPlaceOrder(
+            fromAmount: "",
+            fromToken: "WMATIC",
+            toToken: "USDC", 
+            limitPrice: "0.851"
+        )
+        XCTAssertFalse(emptyAmountResult.success, "Should reject empty amount")
+        
+        let invalidPriceResult = orderService.mockPlaceOrder(
+            fromAmount: "1.0",
+            fromToken: "WMATIC",
+            toToken: "USDC",
+            limitPrice: "invalid"
+        )
+        XCTAssertFalse(invalidPriceResult.success, "Should reject invalid price")
     }
 }
 

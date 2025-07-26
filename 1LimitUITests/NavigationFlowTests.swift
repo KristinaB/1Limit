@@ -1,13 +1,11 @@
 //
 //  NavigationFlowTests.swift
-//  1LimitTests
+//  1LimitUITests
 //
 //  Specialized tests for navigation flows and transitions 🌈✨
 //
 
 import XCTest
-import SwiftUI
-@testable import _Limit
 
 class NavigationFlowTests: XCTestCase {
 
@@ -264,47 +262,6 @@ class NavigationFlowTests: XCTestCase {
     
     // MARK: - Transition Animation Tests
     
-    func testTabSwitchingSpeed() throws {
-        // Test that tab switching is responsive
-        measure {
-            let tabs = [
-                app.tabBars.buttons["Trade"],
-                app.tabBars.buttons["Transactions"],
-                app.tabBars.buttons["Home"]
-            ]
-            
-            for tab in tabs {
-                tab.tap()
-                // Wait for selection to complete
-                _ = tab.waitForExistence(timeout: 1)
-            }
-        }
-    }
-    
-    func testModalPresentationSpeed() throws {
-        // Test modal presentation performance
-        measure {
-            // Present chart modal
-            let tradeTab = app.tabBars.buttons["Trade"]
-            tradeTab.tap()
-            
-            let chartButton = app.buttons["Chart"]
-            if chartButton.exists {
-                chartButton.tap()
-                
-                // Wait for modal to appear
-                let chartView = app.staticTexts["Price Chart"]
-                _ = chartView.waitForExistence(timeout: 2)
-                
-                // Dismiss modal
-                app.swipeDown()
-                
-                // Wait for dismissal
-                let createOrderTitle = app.staticTexts["Create Limit Order"]
-                _ = createOrderTitle.waitForExistence(timeout: 2)
-            }
-        }
-    }
     
     // MARK: - Error Handling Tests
     

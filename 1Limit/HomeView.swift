@@ -65,14 +65,14 @@ struct HomeView: View {
 
           // Action buttons
           VStack(spacing: 16) {
-            PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
-              showingWalletCreation = true
-            }
-
-            SecondaryButton("Import Wallet", icon: "square.and.arrow.down") {
-              // TODO: Implement wallet import
-              print("Import wallet tapped")
-            }
+//            PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
+//              showingWalletCreation = true
+//            }
+//
+//            SecondaryButton("Import Wallet", icon: "square.and.arrow.down") {
+//              // TODO: Implement wallet import
+//              print("Import wallet tapped")
+//            }
           }
 
           // Help text
