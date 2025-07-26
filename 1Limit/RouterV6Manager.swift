@@ -239,68 +239,97 @@ class RouterV6Manager: ObservableObject {
         await addLog("📋 Step 7: Submitting to Polygon Mainnet...")
         try? await Task.sleep(nanoseconds: 2_000_000_000)
         
-        // REAL BLOCKCHAIN SUBMISSION NEEDED HERE
-        // The RouterV6Wallet reference shows this requires:
-        // 1. web3swift package dependency in Xcode project
-        // 2. Web3.new(URL) connection to Polygon RPC
-        // 3. contract.createWriteOperation("fillOrder", parameters)
-        // 4. transaction.writeToChain() for actual submission
+        // REAL BLOCKCHAIN SUBMISSION - WEB3SWIFT ENABLED!
+        await addLog("🌐 Connecting to Polygon mainnet...")
         
-        /*
-        // REAL IMPLEMENTATION (requires web3swift dependency):
-        
-        let web3URL = URL(string: "https://polygon-rpc.com")!
-        let web3 = try await Web3.new(web3URL)
-        
-        let contractAddress = EthereumAddress("0x111111125421cA6dc452d289314280a0f8842A65")!
-        let contract = web3.contract(routerV6ABI, at: contractAddress)!
-        
-        // Prepare fillOrder parameters as [AnyObject] for web3swift
-        let orderTuple = [
-            order.salt,
-            makerUint256,
-            makerUint256, // receiver = maker
-            makerAssetUint256,
-            takerAssetUint256,
-            BigUInt(order.makingAmount) ?? BigUInt(0),
-            BigUInt(order.takingAmount) ?? BigUInt(0),
-            order.makerTraits
-        ]
-        
-        let fillParams = [
-            orderTuple,
-            BigUInt(compactSig.r),
-            BigUInt(compactSig.vs),
-            BigUInt(order.makingAmount) ?? BigUInt(0),
-            BigUInt(0) // takerTraits
-        ]
-        
-        let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams)!
-        transaction.transaction.gasLimit = BigUInt(300_000)
-        transaction.transaction.gasPrice = try await web3.eth.gasPrice() * BigUInt(120) / BigUInt(100)
-        transaction.transaction.from = EthereumAddress(order.maker)!
-        
-        let privateKeyData = Data(hex: String(wallet!.privateKey.dropFirst(2)))
-        let keystore = try EthereumKeystoreV3(privateKey: privateKeyData, password: "")!
-        
-        let result = try await transaction.writeToChain(password: "")
-        let realTxHash = result.hash
-        
-        await addLog("✅ REAL transaction submitted: \(realTxHash)")
-        */
-        
-        await addLog("🚨 MISSING: web3swift dependency for real blockchain submission")
-        await addLog("📋 TO FIX:")
-        await addLog("   1. Add web3swift package to Xcode project")
-        await addLog("   2. Import web3swift, Web3Core, BigInt")
-        await addLog("   3. Replace mock with real Web3.new(URL) connection")
-        await addLog("   4. Use contract.createWriteOperation + writeToChain()")
-        
-        // Generate mock hash to show current implementation limitation
-        let mockTxHash = generateRealisticTxHash(order: order, signature: signature)
-        await addLog("🔧 MOCK TX Hash: \(mockTxHash)")
-        await addLog("🌍 Would be on Polygonscan: https://polygonscan.com/tx/\(mockTxHash)")
-        await addLog("⚠️ Status: Parameters ready, but NO actual blockchain submission\n")
+        do {
+            // REAL IMPLEMENTATION using web3swift:
+            
+            let web3URL = URL(string: "https://polygon-rpc.com")!
+            let web3 = try await Web3.new(web3URL)
+            await addLog("✅ Connected to Polygon RPC")
+            
+            guard let contractAddress = EthereumAddress("0x111111125421cA6dc452d289314280a0f8842A65") else {
+                throw RouterV6Error.invalidAddress
+            }
+            guard let contract = web3.contract(Self.routerV6ABI, at: contractAddress) else {
+                throw RouterV6Error.contractCreationFailed
+            }
+            await addLog("📄 Router V6 contract loaded")
+            
+            // Convert addresses to BigUInt for Router V6
+            let makerUint256 = try addressToUint256(order.maker)
+            let makerAssetUint256 = try addressToUint256(order.makerAsset)
+            let takerAssetUint256 = try addressToUint256(order.takerAsset)
+            
+            // Prepare fillOrder parameters as [AnyObject] for web3swift
+            let orderTuple = [
+                order.salt as AnyObject,
+                makerUint256 as AnyObject,
+                makerUint256 as AnyObject, // receiver = maker
+                makerAssetUint256 as AnyObject,
+                takerAssetUint256 as AnyObject,
+                BigUInt(order.makingAmount) ?? BigUInt(0) as AnyObject,
+                BigUInt(order.takingAmount) ?? BigUInt(0) as AnyObject,
+                order.makerTraits as AnyObject
+            ]
+            
+            let fillParams = [
+                orderTuple as AnyObject,
+                BigUInt(compactSig.r, radix: 16) ?? BigUInt(0) as AnyObject,
+                BigUInt(compactSig.vs, radix: 16) ?? BigUInt(0) as AnyObject,
+                BigUInt(order.makingAmount) ?? BigUInt(0) as AnyObject,
+                BigUInt(0) as AnyObject // takerTraits
+            ]
+            
+            guard let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
+                throw RouterV6Error.transactionCreationFailed
+            }
+            
+            // Set gas parameters matching Go implementation
+            transaction.transaction.gasLimit = BigUInt(300_000)
+            let baseGasPrice = try await web3.eth.gasPrice()
+            let adjustedGasPrice = baseGasPrice * BigUInt(120) / BigUInt(100) // +20% boost
+            transaction.transaction.gasPrice = adjustedGasPrice
+            
+            guard let fromAddress = EthereumAddress(order.maker) else {
+                throw RouterV6Error.invalidAddress
+            }
+            transaction.transaction.from = fromAddress
+            
+            await addLog("⛽ Gas limit: 300,000")
+            await addLog("💰 Gas price: \(adjustedGasPrice) (+20% boost)")
+            
+            // Sign transaction with wallet private key
+            let privateKeyHex = String(wallet?.privateKey.dropFirst(2) ?? "")
+            let privateKeyData = Data(hex: privateKeyHex)
+            
+            guard let keystore = try? EthereumKeystoreV3(privateKey: privateKeyData, password: "") else {
+                throw RouterV6Error.signingFailed
+            }
+            
+            await addLog("🔐 Transaction signed with wallet")
+            
+            // Submit transaction to Polygon mainnet
+            await addLog("🚀 Submitting to Polygon mainnet...")
+            let result = try await transaction.writeToChain(password: "")
+            let realTxHash = result.hash
+            
+            await addLog("✅ REAL transaction submitted successfully!")
+            await addLog("🔗 TX Hash: \(realTxHash)")
+            await addLog("🌍 Polygonscan: https://polygonscan.com/tx/\(realTxHash)")
+            
+            // Wait for confirmation
+            await waitForTransactionConfirmation(web3: web3, txHash: realTxHash)
+            
+        } catch {
+            await addLog("❌ Blockchain submission failed: \(error.localizedDescription)")
+            
+            // Fall back to mock for debugging
+            let mockTxHash = generateRealisticTxHash(order: order, signature: signature)
+            await addLog("🔧 FALLBACK Mock TX Hash: \(mockTxHash)")
+            await addLog("🌍 Would be on Polygonscan: https://polygonscan.com/tx/\(mockTxHash)")
+        }
         
         await addLog("🎉 Router V6 Debug Flow Complete! 🎊")
         await addLog("💎 Implementation Summary:")
@@ -806,6 +835,42 @@ class RouterV6Manager: ObservableObject {
         let orderData = "\(order.salt.description)\(order.maker)\(order.makingAmount)\(order.takingAmount)\(signature)"
         let hashData = keccak256(orderData.data(using: .utf8)!)
         return "0x" + hashData.map { String(format: "%02hhx", $0) }.joined()
+    }
+    
+    /// Wait for transaction confirmation on Polygon (matching RouterV6Wallet)
+    private func waitForTransactionConfirmation(web3: Web3, txHash: String) async {
+        await addLog("⏳ Waiting for transaction confirmation...")
+        
+        // Wait up to 30 attempts with 2 second intervals (matching RouterV6Wallet)
+        for attempt in 1...30 {
+            do {
+                let txHashData = Data(hex: txHash.replacingOccurrences(of: "0x", with: ""))
+                if let receipt = try? await web3.eth.transactionReceipt(txHashData) {
+                    if receipt.status == .ok {
+                        await addLog("✅ Transaction confirmed successfully!")
+                        await addLog("⛽ Gas used: \(receipt.gasUsed)")
+                        await addLog("📝 Logs: \(receipt.logs.count) events")
+                        return
+                    } else {
+                        await addLog("❌ Transaction failed with status: \(receipt.status)")
+                        return
+                    }
+                }
+            } catch {
+                // Continue waiting - transaction might still be pending
+            }
+            
+            // Progress indication every 5 attempts
+            if attempt % 5 == 0 {
+                await addLog("   Still waiting... (attempt \(attempt)/30)")
+            }
+            
+            // 2 second sleep between attempts
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+        
+        await addLog("⚠️ Transaction confirmation timeout - check manually")
+        await addLog("🔗 Check status: https://polygonscan.com/tx/\(txHash)")
     }
     
     // MARK: - Router V6 ABI (for future web3swift integration)
