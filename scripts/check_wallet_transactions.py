@@ -6,10 +6,14 @@
 This script loads the wallet JSON file and checks if the wallet address
 has any transactions on Polygon Mainnet using the public RPC endpoint.
 
+Can also check specific transaction details for debugging Router V6 failures.
+
 Ported wallet verification logic to complement the Swift Router V6 implementation.
 
 Usage:
-    python3 scripts/check_wallet_transactions.py
+    python3 scripts/check_wallet_transactions.py                    # Check wallet activity
+    python3 scripts/check_wallet_transactions.py --tx 0x123...     # Check specific transaction
+    python3 scripts/check_wallet_transactions.py --latest          # Check latest transactions
 
 Requirements:
     pip install requests
@@ -21,6 +25,7 @@ import json
 import requests
 import sys
 import os
+import argparse
 from typing import Optional, Dict, Any
 
 # Polygon Mainnet RPC endpoint (matching iOS app configuration)
@@ -212,32 +217,126 @@ class PolygonWalletChecker:
         print(f"{'='*50}")
         
         return has_activity
+    
+    def get_transaction_receipt(self, tx_hash: str) -> Optional[Dict[str, Any]]:
+        """📋 Get transaction receipt for analysis"""
+        result = self.json_rpc_call("eth_getTransactionReceipt", [tx_hash])
+        return result
+    
+    def get_transaction_details(self, tx_hash: str) -> Optional[Dict[str, Any]]:
+        """📄 Get transaction details"""
+        result = self.json_rpc_call("eth_getTransactionByHash", [tx_hash])
+        return result
+    
+    def analyze_transaction(self, tx_hash: str) -> bool:
+        """🔍 Analyze specific transaction for Router V6 debugging"""
+        print(f"🔍 Analyzing transaction: {tx_hash}")
+        print(f"🌐 RPC: {self.rpc_url}\n")
+        
+        # Get transaction details
+        print("📋 Step 1: Getting transaction details...")
+        tx_details = self.get_transaction_details(tx_hash)
+        if tx_details is None:
+            print("❌ Transaction not found or network error")
+            return False
+        
+        print("✅ Transaction found!")
+        print(f"   📤 From: {self.mask_address(tx_details.get('from', 'unknown'))}")
+        print(f"   📥 To: {self.mask_address(tx_details.get('to', 'unknown'))}")
+        print(f"   💰 Value: {int(tx_details.get('value', '0x0'), 16) / 10**18:.6f} MATIC")
+        print(f"   ⛽ Gas Limit: {int(tx_details.get('gas', '0x0'), 16):,}")
+        print(f"   💸 Gas Price: {int(tx_details.get('gasPrice', '0x0'), 16) / 10**9:.1f} gwei")
+        
+        # Get transaction receipt
+        print("\n📋 Step 2: Getting transaction receipt...")
+        receipt = self.get_transaction_receipt(tx_hash)
+        if receipt is None:
+            print("❌ Transaction receipt not found")
+            return False
+        
+        status = receipt.get('status', '0x0')
+        success = status == '0x1'
+        
+        print(f"✅ Transaction receipt found!")
+        print(f"   📊 Status: {'SUCCESS' if success else 'FAILED'}")
+        print(f"   🧱 Block: {int(receipt.get('blockNumber', '0x0'), 16):,}")
+        print(f"   ⛽ Gas Used: {int(receipt.get('gasUsed', '0x0'), 16):,}")
+        
+        if not success:
+            print(f"\n❌ Transaction failed on-chain!")
+            print(f"💡 This means the transaction reached Polygon but Router V6 contract rejected it")
+            print(f"🔗 View on Polygonscan: https://polygonscan.com/tx/{tx_hash}")
+        else:
+            print(f"\n✅ Transaction succeeded!")
+            print(f"🔗 View on Polygonscan: https://polygonscan.com/tx/{tx_hash}")
+        
+        return success
+    
+    def get_recent_transactions(self, address: str, count: int = 5) -> None:
+        """📋 Get recent transactions for debugging (simplified approach)"""
+        print(f"📋 Recent transactions for {self.mask_address(address)}:")
+        print("💡 Note: This requires a more complex API or indexing service")
+        print("🔗 Check manually on Polygonscan: https://polygonscan.com/address/" + address)
 
 def main():
     """🚀 Main execution function"""
+    parser = argparse.ArgumentParser(description="🔍 1Limit Wallet Transaction Checker")
+    parser.add_argument("--tx", "--transaction", help="🔍 Check specific transaction hash")
+    parser.add_argument("--latest", action="store_true", help="📋 Show latest transactions")
+    
+    args = parser.parse_args()
+    
     print("🚀 1Limit Wallet Transaction Checker")
     print("=====================================")
-    print("🔍 Checking wallet activity on Polygon Mainnet")
-    print("🌐 Using public RPC endpoint")
-    print("💎 Ported from Swift Router V6 implementation\n")
     
     # Initialize checker
     checker = PolygonWalletChecker()
     
-    # Load wallet
-    wallet_data = checker.load_wallet(WALLET_FILE_PATH)
-    if wallet_data is None:
-        print("\n❌ Cannot proceed without valid wallet")
-        sys.exit(1)
+    if args.tx:
+        # Check specific transaction
+        print("🔍 Transaction Analysis Mode")
+        print("🌐 Using public RPC endpoint")
+        print("💎 Debugging Router V6 transaction\n")
+        
+        success = checker.analyze_transaction(args.tx)
+        print(f"\n🎯 Result: Transaction {'SUCCEEDED' if success else 'FAILED'}")
+        print("💖 Generated with Claude Code 🤖❤️🎉")
+        sys.exit(0 if success else 1)
     
-    # Check wallet activity
-    has_activity = checker.check_wallet_activity(wallet_data)
+    elif args.latest:
+        # Show latest transactions
+        print("📋 Latest Transactions Mode")
+        print("💎 Ported from Swift Router V6 implementation\n")
+        
+        wallet_data = checker.load_wallet(WALLET_FILE_PATH)
+        if wallet_data is None:
+            print("\n❌ Cannot proceed without valid wallet")
+            sys.exit(1)
+        
+        checker.get_recent_transactions(wallet_data['address'])
+        print("💖 Generated with Claude Code 🤖❤️🎉")
+        sys.exit(0)
     
-    print(f"\n🎯 Result: {'ACTIVE' if has_activity else 'INACTIVE'} wallet")
-    print("💖 Generated with Claude Code 🤖❤️🎉")
-    
-    # Exit with appropriate code
-    sys.exit(0 if has_activity else 1)
+    else:
+        # Default wallet activity check
+        print("🔍 Checking wallet activity on Polygon Mainnet")
+        print("🌐 Using public RPC endpoint")
+        print("💎 Ported from Swift Router V6 implementation\n")
+        
+        # Load wallet
+        wallet_data = checker.load_wallet(WALLET_FILE_PATH)
+        if wallet_data is None:
+            print("\n❌ Cannot proceed without valid wallet")
+            sys.exit(1)
+        
+        # Check wallet activity
+        has_activity = checker.check_wallet_activity(wallet_data)
+        
+        print(f"\n🎯 Result: {'ACTIVE' if has_activity else 'INACTIVE'} wallet")
+        print("💖 Generated with Claude Code 🤖❤️🎉")
+        
+        # Exit with appropriate code
+        sys.exit(0 if has_activity else 1)
 
 if __name__ == "__main__":
     main()
