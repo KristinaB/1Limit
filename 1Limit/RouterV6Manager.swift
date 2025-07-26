@@ -287,8 +287,8 @@ class RouterV6Manager: ObservableObject {
             let takerAssetUint256 = try addressToUint256(order.takerAsset)
             
             // Prepare fillOrder parameters for web3swift
-            let makingAmountBig = BigUInt(order.makingAmount) ?? BigUInt(0)
-            let takingAmountBig = BigUInt(order.takingAmount) ?? BigUInt(0)
+            let makingAmountBig = order.makingAmount
+            let takingAmountBig = order.takingAmount
             let takerTraitsBig = BigUInt(0)
             
             // Use compact signature r,vs as Data (exactly 32 bytes each for bytes32)
@@ -515,8 +515,8 @@ class RouterV6Manager: ObservableObject {
             receiver: walletAddress, // Self-fill
             makerAsset: polygonConfig.wmatic,
             takerAsset: polygonConfig.usdc,
-            makingAmount: "10000000000000000", // 0.01 WMATIC
-            takingAmount: "10000", // 0.01 USDC
+            makingAmount: BigUInt("10000000000000000")!, // 0.01 WMATIC
+            takingAmount: BigUInt("10000")!, // 0.01 USDC
             makerTraits: makerTraits
         )
     }
@@ -534,8 +534,8 @@ class RouterV6Manager: ObservableObject {
             receiver: order.receiver,
             makerAsset: order.makerAsset,
             takerAsset: order.takerAsset,
-            makingAmount: BigUInt(order.makingAmount) ?? BigUInt(0),
-            takingAmount: BigUInt(order.takingAmount) ?? BigUInt(0),
+            makingAmount: order.makingAmount,  // Now BigUInt directly
+            takingAmount: order.takingAmount,  // Now BigUInt directly
             makerTraits: order.makerTraits
         )
         
@@ -613,8 +613,8 @@ class RouterV6Manager: ObservableObject {
         encoded.append(Data(hex: String(order.receiver.dropFirst(2))).padded(to: 32))
         encoded.append(Data(hex: String(order.makerAsset.dropFirst(2))).padded(to: 32))
         encoded.append(Data(hex: String(order.takerAsset.dropFirst(2))).padded(to: 32))
-        encoded.append((BigUInt(order.makingAmount) ?? BigUInt(0)).serialize().padded(to: 32))
-        encoded.append((BigUInt(order.takingAmount) ?? BigUInt(0)).serialize().padded(to: 32))
+        encoded.append(order.makingAmount.serialize().padded(to: 32))
+        encoded.append(order.takingAmount.serialize().padded(to: 32))
         encoded.append(bigUIntToData(order.makerTraits).padded(to: 32))
         
         return keccak256(encoded)
@@ -736,8 +736,8 @@ class RouterV6Manager: ObservableObject {
             "receiver": order.receiver,
             "makerAsset": order.makerAsset,
             "takerAsset": order.takerAsset,
-            "makingAmount": order.makingAmount,
-            "takingAmount": order.takingAmount,
+            "makingAmount": order.makingAmount.description,
+            "takingAmount": order.takingAmount.description,
             "makerTraits": order.makerTraits.description
         ]
         
@@ -940,7 +940,7 @@ class RouterV6Manager: ObservableObject {
             
             let allowanceResult = try await allowanceTransaction.callContractMethod()
             if let allowance = allowanceResult["0"] as? BigUInt {
-                let requiredAmount = BigUInt(order.makingAmount) ?? BigUInt(0)
+                let requiredAmount = order.makingAmount
                 await addLog("📊 Token allowance: \(allowance)")
                 await addLog("📊 Required amount: \(requiredAmount)")
                 
@@ -978,7 +978,7 @@ class RouterV6Manager: ObservableObject {
         }
         
         // Check amounts are reasonable
-        if order.makingAmount == "0" || order.takingAmount == "0" {
+        if order.makingAmount == BigUInt(0) || order.takingAmount == BigUInt(0) {
             issues.append("Order amounts cannot be zero")
         }
         
@@ -1027,8 +1027,11 @@ class RouterV6Manager: ObservableObject {
         let takerAssetUint256 = try addressToUint256(order.takerAsset)
         
         // Parse order amounts as SimpleBigUInt
-        guard let makingAmount = UInt64(order.makingAmount),
-              let takingAmount = UInt64(order.takingAmount) else {
+        // Convert BigUInt to UInt64 (this may truncate for very large values)
+        let makingAmount = UInt64(order.makingAmount.description) ?? 0
+        let takingAmount = UInt64(order.takingAmount.description) ?? 0
+        
+        guard makingAmount > 0 && takingAmount > 0 else {
             throw RouterV6Error.invalidOrderData
         }
         
@@ -1057,7 +1060,7 @@ class RouterV6Manager: ObservableObject {
     
     private func generateRealisticTxHash(order: RouterV6OrderInfo, signature: String) -> String {
         // Generate a deterministic but realistic transaction hash based on order data
-        let orderData = "\(order.salt.description)\(order.maker)\(order.makingAmount)\(order.takingAmount)\(signature)"
+        let orderData = "\(order.salt.description)\(order.maker)\(order.makingAmount.description)\(order.takingAmount.description)\(signature)"
         let hashData = keccak256(orderData.data(using: .utf8)!)
         return "0x" + hashData.map { String(format: "%02hhx", $0) }.joined()
     }
@@ -1162,8 +1165,8 @@ struct RouterV6OrderInfo {
     let receiver: String
     let makerAsset: String
     let takerAsset: String
-    let makingAmount: String
-    let takingAmount: String
+    let makingAmount: BigUInt  // Fixed: Changed from String to BigUInt
+    let takingAmount: BigUInt  // Fixed: Changed from String to BigUInt
     let makerTraits: BigUInt
 }
 
