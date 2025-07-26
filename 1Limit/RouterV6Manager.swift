@@ -233,7 +233,7 @@ class RouterV6Manager: ObservableObject {
             await addLog("   MakerAsset (uint256): \(String(fillParams["makerAsset"] as? String ?? "N/A").prefix(20))...")
             await addLog("   MakerTraits: \(fillParams["makerTraits"] ?? "N/A")")
             await addLog("⛽ Gas Settings:")
-            await addLog("   Limit: 300,000 units (Router V6 standard)")
+            await addLog("   Limit: 500,000 units (Polygon mainnet standard)")
             await addLog("   Price: \(gasPrice) wei (\(String(format: "%.1f", Double(gasPrice) / 1e9)) gwei)")
             await addLog("   Fee: \(String(format: "%.6f", fees.feeMatic)) MATIC")
             await addLog("🌐 Network: Polygon Mainnet (Chain ID: 137)\n")
@@ -326,10 +326,10 @@ class RouterV6Manager: ObservableObject {
                 throw RouterV6Error.transactionCreationFailed
             }
             
-            // Set gas parameters matching Go implementation
-            transaction.transaction.gasLimit = BigUInt(300_000)
+            // Set gas parameters matching reference script mainnet settings
+            transaction.transaction.gasLimit = BigUInt(500_000) // Higher gas limit for mainnet
             let baseGasPrice = try await web3.eth.gasPrice()
-            let adjustedGasPrice = baseGasPrice * BigUInt(120) / BigUInt(100) // +20% boost
+            let adjustedGasPrice = baseGasPrice * BigUInt(110) / BigUInt(100) // +10% for mainnet
             transaction.transaction.gasPrice = adjustedGasPrice
             
             guard let fromAddress = EthereumAddress(order.maker) else {
@@ -915,7 +915,7 @@ class RouterV6Manager: ObservableObject {
     }
     
     /// Calculate estimated transaction fee
-    private func calculateTransactionFee(gasPrice: UInt64, gasLimit: UInt64 = 300_000) -> (feeWei: UInt64, feeMatic: Double) {
+    private func calculateTransactionFee(gasPrice: UInt64, gasLimit: UInt64 = 500_000) -> (feeWei: UInt64, feeMatic: Double) {
         let totalFeeWei = gasPrice * gasLimit
         let feeMatic = Double(totalFeeWei) / 1e18
         return (totalFeeWei, feeMatic)
