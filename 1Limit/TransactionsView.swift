@@ -67,6 +67,7 @@ struct TransactionsView: View {
 
 struct TransactionRow: View {
     let transaction: MockTransaction
+    @State private var showingDetails = false
     
     var body: some View {
         ListItemCard {
@@ -92,11 +93,14 @@ struct TransactionRow: View {
                     
                     if transaction.txHash != nil {
                         SmallButton("View", style: .primary) {
-                            // TODO: Open transaction in explorer
+                            showingDetails = true
                         }
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingDetails) {
+            TransactionDetailView(transaction: transaction)
         }
     }
     
@@ -130,6 +134,146 @@ struct EmptyTransactionsView: View {
             }
         }
         .padding(.horizontal)
+    }
+}
+
+struct TransactionDetailView: View {
+    let transaction: MockTransaction
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.appBackground
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Status header
+                        AppCard {
+                            VStack(spacing: 16) {
+                                HStack {
+                                    ZStack {
+                                        Circle()
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color.white.opacity(0.25),
+                                                        Color.white.opacity(0.15),
+                                                        Color.white.opacity(0.1)
+                                                    ],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                )
+                                            )
+                                            .frame(width: 60, height: 60)
+                                            .overlay(
+                                                Circle()
+                                                    .strokeBorder(
+                                                        LinearGradient(
+                                                            colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        ),
+                                                        lineWidth: 2
+                                                    )
+                                            )
+                                            .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
+                                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                                        
+                                        Image(systemName: transaction.status == .filled ? "checkmark" : "clock")
+                                            .font(.system(size: 24, weight: .medium))
+                                            .foregroundColor(.white)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(transaction.status.rawValue)
+                                        .statusText(status: statusType(for: transaction.status))
+                                }
+                                
+                                Text(transaction.type)
+                                    .appTitle()
+                                
+                                Text("\\(transaction.fromAmount) \\(transaction.fromToken) → \\(transaction.toAmount) \\(transaction.toToken)")
+                                    .secondaryText()
+                                    .multilineTextAlignment(.center)
+                            }
+                        }
+                        
+                        // Transaction details
+                        InfoCard(
+                            title: "Transaction Details",
+                            items: [
+                                ("From Amount", "\\(transaction.fromAmount) \\(transaction.fromToken)", nil),
+                                ("To Amount", "\\(transaction.toAmount) \\(transaction.toToken)", nil),
+                                ("Date", transaction.date.formatted(date: .abbreviated, time: .complete), nil),
+                                ("Status", transaction.status.rawValue, nil)
+                            ]
+                        )
+                        
+                        // Transaction ID and explorer link
+                        if let txHash = transaction.txHash {
+                            AppCard {
+                                VStack(spacing: 16) {
+                                    Text("Blockchain Details")
+                                        .cardTitle()
+                                    
+                                    VStack(spacing: 12) {
+                                        HStack {
+                                            Text("Transaction ID")
+                                                .secondaryText()
+                                            Spacer()
+                                        }
+                                        
+                                        Text(txHash)
+                                            .font(.system(.body, design: .monospaced))
+                                            .foregroundColor(.primaryText)
+                                            .padding(12)
+                                            .frame(maxWidth: .infinity)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(Color.inputBackground)
+                                            )
+                                        
+                                        PrimaryButton("View on PolygonScan", icon: "safari") {
+                                            if let url = URL(string: "https://polygonscan.com/tx/\\(txHash)") {
+                                                UIApplication.shared.open(url)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Spacer(minLength: 40)
+                    }
+                    .padding()
+                }
+            }
+            .navigationTitle("Transaction")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.appBackground, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    SmallButton("Done", style: .secondary) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+    
+    private func statusType(for status: TransactionStatus) -> StatusType {
+        switch status {
+        case .pending:
+            return .pending
+        case .filled:
+            return .success
+        case .cancelled:
+            return .error
+        }
     }
 }
 

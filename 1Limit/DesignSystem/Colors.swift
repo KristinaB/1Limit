@@ -30,6 +30,7 @@ extension Color {
     
     /// Status colors
     static let successGreen = Color.green
+    static let successPurple = Color.purple
     static let warningOrange = Color.orange
     static let errorRed = Color.red
     
