@@ -840,7 +840,7 @@ class RouterV6Manager: ObservableObject {
         guard let wallet = wallet else { return false }
         
         do {
-            guard let rpcURL = URL(string: polygonConfig.rpcUrl) else { return false }
+            guard let rpcURL = URL(string: polygonConfig.nodeURL) else { return false }
             let web3 = try await Web3.new(rpcURL)
             
             guard let address = EthereumAddress(wallet.address) else { return false }
@@ -869,7 +869,7 @@ class RouterV6Manager: ObservableObject {
         guard let wallet = wallet else { return false }
         
         do {
-            guard let rpcURL = URL(string: polygonConfig.rpcUrl) else { return false }
+            guard let rpcURL = URL(string: polygonConfig.nodeURL) else { return false }
             let web3 = try await Web3.new(rpcURL)
             
             guard let walletAddress = EthereumAddress(wallet.address),
