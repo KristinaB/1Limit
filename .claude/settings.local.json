@@ -14,7 +14,9 @@
       "Bash(grep:*)",
       "Bash(xcodebuild:*)",
       "Bash(rm:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_runner.sh)"
     ],
     "deny": []
   }
