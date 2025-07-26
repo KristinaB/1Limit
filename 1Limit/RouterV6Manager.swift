@@ -464,21 +464,21 @@ class RouterV6Manager: ObservableObject {
     }
     
     private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> BigUInt {
-        // Calculate maker traits exactly like Go implementation
+        // Calculate maker traits exactly like working test script
         var traits = BigUInt(0)
         
-        // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce) - FIXED!
+        // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce)
         let nonceBits = BigUInt(nonce) << 120
         traits |= nonceBits
         
-        // Add expiry in bits 160-192 (32 bits for expiry)
-        let expiryBits = BigUInt(expiry) << 160
+        // Add expiry in bits 160-191 (32 bits) - FIXED to match working script
+        let expiryTimestamp = BigUInt(Date().timeIntervalSince1970 + 10 * 3600) // 10 hours from now
+        let expiryBits = expiryTimestamp << 160
         traits |= expiryBits
         
-        // Add Router V6 flags (matching Go implementation)
-        let allowPartialFills = BigUInt(1) << 80  // ALLOW_PARTIAL_FILLS flag
-        let allowMultipleFills = BigUInt(1) << 81 // ALLOW_MULTIPLE_FILLS flag
-        traits |= allowPartialFills | allowMultipleFills
+        // Set ALLOW_PARTIAL_FILLS flag (bit 253) - FIXED to match working script
+        let allowPartialFills = BigUInt(1) << 253
+        traits |= allowPartialFills
         
         return traits
     }
