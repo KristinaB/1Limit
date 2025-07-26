@@ -153,51 +153,39 @@ class PriceService: ObservableObject {
     }
     
     private func fetchTokenPrices(apiKey: String) async throws -> [String: TokenPrice] {
-        // Create the request URL
-        var components = URLComponents(string: baseURL)!
-        components.queryItems = [
-            URLQueryItem(name: "currency", value: "USD")
-        ]
-        
-        guard let url = components.url else {
-            throw PriceServiceError.invalidURL
-        }
-        
-        // Create request with API key
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue(apiKey, forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        
         print("🌐 Fetching prices from 1inch API...")
         
-        // Make the API request
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw PriceServiceError.invalidResponse
-        }
-        
-        guard httpResponse.statusCode == 200 else {
-            print("❌ API request failed with status: \(httpResponse.statusCode)")
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("Response: \(responseString)")
-            }
-            throw PriceServiceError.apiError(httpResponse.statusCode)
-        }
-        
-        // Parse the JSON response
-        guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw PriceServiceError.invalidJSON
-        }
-        
-        // Extract prices for our tokens
         var tokenPrices: [String: TokenPrice] = [:]
         let now = Date()
         
+        // Fetch each token price individually
         for (symbol, address) in tokenAddresses {
-            if let priceData = jsonObject[address] as? [String: Any],
-               let usdPrice = priceData["USD"] as? Double {
+            do {
+                let url = URL(string: "\(baseURL)/\(address.lowercased())")!
+                
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                
+                let (data, response) = try await URLSession.shared.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    print("⚠️ Failed to fetch price for \(symbol)")
+                    continue
+                }
+                
+                // Parse the JSON response: {"0x...": "4247330692545463675"}
+                guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: String],
+                      let priceString = jsonObject[address.lowercased()],
+                      let priceWei = Double(priceString) else {
+                    print("⚠️ Invalid price data for \(symbol)")
+                    continue
+                }
+                
+                // Convert from wei to USD (divide by 10^18)
+                let usdPrice = priceWei / pow(10, 18)
                 
                 tokenPrices[symbol] = TokenPrice(
                     symbol: symbol,
@@ -206,8 +194,9 @@ class PriceService: ObservableObject {
                 )
                 
                 print("💰 \(symbol): \(String(format: "$%.4f", usdPrice))")
-            } else {
-                print("⚠️ No price data found for \(symbol) (\(address))")
+                
+            } catch {
+                print("❌ Error fetching price for \(symbol): \(error)")
             }
         }
         
