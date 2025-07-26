@@ -32,14 +32,6 @@ struct HomeView: View {
           }
           .padding(.top, 20)
 
-          // App info card
-          InfoCard(
-            title: "App Info",
-            items: [
-              ("Network", "Polygon Mainnet", nil),
-              ("Router Version", "V6", nil)
-            ]
-          )
 
           // Action buttons
           VStack(spacing: 16) {
