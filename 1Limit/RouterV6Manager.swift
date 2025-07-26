@@ -280,7 +280,7 @@ class RouterV6Manager: ObservableObject {
                 order.makerTraits
             ]
             
-            let fillParams = [
+            let fillParams: [Any] = [
                 orderTuple,
                 rBig,
                 vsBig,
@@ -310,7 +310,7 @@ class RouterV6Manager: ObservableObject {
             let privateKeyHex = String(wallet?.privateKey.dropFirst(2) ?? "")
             let privateKeyData = Data(hex: privateKeyHex)
             
-            guard let keystore = try? EthereumKeystoreV3(privateKey: privateKeyData, password: "") else {
+            guard (try? EthereumKeystoreV3(privateKey: privateKeyData, password: "")) != nil else {
                 throw RouterV6Error.signingFailed
             }
             
@@ -851,16 +851,15 @@ class RouterV6Manager: ObservableObject {
         for attempt in 1...30 {
             do {
                 let txHashData = Data(hex: txHash.replacingOccurrences(of: "0x", with: ""))
-                if let receipt = try? await web3.eth.transactionReceipt(txHashData) {
-                    if receipt.status == .ok {
-                        await addLog("✅ Transaction confirmed successfully!")
-                        await addLog("⛽ Gas used: \(receipt.gasUsed)")
-                        await addLog("📝 Logs: \(receipt.logs.count) events")
-                        return
-                    } else {
-                        await addLog("❌ Transaction failed with status: \(receipt.status)")
-                        return
-                    }
+                let receipt = try await web3.eth.transactionReceipt(txHashData)
+                if receipt.status == .ok {
+                    await addLog("✅ Transaction confirmed successfully!")
+                    await addLog("⛽ Gas used: \(receipt.gasUsed)")
+                    await addLog("📝 Logs: \(receipt.logs.count) events")
+                    return
+                } else {
+                    await addLog("❌ Transaction failed with status: \(receipt.status)")
+                    return
                 }
             } catch {
                 // Continue waiting - transaction might still be pending
