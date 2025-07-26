@@ -888,26 +888,31 @@ class RouterV6Manager: ObservableObject {
             "inputs": [
                 {
                     "components": [
-                        {"name": "salt", "type": "uint256"},
-                        {"name": "maker", "type": "address"},
-                        {"name": "receiver", "type": "address"},
-                        {"name": "makerAsset", "type": "address"},
-                        {"name": "takerAsset", "type": "address"},
-                        {"name": "makingAmount", "type": "uint256"},
-                        {"name": "takingAmount", "type": "uint256"},
-                        {"name": "makerTraits", "type": "uint256"}
+                        {"internalType": "uint256", "name": "salt", "type": "uint256"},
+                        {"internalType": "Address", "name": "maker", "type": "uint256"},
+                        {"internalType": "Address", "name": "receiver", "type": "uint256"},
+                        {"internalType": "Address", "name": "makerAsset", "type": "uint256"},
+                        {"internalType": "Address", "name": "takerAsset", "type": "uint256"},
+                        {"internalType": "uint256", "name": "makingAmount", "type": "uint256"},
+                        {"internalType": "uint256", "name": "takingAmount", "type": "uint256"},
+                        {"internalType": "MakerTraits", "name": "makerTraits", "type": "uint256"}
                     ],
+                    "internalType": "struct IOrderMixin.Order",
                     "name": "order",
                     "type": "tuple"
                 },
-                {"name": "r", "type": "bytes32"},
-                {"name": "vs", "type": "bytes32"},
-                {"name": "amount", "type": "uint256"},
-                {"name": "takerTraits", "type": "uint256"}
+                {"internalType": "bytes32", "name": "r", "type": "bytes32"},
+                {"internalType": "bytes32", "name": "vs", "type": "bytes32"},
+                {"internalType": "uint256", "name": "amount", "type": "uint256"},
+                {"internalType": "TakerTraits", "name": "takerTraits", "type": "uint256"}
             ],
             "name": "fillOrder",
-            "outputs": [],
-            "stateMutability": "nonpayable",
+            "outputs": [
+                {"internalType": "uint256", "name": "", "type": "uint256"},
+                {"internalType": "uint256", "name": "", "type": "uint256"},
+                {"internalType": "bytes32", "name": "", "type": "bytes32"}
+            ],
+            "stateMutability": "payable",
             "type": "function"
         }
     ]
