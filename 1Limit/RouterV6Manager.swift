@@ -267,9 +267,13 @@ class RouterV6Manager: ObservableObject {
             let takingAmountBig = BigUInt(order.takingAmount) ?? BigUInt(0)
             let takerTraitsBig = BigUInt(0)
             
-            // Use compact signature r,vs as Data (not BigUInt!)
-            let rData = Data(hex: compactSig.r)
-            let vsData = Data(hex: compactSig.vs)
+            // Use compact signature r,vs as Data (exactly 32 bytes each for bytes32)
+            await addLog("🔍 DEBUG: Compact signature strings:")
+            await addLog("   compactSig.r: '\(compactSig.r)' (length: \(compactSig.r.count))")
+            await addLog("   compactSig.vs: '\(compactSig.vs)' (length: \(compactSig.vs.count))")
+            
+            let rData = Data(hex: compactSig.r.replacingOccurrences(of: "0x", with: ""))
+            let vsData = Data(hex: compactSig.vs.replacingOccurrences(of: "0x", with: ""))
             
             let orderTuple = [
                 order.salt as AnyObject,
