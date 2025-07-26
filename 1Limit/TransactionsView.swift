@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TransactionsView: View {
     @State private var selectedFilter = "All"
-    private let filters = ["All", "Pending", "Filled", "Cancelled"]
+    private let filters = ["All", "Pending", "Filled"]
     
     var body: some View {
         ZStack {
@@ -154,7 +154,56 @@ enum TransactionStatus: String {
 }
 
 private let mockTransactions: [MockTransaction] = [
-    // Empty for now - will be populated when orders are created
+    MockTransaction(
+        type: "Limit Order",
+        fromAmount: "100.0",
+        fromToken: "WMATIC",
+        toAmount: "85.5",
+        toToken: "USDC",
+        status: .filled,
+        date: Calendar.current.date(byAdding: .hour, value: -2, to: Date()) ?? Date(),
+        txHash: "0x1234...abcd"
+    ),
+    MockTransaction(
+        type: "Limit Order",
+        fromAmount: "50.25",
+        fromToken: "USDC",
+        toAmount: "58.8",
+        toToken: "WMATIC",
+        status: .pending,
+        date: Calendar.current.date(byAdding: .minute, value: -30, to: Date()) ?? Date(),
+        txHash: nil
+    ),
+    MockTransaction(
+        type: "Limit Order",
+        fromAmount: "200.0",
+        fromToken: "WMATIC",
+        toAmount: "170.2",
+        toToken: "USDC",
+        status: .filled,
+        date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
+        txHash: "0x5678...efgh"
+    ),
+    MockTransaction(
+        type: "Limit Order",
+        fromAmount: "75.0",
+        fromToken: "USDC",
+        toAmount: "87.9",
+        toToken: "WMATIC",
+        status: .filled,
+        date: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date(),
+        txHash: "0x9abc...ijkl"
+    ),
+    MockTransaction(
+        type: "Limit Order",
+        fromAmount: "25.5",
+        fromToken: "WMATIC",
+        toAmount: "21.7",
+        toToken: "USDC",
+        status: .pending,
+        date: Calendar.current.date(byAdding: .minute, value: -15, to: Date()) ?? Date(),
+        txHash: nil
+    )
 ]
 
 #Preview {
