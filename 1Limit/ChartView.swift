@@ -142,6 +142,170 @@ struct ChartView: View {
         }
     }
     
+    @ViewBuilder
+    private var selectedCandleDetails: some View {
+        if let selected = selectedData {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(selected.timestamp, style: .date)
+                    .font(.headline)
+                HStack(spacing: 20) {
+                    Label("O: \(selected.formattedOpen)", systemImage: "circle")
+                    Label("H: \(selected.formattedHigh)", systemImage: "arrow.up")
+                    Label("L: \(selected.formattedLow)", systemImage: "arrow.down")
+                    Label("C: \(selected.formattedClose)", systemImage: "circle.fill")
+                }
+                .font(.caption)
+                .foregroundColor(selected.isBullish ? .green : .red)
+                
+                HStack {
+                    Text("Change: \(selected.formattedChange)")
+                    Spacer()
+                    Text("Volume: \(selected.formattedVolume)")
+                }
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            .padding(.horizontal)
+        }
+    }
+    
+    @ViewBuilder
+    private var chartSection: some View {
+        if !chartService.candlestickData.isEmpty {
+            HStack(spacing: 0) {
+                mainChart
+                yAxisChart
+            }
+            .padding(.horizontal)
+        } else if !chartService.isLoading {
+            emptyStateView
+        }
+    }
+    
+    private var mainChart: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            Chart(visibleData) { item in
+                CandlestickMark(data: item, width: 12)
+                
+                if item.id == selectedData?.id {
+                    RuleMark(x: .value("Selected", item.timestamp))
+                        .foregroundStyle(.gray.opacity(0.3))
+                        .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
+                }
+            }
+            .frame(width: CGFloat(visibleData.count) * 20, height: 400)
+            .chartYScale(domain: (minPrice - minPrice*0.02)...(maxPrice + maxPrice*0.02))
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 6)) { value in
+                    AxisGridLine()
+                    AxisValueLabel(format: .dateTime.month().day())
+                }
+            }
+            .chartYAxis(.hidden)
+            .chartBackground { chartProxy in
+                GeometryReader { geometry in
+                    Rectangle()
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture { location in
+                            let xPosition = location.x
+                            let chartWidth = geometry.size.width
+                            let candleWidth = chartWidth / CGFloat(visibleData.count)
+                            let index = Int(xPosition / candleWidth)
+                            
+                            if index >= 0 && index < visibleData.count {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedData = visibleData[index]
+                                }
+                            }
+                        }
+                }
+            }
+        }
+        .clipped()
+    }
+    
+    private var yAxisChart: some View {
+        Chart(visibleData.prefix(1)) { item in
+            PointMark(x: .value("Date", item.timestamp), y: .value("Price", item.close))
+                .opacity(0)
+        }
+        .frame(width: 50, height: 400)
+        .chartYScale(domain: (minPrice - minPrice*0.02)...(maxPrice + maxPrice*0.02))
+        .chartXAxis(.hidden)
+        .chartYAxis {
+            AxisMarks(position: .trailing) { value in
+                AxisValueLabel()
+            }
+        }
+        .background(Color.clear)
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "chart.line.downtrend.xyaxis")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            
+            Text("No chart data available")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            Text("Try selecting a different timeframe or check your connection")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(height: 300)
+    }
+    
+    @ViewBuilder
+    private var paginationView: some View {
+        if chartService.candlestickData.count > 30 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(0..<(chartService.candlestickData.count / 30 + (chartService.candlestickData.count % 30 > 0 ? 1 : 0)), id: \.self) { page in
+                        Button(action: {
+                            withAnimation {
+                                let start = page * 30
+                                let end = min(start + 30, chartService.candlestickData.count)
+                                visibleRange = start..<end
+                            }
+                        }) {
+                            Text("Page \(page + 1)")
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(visibleRange.lowerBound / 30 == page ? Color.blue : Color(.systemGray6))
+                                .foregroundColor(visibleRange.lowerBound / 30 == page ? .white : .primary)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private var chartLegend: some View {
+        HStack(spacing: 30) {
+            Label("Bullish", systemImage: "arrow.up.circle.fill")
+                .foregroundColor(.green)
+            Label("Bearish", systemImage: "arrow.down.circle.fill")
+                .foregroundColor(.red)
+            
+            Spacer()
+            
+            Text("\(visibleData.count) candles")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .font(.caption)
+        .padding(.horizontal)
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -151,153 +315,13 @@ struct ChartView: View {
                     
                     timeframeSelector
                     
-                    // Selected candle details 💖
-                    if let selected = selectedData {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(selected.timestamp, style: .date)
-                                .font(.headline)
-                            HStack(spacing: 20) {
-                                Label("O: \(selected.formattedOpen)", systemImage: "circle")
-                                Label("H: \(selected.formattedHigh)", systemImage: "arrow.up")
-                                Label("L: \(selected.formattedLow)", systemImage: "arrow.down")
-                                Label("C: \(selected.formattedClose)", systemImage: "circle.fill")
-                            }
-                            .font(.caption)
-                            .foregroundColor(selected.isBullish ? .green : .red)
-                            
-                            HStack {
-                                Text("Change: \(selected.formattedChange)")
-                                Spacer()
-                                Text("Volume: \(selected.formattedVolume)")
-                            }
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                    }
+                    selectedCandleDetails
                     
-                    // Chart with Y-axis 🌸
-                    if !chartService.candlestickData.isEmpty {
-                        HStack(spacing: 0) {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                Chart(visibleData) { item in
-                                    CandlestickMark(data: item, width: 12)
-                                    
-                                    if item.id == selectedData?.id {
-                                        RuleMark(x: .value("Selected", item.timestamp))
-                                            .foregroundStyle(.gray.opacity(0.3))
-                                            .lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 5]))
-                                    }
-                                }
-                                .frame(width: CGFloat(visibleData.count) * 20, height: 400)
-                                .chartYScale(domain: (minPrice - minPrice*0.02)...(maxPrice + maxPrice*0.02))
-                                .chartXAxis {
-                                    AxisMarks(values: .automatic(desiredCount: 6)) { value in
-                                        AxisGridLine()
-                                        AxisValueLabel(format: .dateTime.month().day())
-                                    }
-                                }
-                                .chartYAxis(.hidden)
-                                .chartBackground { chartProxy in
-                                    GeometryReader { geometry in
-                                        Rectangle()
-                                            .fill(Color.clear)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture { location in
-                                                let xPosition = location.x
-                                                let chartWidth = geometry.size.width
-                                                let candleWidth = chartWidth / CGFloat(visibleData.count)
-                                                let index = Int(xPosition / candleWidth)
-                                                
-                                                if index >= 0 && index < visibleData.count {
-                                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                                        selectedData = visibleData[index]
-                                                    }
-                                                }
-                                            }
-                                    }
-                                }
-                            }
-                            .clipped()
-                            
-                            // Y-axis price labels 🦄
-                            Chart(visibleData.prefix(1)) { item in
-                                PointMark(x: .value("Date", item.timestamp), y: .value("Price", item.close))
-                                    .opacity(0)
-                            }
-                            .frame(width: 50, height: 400)
-                            .chartYScale(domain: (minPrice - minPrice*0.02)...(maxPrice + maxPrice*0.02))
-                            .chartXAxis(.hidden)
-                            .chartYAxis {
-                                AxisMarks(position: .trailing) { value in
-                                    AxisValueLabel()
-                                }
-                            }
-                            .background(Color.clear)
-                        }
-                        .padding(.horizontal)
-                        
-                        // Page navigation 🌺
-                        if chartService.candlestickData.count > 30 {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 10) {
-                                    ForEach(0..<(chartService.candlestickData.count / 30 + (chartService.candlestickData.count % 30 > 0 ? 1 : 0)), id: \.self) { page in
-                                        Button(action: {
-                                            withAnimation {
-                                                let start = page * 30
-                                                let end = min(start + 30, chartService.candlestickData.count)
-                                                visibleRange = start..<end
-                                            }
-                                        }) {
-                                            Text("Page \(page + 1)")
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .background(visibleRange.lowerBound / 30 == page ? Color.blue : Color(.systemGray6))
-                                                .foregroundColor(visibleRange.lowerBound / 30 == page ? .white : .primary)
-                                                .cornerRadius(8)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal)
-                            }
-                        }
-                    } else if !chartService.isLoading {
-                        // Empty state
-                        VStack(spacing: 16) {
-                            Image(systemName: "chart.line.downtrend.xyaxis")
-                                .font(.system(size: 60))
-                                .foregroundColor(.secondary)
-                            
-                            Text("No chart data available")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            Text("Try selecting a different timeframe or check your connection")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .frame(height: 300)
-                    }
+                    chartSection
                     
-                    // Chart legend 🎪
-                    HStack(spacing: 30) {
-                        Label("Bullish", systemImage: "arrow.up.circle.fill")
-                            .foregroundColor(.green)
-                        Label("Bearish", systemImage: "arrow.down.circle.fill")
-                            .foregroundColor(.red)
-                        
-                        Spacer()
-                        
-                        Text("\(visibleData.count) candles")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .font(.caption)
-                    .padding(.horizontal)
+                    paginationView
+                    
+                    chartLegend
                 }
                 .padding(.vertical)
             }
