@@ -17,6 +17,7 @@ echo "Generated on: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Test Framework: XCTest"
 echo "Platform: iOS Simulator (iPhone 16)"
 echo "Orientation: Portrait Only"
+echo "Parallel Testing: Disabled (max 2 simulators)"
 echo ""
 
 echo "## 🏗️ TEST SUITE STRUCTURE"
@@ -98,6 +99,7 @@ echo "------------------"
 echo "- **testHomeViewContentRendering:** May fail if Create Wallet button is commented out"
 echo "- **Performance tests:** Removed to focus on functionality over metrics"
 echo "- **Landscape mode:** App is portrait-only, no landscape tests needed"
+echo "- **Simulator management:** Limited to max 2 simulators to prevent resource overload"
 
 echo ""
 

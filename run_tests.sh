@@ -14,11 +14,12 @@ if [ "$1" = "--docs" ] || [ "$1" = "-d" ]; then
     # Clean previous results
     rm -rf test_results.xcresult test_output.log 2>/dev/null || true
     
-    # Run tests with detailed output and capture results
+    # Run tests with detailed output and capture results (limited parallelization)
     xcodebuild test \
         -scheme 1Limit \
         -destination 'platform=iOS Simulator,name=iPhone 16' \
         -resultBundlePath test_results.xcresult \
+        -parallel-testing-enabled NO \
         2>&1 | tee test_output.log | xcpretty --test --color || true
     
     # Generate documentation-style report
@@ -112,12 +113,13 @@ if [ "$1" = "--docs" ] || [ "$1" = "-d" ]; then
     echo "======================================"
     
 else
-    # Normal mode - run both unit and UI tests
+    # Normal mode - run both unit and UI tests (sequential, limited simulators)
     echo "🔬 Running Unit Tests..."
     xcodebuild test \
         -scheme 1Limit \
         -destination 'platform=iOS Simulator,name=iPhone 16' \
         -only-testing:1LimitTests \
+        -parallel-testing-enabled NO \
         2>&1 | xcpretty --test --color || true
     
     echo ""
@@ -126,6 +128,7 @@ else
         -scheme 1Limit \
         -destination 'platform=iOS Simulator,name=iPhone 16' \
         -only-testing:1LimitUITests \
+        -parallel-testing-enabled NO \
         2>&1 | xcpretty --test --color || true
     
     echo ""
