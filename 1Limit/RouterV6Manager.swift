@@ -7,11 +7,10 @@
 
 import Foundation
 import CryptoKit
-
-// TODO: Add web3swift imports when available
-// import web3swift
-// import Web3Core
-// import BigInt
+import web3swift
+import Web3Core
+import BigInt
+import CryptoSwift
 import Security
 import CommonCrypto
 
@@ -263,8 +262,8 @@ class RouterV6Manager: ObservableObject {
             makerUint256.toBigUInt(), // receiver = maker
             makerAssetUint256.toBigUInt(),
             takerAssetUint256.toBigUInt(),
-            SimpleBigUInt(order.makingAmount).toBigUInt(),
-            SimpleBigUInt(order.takingAmount).toBigUInt(),
+            BigUInt(order.makingAmount) ?? BigUInt(0),
+            BigUInt(order.takingAmount) ?? BigUInt(0),
             order.makerTraits.toBigUInt()
         ]
         
@@ -272,7 +271,7 @@ class RouterV6Manager: ObservableObject {
             orderTuple,
             BigUInt(compactSig.r),
             BigUInt(compactSig.vs),
-            SimpleBigUInt(order.makingAmount).toBigUInt(),
+            BigUInt(order.makingAmount) ?? BigUInt(0),
             BigUInt(0) // takerTraits
         ]
         
@@ -377,10 +376,17 @@ class RouterV6Manager: ObservableObject {
     
     // MARK: - Private Implementation (Ported from Go)
     
-    private func generateSDKStyleSalt() -> SimpleBigUInt {
+    private func generateSDKStyleSalt() -> BigUInt {
         // Generate 96-bit salt exactly like 1inch SDK (matching Go implementation)
-        let salt = SimpleBigUInt.random96Bit()
-        return salt
+        var randomData = Data(count: 12) // 96 bits = 12 bytes
+        _ = randomData.withUnsafeMutableBytes { bytes in
+            SecRandomCopyBytes(kSecRandomDefault, 12, bytes.bindMemory(to: UInt8.self).baseAddress!)
+        }
+        
+        let salt = BigUInt(randomData)
+        // Ensure it's within 96-bit range
+        let maxUint96 = BigUInt(2).power(96) - 1
+        return salt & maxUint96
     }
     
     private func generateRandomNonce() -> UInt64 {
@@ -388,22 +394,22 @@ class RouterV6Manager: ObservableObject {
         return UInt64.random(in: 1...UInt64.max) & 0xFFFFFFFFFF // 40-bit mask
     }
     
-    private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> SimpleBigUInt {
+    private func calculateMakerTraitsV6(nonce: UInt64, expiry: UInt32) -> BigUInt {
         // Calculate maker traits exactly like Go implementation
-        var traits = SimpleBigUInt(0)
+        var traits = BigUInt(0)
         
         // CRITICAL: Set nonce in bits 120-160 (40 bits for nonce) - FIXED!
-        let nonceBits = SimpleBigUInt(nonce).leftShift(120)
-        traits = traits.or(nonceBits)
+        let nonceBits = BigUInt(nonce) << 120
+        traits |= nonceBits
         
         // Add expiry in bits 160-192 (32 bits for expiry)
-        let expiryBits = SimpleBigUInt(UInt64(expiry)).leftShift(160)
-        traits = traits.or(expiryBits)
+        let expiryBits = BigUInt(expiry) << 160
+        traits |= expiryBits
         
         // Add Router V6 flags (matching Go implementation)
-        let allowPartialFills = SimpleBigUInt(1).leftShift(80)  // ALLOW_PARTIAL_FILLS flag
-        let allowMultipleFills = SimpleBigUInt(1).leftShift(81) // ALLOW_MULTIPLE_FILLS flag
-        traits = traits.or(allowPartialFills).or(allowMultipleFills)
+        let allowPartialFills = BigUInt(1) << 80  // ALLOW_PARTIAL_FILLS flag
+        let allowMultipleFills = BigUInt(1) << 81 // ALLOW_MULTIPLE_FILLS flag
+        traits |= allowPartialFills | allowMultipleFills
         
         return traits
     }
@@ -857,14 +863,14 @@ struct EIP712DomainInfo {
 }
 
 struct RouterV6OrderInfo {
-    let salt: SimpleBigUInt
+    let salt: BigUInt
     let maker: String
     let receiver: String
     let makerAsset: String
     let takerAsset: String
     let makingAmount: String
     let takingAmount: String
-    let makerTraits: SimpleBigUInt
+    let makerTraits: BigUInt
 }
 
 struct CompactSignature {
@@ -910,15 +916,8 @@ enum RouterV6Error: LocalizedError {
 
 /// Keccak-256 hash function (for EIP-712 compliance)
 func keccak256(_ data: Data) -> Data {
-    // Simplified keccak256 using SHA3-256 as approximation
-    // In production, use proper keccak256 implementation
-    var hash = Data(count: Int(CC_SHA256_DIGEST_LENGTH))
-    _ = data.withUnsafeBytes { bytes in
-        hash.withUnsafeMutableBytes { hashBytes in
-            CC_SHA256(bytes.bindMemory(to: UInt8.self).baseAddress, CC_LONG(data.count), hashBytes.bindMemory(to: UInt8.self).baseAddress)
-        }
-    }
-    return hash
+    // REAL keccak256 using CryptoSwift (matching 1inch Router V6 spec)
+    return Data(data.keccak256())
 }
 
 // MARK: - Data Extensions
