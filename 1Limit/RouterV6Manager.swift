@@ -260,13 +260,16 @@ class RouterV6Manager: ObservableObject {
         
         // REAL BLOCKCHAIN SUBMISSION - WEB3SWIFT ENABLED!
         await addLog("🌐 Connecting to Polygon mainnet...")
+        await addLog("🔗 RPC URL: \(polygonConfig.nodeURL)")
         
         do {
             // REAL IMPLEMENTATION using web3swift:
             
-            let web3URL = URL(string: "https://polygon-rpc.com")!
+            guard let web3URL = URL(string: polygonConfig.nodeURL) else {
+                throw RouterV6Error.invalidURL
+            }
             let web3 = try await Web3.new(web3URL)
-            await addLog("✅ Connected to Polygon RPC")
+            await addLog("✅ Connected to Polygon RPC: \(polygonConfig.nodeURL)")
             
             guard let contractAddress = EthereumAddress("0x111111125421cA6dc452d289314280a0f8842A65") else {
                 throw RouterV6Error.invalidAddress
@@ -337,8 +340,8 @@ class RouterV6Manager: ObservableObject {
             }
             transaction.transaction.from = fromAddress
             
-            await addLog("⛽ Gas limit: 300,000")
-            await addLog("💰 Gas price: \(adjustedGasPrice) (+20% boost)")
+            await addLog("⛽ Gas limit: 500,000")
+            await addLog("💰 Gas price: \(adjustedGasPrice) (+10% boost)")
             
             // Sign transaction with wallet private key
             let privateKeyHex = String(wallet?.privateKey.dropFirst(2) ?? "")
@@ -1138,6 +1141,7 @@ enum RouterV6Error: LocalizedError {
     case signingFailed
     case contractCreationFailed
     case transactionCreationFailed
+    case invalidURL
     
     var errorDescription: String? {
         switch self {
@@ -1161,6 +1165,8 @@ enum RouterV6Error: LocalizedError {
             return "Failed to create Router V6 contract instance"
         case .transactionCreationFailed:
             return "Failed to create Router V6 transaction"
+        case .invalidURL:
+            return "Invalid RPC URL configuration"
         }
     }
 }
