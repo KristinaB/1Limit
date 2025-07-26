@@ -270,22 +270,22 @@ class RouterV6Manager: ObservableObject {
             let takerTraitsBig = BigUInt(0)
             
             let orderTuple = [
-                order.salt,
-                makerUint256,
-                makerUint256, // receiver = maker
-                makerAssetUint256,
-                takerAssetUint256,
-                makingAmountBig,
-                takingAmountBig,
-                order.makerTraits
+                order.salt as AnyObject,
+                makerUint256 as AnyObject,
+                makerUint256 as AnyObject, // receiver = maker
+                makerAssetUint256 as AnyObject,
+                takerAssetUint256 as AnyObject,
+                makingAmountBig as AnyObject,
+                takingAmountBig as AnyObject,
+                order.makerTraits as AnyObject
             ]
             
-            let fillParams: [Any] = [
-                orderTuple,
-                rBig,
-                vsBig,
-                makingAmountBig,
-                takerTraitsBig
+            let fillParams = [
+                orderTuple as AnyObject,
+                rBig as AnyObject,
+                vsBig as AnyObject,
+                makingAmountBig as AnyObject,
+                takerTraitsBig as AnyObject
             ]
             
             guard let transaction = contract.createWriteOperation("fillOrder", parameters: fillParams) else {
