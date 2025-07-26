@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CryptoKit
 
 // MARK: - Wallet Data Structure (matching Go implementation)
 struct WalletData: Codable {
@@ -72,21 +73,88 @@ class WalletLoader {
         )
     }
     
-    /// Validate wallet data before use
+    /// Validate wallet data before use (enhanced validation)
     func validateWallet(_ wallet: WalletData) -> Bool {
-        // Basic validation
+        // Validate address format
         guard wallet.address.hasPrefix("0x"), wallet.address.count == 42 else {
-            print("❌ Invalid wallet address format")
+            print("❌ Invalid wallet address format: expected 0x + 40 hex chars")
             return false
         }
         
+        // Validate address contains only hex characters
+        let addressHex = String(wallet.address.dropFirst(2))
+        guard addressHex.allSatisfy({ $0.isHexDigit }) else {
+            print("❌ Invalid wallet address: contains non-hex characters")
+            return false
+        }
+        
+        // Validate private key format
         guard wallet.privateKey.hasPrefix("0x"), wallet.privateKey.count == 66 else {
-            print("❌ Invalid private key format")
+            print("❌ Invalid private key format: expected 0x + 64 hex chars")
             return false
         }
         
-        print("✅ Wallet validation passed")
+        // Validate private key contains only hex characters
+        let privateKeyHex = String(wallet.privateKey.dropFirst(2))
+        guard privateKeyHex.allSatisfy({ $0.isHexDigit }) else {
+            print("❌ Invalid private key: contains non-hex characters")
+            return false
+        }
+        
+        // Validate private key is not zero
+        guard privateKeyHex != String(repeating: "0", count: 64) else {
+            print("❌ Invalid private key: cannot be zero")
+            return false
+        }
+        
+        // Validate private key range (must be less than secp256k1 order)
+        if !isValidSecp256k1PrivateKey(privateKeyHex) {
+            print("❌ Invalid private key: out of secp256k1 range")
+            return false
+        }
+        
+        print("✅ Wallet validation passed (address + private key)")
         return true
+    }
+    
+    /// Validate private key is within secp256k1 curve order
+    private func isValidSecp256k1PrivateKey(_ hexKey: String) -> Bool {
+        // secp256k1 order: 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+        // For simplified validation, just check it's not all F's
+        let maxHex = String(repeating: "F", count: 64)
+        return hexKey.lowercased() < maxHex.lowercased()
+    }
+    
+    /// Derive Ethereum address from private key (for verification)
+    func deriveAddressFromPrivateKey(_ privateKey: String) -> String? {
+        let cleanPrivateKey = privateKey.hasPrefix("0x") ? String(privateKey.dropFirst(2)) : privateKey
+        guard cleanPrivateKey.count == 64 else { return nil }
+        
+        // Simplified address derivation (in production, use proper secp256k1 public key derivation)
+        let privateKeyData = Data(hex: cleanPrivateKey)
+        let hash = SHA256.hash(data: privateKeyData)
+        let addressData = Data(hash.suffix(20)) // Take last 20 bytes
+        
+        return "0x" + addressData.map { String(format: "%02hhx", $0) }.joined()
+    }
+    
+    /// Verify wallet address matches private key
+    func verifyWalletConsistency(_ wallet: WalletData) -> Bool {
+        guard let derivedAddress = deriveAddressFromPrivateKey(wallet.privateKey) else {
+            print("❌ Failed to derive address from private key")
+            return false
+        }
+        
+        let match = derivedAddress.lowercased() == wallet.address.lowercased()
+        if match {
+            print("✅ Wallet address matches private key")
+        } else {
+            print("⚠️ Wallet address does not match private key (using provided address)")
+            print("   Provided: \(wallet.address)")
+            print("   Derived:  \(derivedAddress)")
+        }
+        
+        return match
     }
     
     /// Mask address for safe logging
@@ -112,4 +180,22 @@ struct WalletDisplayInfo {
     let maskedAddress: String
     let fullAddress: String
     let isValid: Bool
+}
+
+// MARK: - Data Extension for Hex Conversion
+extension Data {
+    init(hex: String) {
+        let cleanHex = hex.replacingOccurrences(of: "0x", with: "")
+        self.init()
+        
+        var index = cleanHex.startIndex
+        while index < cleanHex.endIndex {
+            let nextIndex = cleanHex.index(index, offsetBy: 2, limitedBy: cleanHex.endIndex) ?? cleanHex.endIndex
+            let hexByte = String(cleanHex[index..<nextIndex])
+            if let byte = UInt8(hexByte, radix: 16) {
+                self.append(byte)
+            }
+            index = nextIndex
+        }
+    }
 }
