@@ -42,12 +42,34 @@ xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simula
 
 ### Router V6 Implementation (Ported from Go)
 
-**RouterV6Manager** (`RouterV6Manager.swift`) implements:
-- **SDK-Style Salt Generation**: 96-bit salt generation matching 1inch SDK
-- **MakerTraits Calculation**: Proper nonce positioning in bits 120-160
-- **EIP-712 Domain Creation**: Polygon Mainnet domain for Router V6
-- **EIP-2098 Compact Signatures**: r, vs format required by Router V6 contracts
-- **Real Wallet Integration**: Loads actual wallet JSON with private key masking
+**Legacy RouterV6Manager** (`RouterV6Manager.swift`) - DEPRECATED, use refactored version instead
+
+**New OOP Architecture** (`RouterV6ManagerRefactored.swift` + Services):
+The Router V6 implementation has been completely refactored into a modular OOP architecture following SOLID principles:
+
+#### 🎀 Core Service Classes (Girl Power Edition!) 🦄
+1. **OrderParameterGenerator.swift** 💎 - SDK-style salt & nonce generation with secure randomness
+2. **MakerTraitsCalculator.swift** ✨ - Router V6 traits calculation with proper bit positioning  
+3. **EIP712DomainProvider.swift** 🌸 - Network-specific domain configuration for different chains
+4. **OrderValidator.swift** 💖 - Configurable validation strategies (strict/standard/relaxed)
+5. **GasPriceEstimator.swift** 🦋 - Dynamic gas pricing with EIP-1559 support and analytics
+6. **BalanceChecker.swift** 🐱 - Comprehensive wallet & token balance validation
+7. **TransactionSubmitter.swift** 🌺 - Blockchain submission with multiple strategies
+8. **OrderFactory.swift** 🎪 - Order creation orchestration with builder pattern
+
+#### 🌈 Architecture Patterns Applied 🐰
+- **Dependency Injection** 💕 - Clean separation throughout RouterV6ManagerRefactored
+- **Strategy Pattern** 🦊 - For gas estimation, validation, and submission strategies  
+- **Factory Pattern** 🐾 - For creating preconfigured instances
+- **Builder Pattern** 🎨 - For complex object construction
+- **Protocol-Oriented Design** 🌟 - All major components follow protocols for testability
+
+#### 🎁 Key Benefits 🦄
+- **Testability** 💄 - All dependencies injected via protocols
+- **Modularity** 🌸 - Each class has single responsibility 
+- **Configurability** ✨ - Different strategies for production/testing/market-making
+- **Maintainability** 💎 - Clear separation of concerns
+- **Extensibility** 🦋 - Easy to add new strategies and configurations
 
 ### Wallet Security Architecture
 
@@ -167,8 +189,14 @@ python3 scripts/check_wallet_transactions.py --tx 0x<transaction_hash>
 python3 scripts/check_wallet_transactions.py
 ```
 
-### Current Status
-- **Latest Log**: `logs/1limit_debug_2025-07-26_09-51-52.log`
-- **Last Transaction**: `0x679a6668920ab963bfbc1796358023cb566a849b885f9829952e8026da0a2c13` (FAILED)
-- **Issue**: Transaction reaches Polygon mainnet but Router V6 contract rejects it (30k gas used vs 96k for working transactions)
-- **Next Steps**: Need to debug parameter encoding differences with working RouterV6Wallet implementation
+### Current Status ✨
+
+- **Latest Log**: `logs/1limit_debug_2025-07-26_11-06-39.log` 🌟
+- **Last Transaction**: `0xdda7d77090392c381f6d2453d97802957db0a04b621e1ca8352d8da7d88c5072` (SUCCESS! 🎉)
+- **Gas Used**: 96,060 gas (working perfectly! 💖)
+- **Implementation Status**: Router V6 SDK working successfully ✅
+- **Architecture**: Fully refactored to OOP with SOLID principles 🏗️
+
+### 🎀 OOP Refactoring Complete! 🦄
+
+The Router V6 implementation has been successfully refactored from a monolithic class into a beautiful, modular OOP architecture. Each service class now has a single responsibility and follows proper design patterns. The refactored system maintains full compatibility with the working Router V6 functionality while providing much better maintainability and testability! 💎✨
