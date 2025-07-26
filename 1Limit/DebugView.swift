@@ -70,16 +70,36 @@ struct DebugView: View {
                 .disabled(routerManager.isExecuting)
                 
                 if !routerManager.executionLog.isEmpty {
-                    ScrollView {
-                        Text(routerManager.executionLog)
-                            .font(.system(.caption, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                    VStack(alignment: .trailing, spacing: 8) {
+                        HStack {
+                            Text("Debug Log")
+                                .font(.headline)
+                            Spacer()
+                            Button(action: copyLogToClipboard) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Copy")
+                                }
+                                .font(.caption)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(6)
+                            }
+                        }
+                        
+                        ScrollView {
+                            Text(routerManager.executionLog)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                        .frame(maxHeight: 200)
                     }
-                    .frame(maxHeight: 200)
                 }
                 
                 Spacer()
@@ -101,6 +121,10 @@ struct DebugView: View {
         Task {
             await routerManager.executeTestTransaction()
         }
+    }
+    
+    private func copyLogToClipboard() {
+        UIPasteboard.general.string = routerManager.executionLog
     }
 }
 

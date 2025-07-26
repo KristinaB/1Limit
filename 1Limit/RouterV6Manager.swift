@@ -14,6 +14,7 @@ class RouterV6Manager: ObservableObject {
     @Published var executionLog = ""
     
     private var wallet: WalletData?
+    private var logFileURL: URL?
     
     // Network configuration for Polygon mainnet
     private let polygonConfig = NetworkConfig(
@@ -32,6 +33,9 @@ class RouterV6Manager: ObservableObject {
             isExecuting = true
             executionLog = ""
         }
+        
+        // Setup debug log file
+        setupDebugLogFile()
         
         await addLog("🚀 1inch Router V6 Real Transaction Test")
         await addLog("=====================================\n")
@@ -130,7 +134,51 @@ class RouterV6Manager: ObservableObject {
     
     @MainActor
     private func addLog(_ message: String) async {
-        executionLog += message + "\n"
+        let logMessage = message + "\n"
+        executionLog += logMessage
+        
+        // Also write to file for tailing
+        writeToLogFile(logMessage)
+    }
+    
+    private func setupDebugLogFile() {
+        let tempDir = NSTemporaryDirectory()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+        
+        let fileName = "1limit_debug_\(timestamp).log"
+        logFileURL = URL(fileURLWithPath: tempDir).appendingPathComponent(fileName)
+        
+        if let logFileURL = logFileURL {
+            // Create initial log file
+            let initialMessage = "🚀 1Limit Debug Log Started: \(Date())\n" +
+                                "📍 Log file: \(logFileURL.path)\n" +
+                                "💡 To tail: tail -f \(logFileURL.path)\n" +
+                                "=====================================\n\n"
+            
+            try? initialMessage.write(to: logFileURL, atomically: true, encoding: .utf8)
+            print("📝 Debug log file created: \(logFileURL.path)")
+            print("💡 To tail the log: tail -f \(logFileURL.path)")
+        }
+    }
+    
+    private func writeToLogFile(_ message: String) {
+        guard let logFileURL = logFileURL else { return }
+        
+        if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
+            fileHandle.seekToEndOfFile()
+            if let data = message.data(using: .utf8) {
+                fileHandle.write(data)
+            }
+            fileHandle.closeFile()
+        } else {
+            // Fallback: append to file
+            if let existingContent = try? String(contentsOf: logFileURL, encoding: .utf8) {
+                let newContent = existingContent + message
+                try? newContent.write(to: logFileURL, atomically: true, encoding: .utf8)
+            }
+        }
     }
     
     // MARK: - Private Implementation (Ported from Go)
