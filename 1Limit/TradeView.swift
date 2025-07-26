@@ -13,6 +13,7 @@ struct TradeView: View {
     @State private var fromToken = "WMATIC"
     @State private var toToken = "USDC"
     @State private var showingChart = false
+    @StateObject private var priceService = PriceService.shared
     
     var body: some View {
         ScrollView {
@@ -44,14 +45,38 @@ struct TradeView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    // Currency pair display 🎀
-                    Text("\(fromToken)/\(toToken)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(6)
+                    // Currency pair with prices 🎀
+                    VStack(spacing: 4) {
+                        Text("\(fromToken)/\(toToken)")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        
+                        if priceService.isLoading {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                                Text("Loading prices...")
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.secondary)
+                        } else {
+                            HStack(spacing: 8) {
+                                if let fromPrice = priceService.getPrice(for: fromToken) {
+                                    Text("\(fromToken): \(fromPrice.formattedPrice)")
+                                }
+                                Text("•")
+                                if let toPrice = priceService.getPrice(for: toToken) {
+                                    Text("\(toToken): \(toPrice.formattedPrice)")
+                                }
+                            }
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
                 }
                 
                 // Trading form
@@ -62,17 +87,32 @@ struct TradeView: View {
                             .font(.headline)
                             .foregroundColor(.secondary)
                         
-                        HStack {
-                            TextField("0.00", text: $fromAmount)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                            
-                            Picker("From Token", selection: $fromToken) {
-                                Text("WMATIC").tag("WMATIC")
-                                Text("USDC").tag("USDC")
+                        VStack(spacing: 8) {
+                            HStack {
+                                TextField("0.00", text: $fromAmount)
+                                    .keyboardType(.decimalPad)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .onChange(of: fromAmount) { _ in
+                                        updateToAmount()
+                                    }
+                                
+                                Picker("From Token", selection: $fromToken) {
+                                    Text("WMATIC").tag("WMATIC")
+                                    Text("USDC").tag("USDC")
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .frame(width: 100)
+                                .onChange(of: fromToken) { _ in
+                                    updateToAmount()
+                                }
                             }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(width: 100)
+                            
+                            // USD value display 💰
+                            if let calculation = currentSwapCalculation, !fromAmount.isEmpty {
+                                Text("~\(calculation.formattedFromValue) USD")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                     
@@ -90,17 +130,35 @@ struct TradeView: View {
                             .font(.headline)
                             .foregroundColor(.secondary)
                         
-                        HStack {
-                            TextField("0.00", text: $toAmount)
-                                .keyboardType(.decimalPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                            
-                            Picker("To Token", selection: $toToken) {
-                                Text("WMATIC").tag("WMATIC")
-                                Text("USDC").tag("USDC")
+                        VStack(spacing: 8) {
+                            HStack {
+                                TextField("0.00", text: $toAmount)
+                                    .keyboardType(.decimalPad)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .disabled(true) // Auto-calculated
+                                
+                                Picker("To Token", selection: $toToken) {
+                                    Text("WMATIC").tag("WMATIC")
+                                    Text("USDC").tag("USDC")
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .frame(width: 100)
+                                .onChange(of: toToken) { _ in
+                                    updateToAmount()
+                                }
                             }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(width: 100)
+                            
+                            // USD value and exchange rate 💰
+                            if let calculation = currentSwapCalculation, !fromAmount.isEmpty {
+                                VStack(spacing: 2) {
+                                    Text("~\(calculation.formattedToValue) USD")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(calculation.formattedRate)
+                                        .font(.caption2)
+                                        .foregroundColor(.blue)
+                                }
+                            }
                         }
                     }
                 }
@@ -142,6 +200,22 @@ struct TradeView: View {
         .sheet(isPresented: $showingChart) {
             ChartView(currencyPair: "\(fromToken)/\(toToken)")
         }
+        .onAppear {
+            Task {
+                await priceService.fetchPrices()
+            }
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var currentSwapCalculation: SwapCalculation? {
+        guard let amount = Double(fromAmount), amount > 0 else { return nil }
+        return priceService.calculateSwap(
+            fromAmount: amount,
+            fromToken: fromToken,
+            toToken: toToken
+        )
     }
     
     private func swapTokens() {
@@ -150,15 +224,29 @@ struct TradeView: View {
             fromToken = toToken
             toToken = tempToken
             
-            let tempAmount = fromAmount
-            fromAmount = toAmount
-            toAmount = tempAmount
+            // Keep the from amount, recalculate to amount
+            updateToAmount()
+        }
+    }
+    
+    private func updateToAmount() {
+        if let calculation = currentSwapCalculation {
+            toAmount = String(format: "%.6f", calculation.toAmount)
+        } else {
+            toAmount = ""
         }
     }
     
     private func createLimitOrder() {
         // TODO: Integrate with 1inch Router V6 SDK
-        print("Creating limit order: \(fromAmount) \(fromToken) -> \(toAmount) \(toToken)")
+        if let calculation = currentSwapCalculation {
+            print("Creating limit order:")
+            print("  From: \(calculation.fromAmount) \(calculation.fromToken) (~\(calculation.formattedFromValue))")
+            print("  To: \(calculation.toAmount) \(calculation.toToken) (~\(calculation.formattedToValue))")
+            print("  Rate: \(calculation.formattedRate)")
+        } else {
+            print("Creating limit order: \(fromAmount) \(fromToken) -> \(toAmount) \(toToken)")
+        }
     }
 }
 

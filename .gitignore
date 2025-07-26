@@ -7,3 +7,7 @@ logs
 *.json
 wallet_*.json
 1Limit/wallet_*.json
+
+# API Keys - Never commit sensitive keys
+config/api_keys.txt
+*.api_key
