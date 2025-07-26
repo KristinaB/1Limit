@@ -121,18 +121,14 @@ class EIP712SignerWeb3 {
             useExtraEntropy: false
         )
         
-        guard let serialized = signResult.serializedSignature else {
-            throw EIP712Error.signingFailed
-        }
-        
-        // Extract v from raw signature (last byte)
+        // Extract raw signature (65 bytes: r + s + v)
         guard let rawSig = signResult.rawSignature,
               rawSig.count == 65 else {
             throw EIP712Error.signingFailed
         }
         
         let v = rawSig[64]
-        print("🔑 Signature v: \(v) (recovery id: \(signResult.v))")
+        print("🔑 Signature v: \(v)")
         
         // Return full 65-byte signature (r + s + v)
         return rawSig
@@ -158,11 +154,7 @@ class EIP712SignerWeb3 {
     }
 }
 
-// Compact signature format for Router V6
-struct CompactSignature {
-    let r: Data   // 32 bytes
-    let vs: Data  // 32 bytes (s with v encoded in high bit)
-}
+// CompactSignature is already defined in RouterV6Manager.swift
 
 // EIP-712 errors
 enum EIP712Error: Error {
