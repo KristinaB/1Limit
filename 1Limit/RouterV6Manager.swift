@@ -917,7 +917,7 @@ enum RouterV6Error: LocalizedError {
 /// Keccak-256 hash function (for EIP-712 compliance)
 func keccak256(_ data: Data) -> Data {
     // REAL keccak256 using CryptoSwift (matching 1inch Router V6 spec)
-    return Data(data.bytes.keccak256())
+    return Data(Digest.sha3(data.bytes, variant: .keccak256))
 }
 
 // MARK: - Data Extensions
