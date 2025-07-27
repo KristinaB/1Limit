@@ -34,7 +34,7 @@ run_test_in_suite() {
     local suite=$1
     local target_path=""
     local suite_name=""
-    
+
     case $suite in
         "ComprehensiveUITests")
             target_path="1LimitUITests/ComprehensiveUITests"
@@ -61,14 +61,14 @@ run_test_in_suite() {
             return 1
             ;;
     esac
-    
+
     echo "🔍 Running test in $suite_name..."
     RESULT=$(xcodebuild test \
         -scheme 1Limit \
         -destination 'platform=iOS Simulator,name=iPhone 16' \
         -only-testing:$target_path/$TEST_NAME \
         2>&1 | xcpretty --test --color || true)
-    
+
     if echo "$RESULT" | grep -q "Executed 1 test"; then
         echo "$RESULT"
         echo "✅ Test completed in $suite_name"
@@ -79,7 +79,7 @@ run_test_in_suite() {
     fi
 }
 
-# If test suite is specified, run directly in that suite
+# run
 if [ -n "$TEST_SUITE" ]; then
     if run_test_in_suite "$TEST_SUITE"; then
         exit 0
@@ -87,73 +87,3 @@ if [ -n "$TEST_SUITE" ]; then
         exit 1
     fi
 fi
-
-# Otherwise, try all suites in order
-echo "🔍 Searching for test in all suites..."
-
-SUITES=("ComprehensiveUITests" "NavigationFlowTests" "TabBarIntegrationTests" "TradeFormInteractionTests" "TradeViewUnitTests")
-
-for suite in "${SUITES[@]}"; do
-    if run_test_in_suite "$suite"; then
-        exit 0
-    fi
-done
-
-# Test not found in any suite
-echo ""
-echo "❌ Test '$TEST_NAME' not found in any test suite"
-echo ""
-echo "Available tests by suite:"
-echo ""
-echo "ComprehensiveUITests:"
-echo "  - testCompleteAppNavigationFlow"
-echo "  - testWalletCreationFlowNavigation"
-echo "  - testTradeViewFormInteractions"
-echo "  - testOrderPlacementFlow"
-echo "  - testTransactionsViewFunctionality"
-echo "  - testDebugViewAccess"
-echo "  - testFormValidation"
-echo "  - testAppStatePreservation"
-echo ""
-echo "NavigationFlowTests:"
-echo "  - testTabNavigationSequence"
-echo "  - testTabContentPersistence"
-echo "  - testWalletCreationModalFlow"
-echo "  - testChartModalNavigation"
-echo "  - testOrderConfirmationModalFlow"
-echo "  - testNavigationStackBehavior"
-echo "  - testNavigationInterruption"
-echo "  - testNavigationErrorRecovery"
-echo "  - testMemoryPressureDuringNavigation"
-echo ""
-echo "TabBarIntegrationTests:"
-echo "  - testTabBarRendersCorrectly"
-echo "  - testTabBarNavigationFlow"
-echo "  - testTradeViewContentRendering"
-echo "  - testHomeViewContentRendering"
-echo "  - testTransactionsViewContentRendering"
-echo ""
-echo "TradeFormInteractionTests:"
-echo "  - testAmountFieldInteraction"
-echo "  - testLimitPriceFieldInteraction"
-echo "  - testTokenSelectionInteraction"
-echo "  - testSwapTokensInteraction"
-echo "  - testFormValidationWithEmptyFields"
-echo "  - testFormValidationWithInvalidValues"
-echo "  - testFormValidationWithZeroValues"
-echo "  - testFormValidationWithNegativeValues"
-echo "  - testOrderPreviewGeneration"
-echo "  - testOrderPreviewUpdates"
-echo "  - testChartButtonInteraction"
-echo "  - testOrderCreationFlow"
-echo "  - testDefaultAmountValue"
-echo "  - testAutoLimitPriceCalculation"
-echo ""
-echo "TradeViewUnitTests:"
-echo "  - testOrderCreationWithValidInputs"
-echo "  - testOrderPlacementValidInput"
-echo "  - testMockTransactionSubmitter"
-echo "  - testOrderEncoding"
-echo "  - testEIP712Signing"
-
-exit 1
