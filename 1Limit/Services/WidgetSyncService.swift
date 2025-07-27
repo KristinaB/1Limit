@@ -7,16 +7,82 @@
 
 import Foundation
 import WidgetKit
+import UIKit
+
+// MARK: - Widget Transaction Types (Mirrored from Widget)
+
+/// Widget-specific transaction status (mirrors WidgetDataManager's definition)
+enum WidgetTransactionStatus: String, Codable {
+    case pending = "pending"
+    case confirmed = "confirmed"
+    case failed = "failed"
+    case cancelled = "cancelled"
+}
+
+/// Simplified transaction model for widget use (mirrors WidgetDataManager's definition)
+struct WidgetTransaction: Codable {
+    let id: UUID
+    let type: String
+    let fromAmount: String
+    let fromToken: String
+    let toAmount: String
+    let toToken: String
+    let limitPrice: String
+    let status: WidgetTransactionStatus
+    let date: Date
+    let txHash: String?
+}
+
+/// Simplified OHLC data for widget use (mirrors WidgetDataManager's definition)
+struct WidgetCandlestickData: Codable, Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let open: Double
+    let high: Double
+    let low: Double
+    let close: Double
+    let volume: Double
+    
+    var isBullish: Bool {
+        return close >= open
+    }
+}
+
+// MARK: - Simple Widget Data Manager for Main App
+
+class SimpleWidgetDataManager {
+    static let shared = SimpleWidgetDataManager()
+    
+    private let userDefaults = UserDefaults(suiteName: "group.com.1limit.trading")
+    private let positionsKey = "widget_positions"
+    
+    private init() {}
+    
+    func syncWithMainApp(transactions: [WidgetTransaction], priceService: Any? = nil, chartData: [WidgetCandlestickData]? = nil) {
+        guard let encoded = try? JSONEncoder().encode(transactions) else { return }
+        userDefaults?.set(encoded, forKey: positionsKey)
+        
+        // Also sync chart data if provided
+        if let chartData = chartData,
+           let chartEncoded = try? JSONEncoder().encode(chartData) {
+            userDefaults?.set(chartEncoded, forKey: "widget_chart_data")
+        }
+        
+        WidgetCenter.shared.reloadTimelines(ofKind: "1LimitWidget")
+    }
+}
 
 @MainActor
 class WidgetSyncService: ObservableObject {
-    private let widgetDataManager = WidgetDataManager.shared
+    private let widgetDataManager = SimpleWidgetDataManager.shared
     private let transactionManager: TransactionManagerProtocol
     private let priceService: PriceService
+    private let chartService: ChartDataService
     
-    init(transactionManager: TransactionManagerProtocol, priceService: PriceService = .shared) {
+    init(transactionManager: TransactionManagerProtocol, priceService: PriceService = .shared, chartService: ChartDataService = .shared) {
         self.transactionManager = transactionManager
         self.priceService = priceService
+        self.chartService = chartService
         
         // Set up automatic syncing
         setupPeriodicSync()
@@ -27,9 +93,64 @@ class WidgetSyncService: ObservableObject {
     /// Manually sync current app state to widget
     func syncToWidget() {
         let transactions = transactionManager.getAllTransactions()
-        widgetDataManager.syncWithMainApp(transactions: transactions, priceService: priceService)
+        let widgetTransactions = convertToWidgetTransactions(transactions)
         
-        print("📱 Widget synced with \(transactions.count) transactions")
+        // Convert chart data for widget
+        let widgetChartData = convertToWidgetChartData(chartService.candlestickData)
+        
+        widgetDataManager.syncWithMainApp(
+            transactions: widgetTransactions, 
+            priceService: priceService,
+            chartData: widgetChartData
+        )
+        
+        print("📱 Widget synced with \(transactions.count) transactions and \(widgetChartData.count) chart points")
+    }
+    
+    /// Convert main app transactions to widget-compatible format
+    private func convertToWidgetTransactions(_ transactions: [Transaction]) -> [WidgetTransaction] {
+        return transactions.map { transaction in
+            WidgetTransaction(
+                id: transaction.id,
+                type: transaction.type,
+                fromAmount: transaction.fromAmount,
+                fromToken: transaction.fromToken,
+                toAmount: transaction.toAmount,
+                toToken: transaction.toToken,
+                limitPrice: transaction.limitPrice,
+                status: convertToWidgetStatus(transaction.status),
+                date: transaction.date,
+                txHash: transaction.txHash
+            )
+        }
+    }
+    
+    /// Convert main app transaction status to widget status
+    private func convertToWidgetStatus(_ status: TransactionStatus) -> WidgetTransactionStatus {
+        switch status {
+        case .pending:
+            return .pending
+        case .confirmed:
+            return .confirmed
+        case .failed:
+            return .failed
+        case .cancelled:
+            return .cancelled
+        }
+    }
+    
+    /// Convert chart data for widget use
+    private func convertToWidgetChartData(_ chartData: [CandlestickData]) -> [WidgetCandlestickData] {
+        return chartData.map { candle in
+            WidgetCandlestickData(
+                timestamp: candle.timestamp,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+                volume: candle.volume
+            )
+        }
     }
     
     /// Sync after new transaction is created
@@ -37,6 +158,10 @@ class WidgetSyncService: ObservableObject {
         Task {
             // Wait a moment for transaction to be persisted
             try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            // Fetch fresh chart data for 5-minute timeframe
+            await chartService.fetchChartData(fromToken: "WMATIC", toToken: "USDC", timeframe: .fiveMinutes)
+            
             syncToWidget()
         }
     }
@@ -57,6 +182,8 @@ class WidgetSyncService: ObservableObject {
         // Sync every 5 minutes when app is active
         Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in
+                // Fetch fresh chart data
+                await self?.chartService.fetchChartData(fromToken: "WMATIC", toToken: "USDC", timeframe: .fiveMinutes)
                 self?.syncToWidget()
             }
         }
@@ -111,13 +238,13 @@ extension WidgetSyncService {
 
 class WidgetSyncServiceFactory {
     
-    static func createForProduction() -> WidgetSyncService {
+    @MainActor static func createForProduction() -> WidgetSyncService {
         let transactionManager = TransactionManagerFactory.createProduction()
         let priceService = PriceService.shared
         return WidgetSyncService(transactionManager: transactionManager, priceService: priceService)
     }
     
-    static func createForTesting() -> WidgetSyncService {
+    @MainActor static func createForTesting() -> WidgetSyncService {
         let transactionManager = MockTransactionManager()
         let priceService = PriceService.shared
         return WidgetSyncService(transactionManager: transactionManager, priceService: priceService)
@@ -149,8 +276,4 @@ class MockTransactionManager: TransactionManagerProtocol {
     }
 }
 
-extension TransactionManager: TransactionManagerProtocol {
-    func getAllTransactions() -> [Transaction] {
-        return transactions
-    }
-}
+// TransactionManager already conforms to TransactionManagerProtocol - no extension needed

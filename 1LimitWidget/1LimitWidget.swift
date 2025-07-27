@@ -14,7 +14,8 @@ struct Provider: TimelineProvider {
             date: Date(),
             positions: samplePositions,
             totalValue: 125.50,
-            priceData: samplePriceData
+            priceData: samplePriceData,
+            chartData: sampleChartData
         )
     }
 
@@ -23,7 +24,8 @@ struct Provider: TimelineProvider {
             date: Date(),
             positions: loadPositions(),
             totalValue: calculateTotalValue(),
-            priceData: loadPriceData()
+            priceData: loadPriceData(),
+            chartData: loadChartData()
         )
         completion(entry)
     }
@@ -39,7 +41,8 @@ struct Provider: TimelineProvider {
                 date: entryDate,
                 positions: loadPositions(),
                 totalValue: calculateTotalValue(),
-                priceData: loadPriceData()
+                priceData: loadPriceData(),
+                chartData: loadChartData()
             )
             entries.append(entry)
         }
@@ -60,6 +63,10 @@ struct Provider: TimelineProvider {
     private func loadPriceData() -> [PricePoint] {
         return WidgetDataManager.shared.loadRecentPriceData()
     }
+    
+    private func loadChartData() -> [WidgetCandlestickData] {
+        return WidgetDataManager.shared.loadChartData()
+    }
 }
 
 struct WidgetEntry: TimelineEntry {
@@ -67,6 +74,7 @@ struct WidgetEntry: TimelineEntry {
     let positions: [WidgetPosition]
     let totalValue: Double
     let priceData: [PricePoint]
+    let chartData: [WidgetCandlestickData]
 }
 
 struct _LimitWidgetEntryView: View {
@@ -223,11 +231,11 @@ struct MediumWidgetView: View {
                 
                 // Right side - Mini chart
                 VStack(alignment: .trailing, spacing: 8) {
-                    Text("24h Chart")
+                    Text("5M Chart")
                         .font(.caption)
                         .foregroundColor(.gray)
                     
-                    MiniChartView(priceData: entry.priceData)
+                    MiniOHLCChartView(chartData: entry.chartData)
                         .frame(width: 80, height: 60)
                     
                     Text("Last: \(entry.date.formatted(date: .omitted, time: .shortened))")
@@ -279,11 +287,11 @@ struct LargeWidgetView: View {
                 
                 // Chart section
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Price Chart (24h)")
+                    Text("OHLC Chart (5M)")
                         .font(.subheadline)
                         .foregroundColor(.white)
                     
-                    MiniChartView(priceData: entry.priceData)
+                    MiniOHLCChartView(chartData: entry.chartData)
                         .frame(height: 80)
                 }
                 
@@ -328,6 +336,59 @@ struct LargeWidgetView: View {
 }
 
 // MARK: - Supporting Views
+
+struct MiniOHLCChartView: View {
+    let chartData: [WidgetCandlestickData]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            if chartData.isEmpty {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        Text("No Data")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    )
+            } else {
+                let width = geometry.size.width
+                let height = geometry.size.height
+                
+                let minPrice = chartData.map(\.low).min() ?? 0
+                let maxPrice = chartData.map(\.high).max() ?? 1
+                let priceRange = maxPrice - minPrice
+                
+                let candleWidth = width / CGFloat(chartData.count) * 0.8
+                let spacing = width / CGFloat(chartData.count) * 0.2
+                
+                ForEach(Array(chartData.enumerated()), id: \.element.id) { index, candle in
+                    let x = CGFloat(index) * (candleWidth + spacing) + candleWidth / 2
+                    
+                    // High-Low wick
+                    let highY = height - ((candle.high - minPrice) / priceRange) * height
+                    let lowY = height - ((candle.low - minPrice) / priceRange) * height
+                    
+                    Path { path in
+                        path.move(to: CGPoint(x: x, y: highY))
+                        path.addLine(to: CGPoint(x: x, y: lowY))
+                    }
+                    .stroke(candle.isBullish ? Color.green : Color.red, lineWidth: 1)
+                    
+                    // Open-Close body
+                    let openY = height - ((candle.open - minPrice) / priceRange) * height
+                    let closeY = height - ((candle.close - minPrice) / priceRange) * height
+                    let bodyTop = min(openY, closeY)
+                    let bodyHeight = abs(openY - closeY)
+                    
+                    Rectangle()
+                        .fill(candle.isBullish ? Color.green : Color.red)
+                        .frame(width: candleWidth, height: max(1, bodyHeight))
+                        .position(x: x, y: bodyTop + bodyHeight / 2)
+                }
+            }
+        }
+    }
+}
 
 struct MiniChartView: View {
     let priceData: [PricePoint]
@@ -484,7 +545,8 @@ struct _LimitWidgetBundle: WidgetBundle {
         date: Date(),
         positions: samplePositions,
         totalValue: 125.50,
-        priceData: samplePriceData
+        priceData: samplePriceData,
+        chartData: sampleChartData
     )
 }
 
@@ -495,7 +557,8 @@ struct _LimitWidgetBundle: WidgetBundle {
         date: Date(),
         positions: samplePositions,
         totalValue: 125.50,
-        priceData: samplePriceData
+        priceData: samplePriceData,
+        chartData: sampleChartData
     )
 }
 
@@ -506,6 +569,7 @@ struct _LimitWidgetBundle: WidgetBundle {
         date: Date(),
         positions: samplePositions,
         totalValue: 125.50,
-        priceData: samplePriceData
+        priceData: samplePriceData,
+        chartData: sampleChartData
     )
 }

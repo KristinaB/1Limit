@@ -7,6 +7,47 @@
 
 import Foundation
 import WidgetKit
+import Charts
+import SwiftUI
+
+// MARK: - Shared Models for Widget
+
+/// Widget-specific transaction status (mirrors main app's TransactionStatus)
+enum WidgetTransactionStatus: String, Codable {
+    case pending = "pending"
+    case confirmed = "confirmed"
+    case failed = "failed"
+    case cancelled = "cancelled"
+}
+
+/// Simplified transaction model for widget use
+struct WidgetTransaction: Codable {
+    let id: UUID
+    let type: String
+    let fromAmount: String
+    let fromToken: String
+    let toAmount: String
+    let toToken: String
+    let limitPrice: String
+    let status: WidgetTransactionStatus
+    let date: Date
+    let txHash: String?
+}
+
+/// Simplified OHLC data for widget use
+struct WidgetCandlestickData: Codable, Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let open: Double
+    let high: Double
+    let low: Double
+    let close: Double
+    let volume: Double
+    
+    var isBullish: Bool {
+        return close >= open
+    }
+}
 
 class WidgetDataManager {
     static let shared = WidgetDataManager()
@@ -16,6 +57,7 @@ class WidgetDataManager {
     private let priceDataKey = "widget_price_data"
     private let portfolioValueKey = "widget_portfolio_value"
     private let lastUpdateKey = "widget_last_update"
+    private let chartDataKey = "widget_chart_data"
     
     private init() {}
     
@@ -35,6 +77,14 @@ class WidgetDataManager {
             return samplePriceData // Fallback to sample data
         }
         return priceData
+    }
+    
+    func loadChartData() -> [WidgetCandlestickData] {
+        guard let data = userDefaults?.data(forKey: chartDataKey),
+              let chartData = try? JSONDecoder().decode([WidgetCandlestickData].self, from: data) else {
+            return sampleChartData // Fallback to sample data
+        }
+        return chartData
     }
     
     func calculateTotalPortfolioValue() -> Double {
@@ -62,6 +112,13 @@ class WidgetDataManager {
         reloadWidgets()
     }
     
+    func updateChartData(_ chartData: [WidgetCandlestickData]) {
+        guard let encoded = try? JSONEncoder().encode(chartData) else { return }
+        userDefaults?.set(encoded, forKey: chartDataKey)
+        updateTimestamp()
+        reloadWidgets()
+    }
+    
     func updatePortfolioValue(_ value: Double) {
         userDefaults?.set(value, forKey: portfolioValueKey)
         updateTimestamp()
@@ -78,7 +135,7 @@ class WidgetDataManager {
     
     // MARK: - Data Conversion (App -> Widget)
     
-    func convertTransactionsToWidgetPositions(_ transactions: [Transaction]) -> [WidgetPosition] {
+    func convertTransactionsToWidgetPositions(_ transactions: [WidgetTransaction]) -> [WidgetPosition] {
         return transactions.compactMap { transaction in
             let symbol = "\(transaction.fromToken)/\(transaction.toToken)"
             let amount = Double(transaction.fromAmount) ?? 0
@@ -94,7 +151,7 @@ class WidgetDataManager {
         }
     }
     
-    private func convertTransactionStatus(_ status: TransactionStatus) -> PositionStatus {
+    private func convertTransactionStatus(_ status: WidgetTransactionStatus) -> PositionStatus {
         switch status {
         case .pending:
             return .pending
@@ -125,7 +182,7 @@ class WidgetDataManager {
 extension WidgetDataManager {
     
     /// Update widget data from main app transactions
-    func syncWithMainApp(transactions: [Transaction], priceService: PriceService? = nil) {
+    func syncWithMainApp(transactions: [WidgetTransaction], priceService: Any? = nil, chartData: [WidgetCandlestickData]? = nil) {
         // Convert transactions to widget positions
         let positions = convertTransactionsToWidgetPositions(transactions)
         updatePositions(positions)
@@ -133,6 +190,14 @@ extension WidgetDataManager {
         // Calculate total portfolio value
         let totalValue = positions.reduce(0) { $0 + $1.value }
         updatePortfolioValue(totalValue)
+        
+        // Update chart data (use provided data or generate sample)
+        if let chartData = chartData {
+            updateChartData(chartData)
+        } else {
+            let sampleChart = generateSampleChartData()
+            updateChartData(sampleChart)
+        }
         
         // Generate sample price data (in real app, use actual price history)
         let priceData = generateRecentPriceData()
@@ -153,6 +218,10 @@ extension WidgetDataManager {
                 price: max(0.1, price) // Ensure positive price
             )
         }.reversed()
+    }
+    
+    private func generateSampleChartData() -> [WidgetCandlestickData] {
+        return sampleChartData
     }
 }
 
@@ -189,6 +258,36 @@ extension WidgetDataManager {
     func populateWithSampleData() {
         updatePositions(samplePositions)
         updatePriceData(samplePriceData)
+        updateChartData(sampleChartData)
         updatePortfolioValue(125.50)
     }
 }
+
+// MARK: - Sample Chart Data
+
+let sampleChartData: [WidgetCandlestickData] = {
+    let basePrice = 0.45
+    let now = Date()
+    
+    return (0..<12).map { index in
+        let timestamp = now.addingTimeInterval(-Double(index) * 300) // 5-minute intervals
+        let openVariation = Double.random(in: -0.02...0.02)
+        let open = basePrice + openVariation
+        
+        let closeVariation = Double.random(in: -0.02...0.02)
+        let close = open + closeVariation
+        
+        let high = max(open, close) + Double.random(in: 0...0.01)
+        let low = min(open, close) - Double.random(in: 0...0.01)
+        let volume = Double.random(in: 1000...5000)
+        
+        return WidgetCandlestickData(
+            timestamp: timestamp,
+            open: max(0.1, open),
+            high: max(0.1, high),
+            low: max(0.1, low),
+            close: max(0.1, close),
+            volume: volume
+        )
+    }.reversed()
+}()

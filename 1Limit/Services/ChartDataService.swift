@@ -61,6 +61,7 @@ struct CandlestickData: Identifiable, Equatable {
 
 /// Chart time intervals
 enum ChartTimeframe: String, CaseIterable {
+    case fiveMinutes = "300"    // 5 minutes
     case oneHour = "3600"       // 1 hour
     case fourHours = "14400"    // 4 hours  
     case oneDay = "86400"       // 1 day
@@ -68,6 +69,7 @@ enum ChartTimeframe: String, CaseIterable {
     
     var displayName: String {
         switch self {
+        case .fiveMinutes: return "5M"
         case .oneHour: return "1H"
         case .fourHours: return "4H"
         case .oneDay: return "1D"

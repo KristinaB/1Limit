@@ -37,7 +37,7 @@ struct ChartView: View {
   @StateObject private var chartService = ChartDataService.shared
 
   @State private var selectedData: CandlestickData?
-  @State private var selectedTimeframe: ChartTimeframe = .oneHour
+  @State private var selectedTimeframe: ChartTimeframe = .fiveMinutes
 
   var visibleData: [CandlestickData] {
     // Show all real chart data, no pagination needed
