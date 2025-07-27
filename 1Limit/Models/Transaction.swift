@@ -25,6 +25,13 @@ struct Transaction: Identifiable, Codable {
     let lastPolledAt: Date?
     let createdAt: Date
     
+    // USD Values
+    let fromAmountUSD: Double?
+    let toAmountUSD: Double?
+    let gasFeeUSD: Double?
+    let limitPriceUSD: Double?
+    let totalCostUSD: Double?
+    
     init(
         id: UUID = UUID(),
         type: String,
@@ -40,7 +47,12 @@ struct Transaction: Identifiable, Codable {
         gasUsed: String? = nil,
         gasPrice: String? = nil,
         lastPolledAt: Date? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        fromAmountUSD: Double? = nil,
+        toAmountUSD: Double? = nil,
+        gasFeeUSD: Double? = nil,
+        limitPriceUSD: Double? = nil,
+        totalCostUSD: Double? = nil
     ) {
         self.id = id
         self.type = type
@@ -57,6 +69,11 @@ struct Transaction: Identifiable, Codable {
         self.gasPrice = gasPrice
         self.lastPolledAt = lastPolledAt
         self.createdAt = createdAt
+        self.fromAmountUSD = fromAmountUSD
+        self.toAmountUSD = toAmountUSD
+        self.gasFeeUSD = gasFeeUSD
+        self.limitPriceUSD = limitPriceUSD
+        self.totalCostUSD = totalCostUSD
     }
     
     /// Create a new transaction with updated status and blockchain data
@@ -82,7 +99,44 @@ struct Transaction: Identifiable, Codable {
             gasUsed: gasUsed ?? self.gasUsed,
             gasPrice: gasPrice ?? self.gasPrice,
             lastPolledAt: lastPolledAt,
-            createdAt: self.createdAt
+            createdAt: self.createdAt,
+            fromAmountUSD: self.fromAmountUSD,
+            toAmountUSD: self.toAmountUSD,
+            gasFeeUSD: self.gasFeeUSD,
+            limitPriceUSD: self.limitPriceUSD,
+            totalCostUSD: self.totalCostUSD
+        )
+    }
+    
+    /// Create a new transaction with updated USD values
+    func withUpdatedUSDValues(
+        fromAmountUSD: Double? = nil,
+        toAmountUSD: Double? = nil,
+        gasFeeUSD: Double? = nil,
+        limitPriceUSD: Double? = nil,
+        totalCostUSD: Double? = nil
+    ) -> Transaction {
+        Transaction(
+            id: self.id,
+            type: self.type,
+            fromAmount: self.fromAmount,
+            fromToken: self.fromToken,
+            toAmount: self.toAmount,
+            toToken: self.toToken,
+            limitPrice: self.limitPrice,
+            status: self.status,
+            date: self.date,
+            txHash: self.txHash,
+            blockNumber: self.blockNumber,
+            gasUsed: self.gasUsed,
+            gasPrice: self.gasPrice,
+            lastPolledAt: self.lastPolledAt,
+            createdAt: self.createdAt,
+            fromAmountUSD: fromAmountUSD ?? self.fromAmountUSD,
+            toAmountUSD: toAmountUSD ?? self.toAmountUSD,
+            gasFeeUSD: gasFeeUSD ?? self.gasFeeUSD,
+            limitPriceUSD: limitPriceUSD ?? self.limitPriceUSD,
+            totalCostUSD: totalCostUSD ?? self.totalCostUSD
         )
     }
     
@@ -104,6 +158,85 @@ struct Transaction: Identifiable, Codable {
         let pollInterval: TimeInterval = 5 // 5 seconds
         let timeSinceLastPoll = Date().timeIntervalSince(lastPolled)
         return max(0, pollInterval - timeSinceLastPoll)
+    }
+    
+    /// Calculate USD values from current token prices
+    func calculateUSDValues(using priceService: PriceService) -> Transaction {
+        var fromUSD: Double? = nil
+        var toUSD: Double? = nil
+        var limitUSD: Double? = nil
+        var gasUSD: Double? = nil
+        var totalUSD: Double? = nil
+        
+        // Calculate from amount USD
+        if let fromPrice = priceService.getPrice(for: fromToken),
+           let fromDouble = Double(fromAmount) {
+            fromUSD = fromDouble * fromPrice.usdPrice
+        }
+        
+        // Calculate to amount USD  
+        if let toPrice = priceService.getPrice(for: toToken),
+           let toDouble = Double(toAmount) {
+            toUSD = toDouble * toPrice.usdPrice
+        }
+        
+        // Calculate limit price USD (rate * from token price)
+        if let fromPrice = priceService.getPrice(for: fromToken),
+           let limitDouble = Double(limitPrice) {
+            limitUSD = limitDouble * fromPrice.usdPrice
+        }
+        
+        // Calculate gas fee USD (if transaction is confirmed)
+        if let gasUsedStr = gasUsed,
+           let gasPriceStr = gasPrice,
+           let gasUsedValue = Double(gasUsedStr),
+           let gasPriceValue = Double(gasPriceStr),
+           let maticPrice = priceService.getPrice(for: "WMATIC") {
+            // Convert wei to MATIC (1 MATIC = 10^18 wei)
+            let gasFeeInMatic = (gasUsedValue * gasPriceValue) / 1e18
+            gasUSD = gasFeeInMatic * maticPrice.usdPrice
+        }
+        
+        // Calculate total cost USD (from amount + gas fee)
+        if let fromValue = fromUSD, let gasValue = gasUSD {
+            totalUSD = fromValue + gasValue
+        } else if let fromValue = fromUSD {
+            totalUSD = fromValue
+        }
+        
+        return withUpdatedUSDValues(
+            fromAmountUSD: fromUSD,
+            toAmountUSD: toUSD,
+            gasFeeUSD: gasUSD,
+            limitPriceUSD: limitUSD,
+            totalCostUSD: totalUSD
+        )
+    }
+    
+    /// Formatted USD value strings for UI display
+    var formattedFromAmountUSD: String? {
+        guard let value = fromAmountUSD else { return nil }
+        return String(format: "$%.2f", value)
+    }
+    
+    var formattedToAmountUSD: String? {
+        guard let value = toAmountUSD else { return nil }
+        return String(format: "$%.2f", value)
+    }
+    
+    var formattedGasFeeUSD: String? {
+        guard let value = gasFeeUSD else { return nil }
+        return String(format: "$%.2f", value)
+    }
+    
+    var formattedLimitPriceUSD: String? {
+        guard let value = limitPriceUSD else { return nil }
+        return String(format: "$%.2f", value)
+    }
+    
+    var formattedTotalCostUSD: String? {
+        guard let value = totalCostUSD else { return nil }
+        return String(format: "$%.2f", value)
     }
 }
 

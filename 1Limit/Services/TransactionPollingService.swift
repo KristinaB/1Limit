@@ -29,6 +29,7 @@ class TransactionPollingService: TransactionPollingProtocol {
     
     private let persistenceManager: TransactionPersistenceProtocol
     private let urlSession: URLSession
+    private let priceService: PriceService
     
     // MARK: - State
     
@@ -39,10 +40,12 @@ class TransactionPollingService: TransactionPollingProtocol {
     
     init(
         persistenceManager: TransactionPersistenceProtocol,
-        urlSession: URLSession = .shared
+        urlSession: URLSession = .shared,
+        priceService: PriceService = .shared
     ) {
         self.persistenceManager = persistenceManager
         self.urlSession = urlSession
+        self.priceService = priceService
     }
     
     // MARK: - Polling Operations
@@ -117,19 +120,23 @@ class TransactionPollingService: TransactionPollingProtocol {
                     )
                 }
                 
+                // Calculate USD values with current prices
+                await priceService.fetchPrices()
+                let transactionWithUSD = updatedTransaction.calculateUSDValues(using: priceService)
+                
                 // Save updated transaction
-                try await persistenceManager.updateTransaction(updatedTransaction)
+                try await persistenceManager.updateTransaction(transactionWithUSD)
                 
                 // Notify observers
-                onTransactionUpdate?(updatedTransaction)
+                onTransactionUpdate?(transactionWithUSD)
                 
                 // Stop polling if confirmed or failed
-                if updatedTransaction.status == .confirmed || updatedTransaction.status == .failed {
-                    print("✅ Transaction \(txHash) status: \(updatedTransaction.status.rawValue)")
+                if transactionWithUSD.status == .confirmed || transactionWithUSD.status == .failed {
+                    print("✅ Transaction \(txHash) status: \(transactionWithUSD.status.rawValue)")
                     break
                 }
                 
-                currentTransaction = updatedTransaction
+                currentTransaction = transactionWithUSD
                 
             } catch {
                 print("⚠️ Error polling transaction \(txHash): \(error)")
