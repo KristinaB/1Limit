@@ -12,7 +12,8 @@ struct SmallOHLCWidgetView: View {
     let entry: WidgetEntry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
+            // Header
             HStack {
                 Text("1Limit")
                     .font(.caption)
@@ -24,52 +25,60 @@ struct SmallOHLCWidgetView: View {
                     .frame(width: 6, height: 6)
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            // Price info
+            VStack(alignment: .leading, spacing: 2) {
                 Text("WMATIC/USDC")
                     .font(.caption2)
                     .foregroundColor(.gray)
                 
                 if let lastCandle = entry.chartData.last {
-                    Text("$\(lastCandle.close, specifier: "%.4f")")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                    
-                    let change = lastCandle.close - lastCandle.open
-                    let changePercent = (change / lastCandle.open) * 100
-                    HStack(spacing: 2) {
-                        Image(systemName: change >= 0 ? "arrow.up" : "arrow.down")
-                            .font(.caption2)
-                        Text("\(changePercent, specifier: "%.2f")%")
-                            .font(.caption2)
+                    HStack {
+                        Text("$\(lastCandle.close, specifier: "%.4f")")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        let change = lastCandle.close - lastCandle.open
+                        let changePercent = (change / lastCandle.open) * 100
+                        HStack(spacing: 1) {
+                            Image(systemName: change >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.system(size: 8))
+                            Text("\(changePercent, specifier: "%.1f")%")
+                                .font(.system(size: 8))
+                        }
+                        .foregroundColor(change >= 0 ? .green : .red)
                     }
-                    .foregroundColor(change >= 0 ? .green : .red)
                 }
             }
             
-            Spacer()
+            // Chart - takes more space when fewer orders
+            MiniOHLCChartView(chartData: entry.chartData)
+                .frame(height: entry.openOrders.isEmpty ? 50 : (entry.openOrders.count == 1 ? 40 : 30))
             
+            Spacer(minLength: 0)
+            
+            // Orders section - compact
             if !entry.openOrders.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(entry.openOrders.count) Open Order\(entry.openOrders.count == 1 ? "" : "s")")
-                        .font(.caption2)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(entry.openOrders.count) Open")
+                        .font(.system(size: 9))
                         .foregroundColor(.gray)
                     
-                    ForEach(entry.openOrders.prefix(2)) { order in
+                    ForEach(entry.openOrders.prefix(entry.openOrders.count == 1 ? 1 : 2)) { order in
                         HStack {
                             Text("\(order.fromToken)/\(order.toToken)")
-                                .font(.caption2)
+                                .font(.system(size: 9))
                                 .foregroundColor(.white)
                             Spacer()
                             Text("$\(order.limitPrice)")
-                                .font(.caption2)
+                                .font(.system(size: 9))
                                 .foregroundColor(.orange)
                         }
                     }
                 }
             } else {
                 Text("No open orders")
-                    .font(.caption2)
+                    .font(.system(size: 9))
                     .foregroundColor(.gray)
             }
         }

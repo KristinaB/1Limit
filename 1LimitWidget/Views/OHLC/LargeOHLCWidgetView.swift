@@ -41,18 +41,28 @@ struct LargeOHLCWidgetView: View {
                 }
             }
             
-            // Chart section
+            // Chart section - adaptive height based on orders count
             VStack(alignment: .leading, spacing: 8) {
                 Text("OHLC Chart (5M)")
                     .font(.subheadline)
                     .foregroundColor(.white)
                 
+                let chartHeight: CGFloat = {
+                    if entry.openOrders.isEmpty {
+                        return 120  // More space when no orders
+                    } else if entry.openOrders.count == 1 {
+                        return 100  // Medium space for 1 order
+                    } else {
+                        return 80   // Standard space for multiple orders
+                    }
+                }()
+                
                 MiniOHLCChartView(chartData: entry.chartData)
-                    .frame(height: 80)
+                    .frame(height: chartHeight)
             }
             
-            // Open Orders list
-            VStack(alignment: .leading, spacing: 8) {
+            // Open Orders list - compact when fewer orders
+            VStack(alignment: .leading, spacing: entry.openOrders.isEmpty ? 4 : 6) {
                 HStack {
                     Text("Open Orders")
                         .font(.subheadline)
@@ -70,10 +80,12 @@ struct LargeOHLCWidgetView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 4)
                 } else {
-                    ForEach(entry.openOrders.prefix(3), id: \.id) { order in
-                        OrderRowView(order: order)
+                    VStack(spacing: 4) {
+                        ForEach(entry.openOrders.prefix(3), id: \.id) { order in
+                            OrderRowView(order: order)
+                        }
                     }
                 }
             }
