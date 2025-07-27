@@ -189,3 +189,56 @@ struct PositionRowView: View {
         .padding(.vertical, 4)
     }
 }
+
+// MARK: - Order Row View
+
+struct OrderRowView: View {
+    let order: WidgetTransaction
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(order.fromToken)/\(order.toToken)")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Text("\(order.fromAmount) \(order.fromToken)")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(order.status.rawValue.capitalized)
+                    .font(.caption)
+                    .foregroundColor(statusColor(order.status))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(statusColor(order.status).opacity(0.2))
+                    )
+                
+                Text("@$\(order.limitPrice)")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func statusColor(_ status: WidgetTransactionStatus) -> Color {
+        switch status {
+        case .pending:
+            return .orange
+        case .confirmed:
+            return .green
+        case .failed:
+            return .red
+        case .cancelled:
+            return .gray
+        }
+    }
+}

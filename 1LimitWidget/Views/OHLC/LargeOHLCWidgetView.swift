@@ -32,7 +32,7 @@ struct LargeOHLCWidgetView: View {
                 
                 VStack(alignment: .trailing) {
                     Circle()
-                        .fill(entry.positions.isEmpty ? Color.gray : Color.green)
+                        .fill(entry.openOrders.isEmpty ? Color.gray : Color.green)
                         .frame(width: 8, height: 8)
                     
                     Text("Updated \(entry.date.formatted(date: .omitted, time: .shortened))")
@@ -51,29 +51,29 @@ struct LargeOHLCWidgetView: View {
                     .frame(height: 80)
             }
             
-            // Positions list
+            // Open Orders list
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Active Positions")
+                    Text("Open Orders")
                         .font(.subheadline)
                         .foregroundColor(.white)
                     
                     Spacer()
                     
-                    Text("\(entry.positions.count) Total")
+                    Text("\(entry.openOrders.count) Total")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
                 
-                if entry.positions.isEmpty {
-                    Text("No active positions")
+                if entry.openOrders.isEmpty {
+                    Text("No open orders")
                         .font(.caption)
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, 8)
                 } else {
-                    ForEach(entry.positions.prefix(5), id: \.id) { position in
-                        PositionRowView(position: position)
+                    ForEach(entry.openOrders.prefix(3), id: \.id) { order in
+                        OrderRowView(order: order)
                     }
                 }
             }
