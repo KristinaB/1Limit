@@ -30,9 +30,10 @@ extension Color {
     
     /// Status colors
     static let successGreen = Color.green
-    static let successPurple = Color.purple
+    static let successBlue = Color.blue
     static let warningOrange = Color.orange
     static let errorRed = Color.red
+    static let failedDarkRed = Color(red: 0.7, green: 0.2, blue: 0.2)
     
     /// Chart colors
     static let bullishGreen = Color(red: 0.2, green: 0.8, blue: 0.4)

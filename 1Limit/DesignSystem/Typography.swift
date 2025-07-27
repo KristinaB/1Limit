@@ -85,13 +85,13 @@ enum StatusType {
     var color: Color {
         switch self {
         case .success:
-            return .successPurple
+            return .successBlue
         case .warning:
             return .warningOrange
         case .error:
-            return .errorRed
+            return .purple
         case .pending:
-            return .primaryGradientStart
+            return .secondaryText
         case .neutral:
             return .secondaryText
         }

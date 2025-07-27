@@ -369,6 +369,11 @@ struct TradeView: View {
 struct OrderConfirmationView: View {
   @Environment(\.dismiss) private var dismiss
   @StateObject private var orderService = OrderPlacementService()
+  @StateObject private var priceValidation = PriceValidationService()
+  @State private var validationResult: PriceValidationResult?
+  @State private var isValidatingPrice = true
+  @State private var showingValidationWarning = false
+  
   let fromAmount: String
   let fromToken: String
   let toToken: String
@@ -428,6 +433,66 @@ struct OrderConfirmationView: View {
               }
             }
 
+            // Price validation warning
+            if isValidatingPrice {
+              AppCard {
+                HStack(spacing: 12) {
+                  ProgressView()
+                    .scaleEffect(0.8)
+                  Text("Validating price against market rates...")
+                    .secondaryText()
+                }
+              }
+            } else if let result = validationResult, let warning = result.warningMessage {
+              AppCard {
+                VStack(spacing: 16) {
+                  HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                      .foregroundColor(.orange)
+                      .font(.title2)
+                    Text("Price Warning")
+                      .cardTitle()
+                      .foregroundColor(.orange)
+                    Spacer()
+                  }
+                  
+                  Text(warning)
+                    .secondaryText()
+                    .multilineTextAlignment(.leading)
+                  
+                  VStack(spacing: 8) {
+                    HStack {
+                      Text("Market Price:")
+                        .captionText()
+                      Spacer()
+                      Text(String(format: "%.6f %@/%@", result.marketPrice, toToken, fromToken))
+                        .captionText()
+                        .fontWeight(.medium)
+                    }
+                    
+                    HStack {
+                      Text("Your Price:")
+                        .captionText()
+                      Spacer()
+                      Text(String(format: "%.6f %@/%@", result.userPrice, toToken, fromToken))
+                        .captionText()
+                        .fontWeight(.medium)
+                    }
+                    
+                    HStack {
+                      Text("Recommended Range:")
+                        .captionText()
+                      Spacer()
+                      Text(String(format: "%.6f - %.6f", result.recommendedRange.lowerBound, result.recommendedRange.upperBound))
+                        .captionText()
+                        .fontWeight(.medium)
+                    }
+                  }
+                  .padding(.top, 8)
+                }
+              }
+            }
+            
             // Order summary
             InfoCard(
               title: "Order Summary",
@@ -448,6 +513,26 @@ struct OrderConfirmationView: View {
                 }
                 .disabled(true)
                 .opacity(0.6)
+              } else if isValidatingPrice {
+                SecondaryButton("Validating...", icon: "hourglass") {
+                  // Disabled while validating
+                }
+                .disabled(true)
+                .opacity(0.6)
+              } else if let result = validationResult, !result.isValid {
+                VStack(spacing: 12) {
+                  SecondaryButton("⚠️ Place Order Anyway", icon: "exclamationmark.triangle") {
+                    Task {
+                      await placeOrder()
+                    }
+                  }
+                  .foregroundColor(.orange)
+                  
+                  PrimaryButton("Adjust Price") {
+                    // Dismiss to go back and adjust price
+                    dismiss()
+                  }
+                }
               } else {
                 PrimaryButton("Place Order") {
                   Task {
@@ -478,6 +563,37 @@ struct OrderConfirmationView: View {
       }
     }
     .preferredColorScheme(.dark)
+    .onAppear {
+      Task {
+        await validatePrice()
+      }
+    }
+  }
+  
+  private func validatePrice() async {
+    guard let price = Double(limitPrice), price > 0 else {
+      isValidatingPrice = false
+      validationResult = PriceValidationResult(
+        isValid: false,
+        marketPrice: 0,
+        userPrice: 0,
+        percentageDifference: 1.0,
+        warningMessage: "Invalid limit price. Please enter a valid price.",
+        recommendedRange: 0...0
+      )
+      return
+    }
+    
+    isValidatingPrice = true
+    
+    let result = await priceValidation.validateLimitPrice(
+      fromToken: fromToken,
+      toToken: toToken,
+      userPrice: price
+    )
+    
+    validationResult = result
+    isValidatingPrice = false
   }
   
   private func placeOrder() async {
