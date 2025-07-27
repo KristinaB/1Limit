@@ -47,6 +47,7 @@ The project uses a bundled test approach for maximum speed (~60 seconds total):
 - Avoids slow app startup/shutdown cycles between tests
 - Uses coordinate-based tapping to prevent accessibility errors
 - ~5x faster than individual test execution
+- Target on the test suite is to have a low total test suite time
 
 ## Project Architecture
 
