@@ -13,13 +13,20 @@ struct BackupPhraseView: View {
     var useStackNavigation: Bool = false
     var onComplete: (() -> Void)?
     
-    // Sample 12-word recovery phrase
-    private let recoveryWords = [
-        "forest", "umbrella", "piano",
-        "sunset", "bridge", "quantum", 
-        "marble", "voyage", "thunder",
-        "crystal", "wisdom", "galaxy"
-    ]
+    // Wallet generation state  
+    @StateObject private var walletGenerator = WalletGenerator.shared
+    @State private var generatedWallet: GeneratedWallet?
+    @State private var isGeneratingWallet = false
+    @State private var generationError: String?
+    
+    private var recoveryWords: [String] {
+        return generatedWallet?.mnemonic ?? [
+            "Loading", "wallet", "generation",
+            "please", "wait", "while", 
+            "creating", "secure", "mnemonic",
+            "phrase", "for", "you"
+        ]
+    }
     
     var body: some View {
         let content = ZStack {
@@ -89,11 +96,34 @@ struct BackupPhraseView: View {
                             }
                         }
                         
-                        // Continue button
-                        PrimaryButton("I've Saved My Phrase") {
-                            proceedToSetup = true
+                        // Continue button - only enabled when wallet is generated
+                        if generatedWallet != nil {
+                            PrimaryButton("I've Saved My Phrase") {
+                                Task {
+                                    await saveWalletAndProceed()
+                                }
+                            }
+                            .padding(.top, 20)
+                        } else if isGeneratingWallet {
+                            PrimaryButton("Generating Wallet...", icon: "hourglass") {
+                                // Disabled during generation
+                            }
+                            .disabled(true)
+                            .padding(.top, 20)
+                        } else if generationError != nil {
+                            VStack(spacing: 12) {
+                                Text("⚠️ Wallet generation failed")
+                                    .foregroundColor(.warningOrange)
+                                    .font(.subheadline)
+                                
+                                SecondaryButton("Try Again") {
+                                    Task {
+                                        await generateWallet()
+                                    }
+                                }
+                            }
+                            .padding(.top, 20)
                         }
-                        .padding(.top, 20)
                         
                         // Security warning
                         AppCard {
@@ -132,6 +162,11 @@ struct BackupPhraseView: View {
             .navigationDestination(isPresented: $proceedToSetup) {
                 SetupCompleteView(useStackNavigation: true, onComplete: onComplete)
             }
+            .onAppear {
+                Task {
+                    await generateWallet()
+                }
+            }
         
         if useStackNavigation {
             return AnyView(content
@@ -144,6 +179,60 @@ struct BackupPhraseView: View {
             .fullScreenCover(isPresented: $proceedToSetup) {
                 SetupCompleteView(onComplete: onComplete)
             })
+        }
+    }
+    
+    // MARK: - Wallet Generation Methods
+    
+    private func generateWallet() async {
+        guard generatedWallet == nil else { return } // Don't regenerate if already done
+        
+        isGeneratingWallet = true
+        generationError = nil
+        
+        do {
+            print("🎲 Generating new wallet with mnemonic...")
+            let wallet = try await walletGenerator.generateNewWallet()
+            
+            await MainActor.run {
+                self.generatedWallet = wallet
+                self.isGeneratingWallet = false
+            }
+            
+            print("✅ Wallet generated successfully: \(wallet.walletData.address)")
+            
+        } catch {
+            await MainActor.run {
+                self.generationError = error.localizedDescription
+                self.isGeneratingWallet = false
+            }
+            
+            print("❌ Wallet generation failed: \(error)")
+        }
+    }
+    
+    private func saveWalletAndProceed() async {
+        guard let wallet = generatedWallet else {
+            print("❌ No wallet to save")
+            return
+        }
+        
+        do {
+            print("🔒 Saving wallet securely...")
+            try await walletGenerator.storeWalletSecurely(wallet, requireBiometric: false)
+            
+            await MainActor.run {
+                self.proceedToSetup = true
+            }
+            
+            print("✅ Wallet saved and proceeding to completion")
+            
+        } catch {
+            await MainActor.run {
+                self.generationError = "Failed to save wallet: \(error.localizedDescription)"
+            }
+            
+            print("❌ Failed to save wallet: \(error)")
         }
     }
 }

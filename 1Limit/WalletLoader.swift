@@ -2,11 +2,12 @@
 //  WalletLoader.swift
 //  1Limit
 //
-//  Ported from Go to Swift - Secure wallet loading functionality
+//  Enhanced wallet loading with multiple modes and keychain support 🔐✨
 //
 
 import Foundation
 import CryptoKit
+import Combine
 
 // MARK: - Wallet Data Structure (matching Go implementation)
 struct WalletData: Codable {
@@ -19,29 +20,87 @@ struct WalletData: Codable {
     }
 }
 
-// MARK: - WalletLoader (Ported from Go)
-class WalletLoader {
+// MARK: - Wallet Mode
+enum WalletMode {
+    case testWallet       // Load from wallet_0x3f847d.json
+    case generatedWallet  // Load from keychain (user-generated)
+    case mockWallet       // Development fallback
+}
+
+// MARK: - Enhanced WalletLoader
+class WalletLoader: ObservableObject {
     static let shared = WalletLoader()
     private init() {}
     
+    // MARK: - Properties
     private let walletFileName = "wallet_0x3f847d.json"
+    private let walletGenerator = WalletGenerator.shared
     
-    /// Load wallet from JSON file (matching Go implementation)
-    func loadWallet() -> WalletData? {
+    @Published var currentWalletMode: WalletMode = .testWallet
+    @Published var isLoading = false
+    
+    // MARK: - Public Methods
+    
+    /// Load wallet based on current mode
+    func loadWallet() async -> WalletData? {
+        isLoading = true
+        defer { isLoading = false }
+        
+        switch currentWalletMode {
+        case .testWallet:
+            return loadTestWallet()
+        case .generatedWallet:
+            return await loadGeneratedWallet()
+        case .mockWallet:
+            return createMockWallet()
+        }
+    }
+    
+    /// Load test wallet from JSON file (matching Go implementation)
+    func loadTestWallet() -> WalletData? {
         guard let walletURL = Bundle.main.url(forResource: "wallet_0x3f847d", withExtension: "json") else {
-            print("❌ Wallet file not found in bundle")
+            print("❌ Test wallet file not found in bundle")
             return loadWalletFromDocuments()
         }
         
         do {
             let data = try Data(contentsOf: walletURL)
             let wallet = try JSONDecoder().decode(WalletData.self, from: data)
-            print("✅ Loaded wallet from bundle: \(maskAddress(wallet.address))")
+            print("✅ Loaded test wallet from bundle: \(maskAddress(wallet.address))")
             return wallet
         } catch {
-            print("❌ Failed to load wallet from bundle: \(error)")
+            print("❌ Failed to load test wallet from bundle: \(error)")
             return loadWalletFromDocuments()
         }
+    }
+    
+    /// Load user-generated wallet from keychain
+    func loadGeneratedWallet() async -> WalletData? {
+        do {
+            guard let generatedWallet = try await walletGenerator.loadStoredWallet() else {
+                print("📝 No generated wallet found in keychain")
+                return nil
+            }
+            
+            print("✅ Loaded generated wallet from keychain: \(maskAddress(generatedWallet.address))")
+            return generatedWallet.walletData
+            
+        } catch {
+            print("❌ Failed to load generated wallet: \(error)")
+            return nil
+        }
+    }
+    
+    /// Switch wallet mode and reload
+    func switchWalletMode(to mode: WalletMode) async -> WalletData? {
+        print("🔄 Switching wallet mode to: \(mode)")
+        currentWalletMode = mode
+        return await loadWallet()
+    }
+    
+    /// Check if generated wallet exists
+    func hasGeneratedWallet() async -> Bool {
+        return await walletGenerator.hasStoredWallet()
     }
     
     /// Fallback: Load wallet from documents directory
