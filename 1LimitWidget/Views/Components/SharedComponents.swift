@@ -55,6 +55,17 @@ struct MiniOHLCChartView: View {
                             let maxPrice = chartData.map(\.high).max() ?? 1
                             let priceRange = maxPrice - minPrice
                             
+                            // Price level lines
+                            let priceLevels = getPriceLevels(min: minPrice, max: maxPrice)
+                            ForEach(priceLevels, id: \.self) { level in
+                                let y = height - ((level - minPrice) / priceRange) * height
+                                Path { path in
+                                    path.move(to: CGPoint(x: 0, y: y))
+                                    path.addLine(to: CGPoint(x: width, y: y))
+                                }
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                            }
+                            
                             let candleWidth = width / CGFloat(chartData.count) * 0.8
                             let spacing = width / CGFloat(chartData.count) * 0.2
                             
@@ -111,6 +122,31 @@ struct MiniOHLCChartView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
+    }
+    
+    private func getPriceLevels(min: Double, max: Double) -> [Double] {
+        var levels: [Double] = []
+        
+        // Determine step size based on price range
+        let step: Double
+        if max < 1.0 {
+            step = 0.05  // Every $0.05 below $1
+        } else {
+            step = 0.15  // Every $0.15 above $1
+        }
+        
+        // Start from a rounded value
+        let start = floor(min / step) * step
+        var current = start
+        
+        while current <= max {
+            if current >= min && current <= max {
+                levels.append(current)
+            }
+            current += step
+        }
+        
+        return levels
     }
 }
 
