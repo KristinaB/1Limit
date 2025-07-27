@@ -66,7 +66,9 @@ class TransactionPersistenceManager: TransactionPersistenceProtocol {
                     }
                     
                     let data = try Data(contentsOf: self.fileURL)
-                    let transactions = try JSONDecoder().decode([Transaction].self, from: data)
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .iso8601
+                    let transactions = try decoder.decode([Transaction].self, from: data)
                     continuation.resume(returning: transactions)
                 } catch {
                     continuation.resume(throwing: PersistenceError.loadFailed(error))
