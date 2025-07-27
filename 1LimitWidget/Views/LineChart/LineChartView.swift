@@ -25,18 +25,37 @@ struct LineChartView: View {
             } else {
                 VStack(spacing: 0) {
                     HStack(spacing: 4) {
-                        // Price axis legend
-                        VStack(alignment: .trailing, spacing: 0) {
+                        // Price axis legend with price level labels
+                        GeometryReader { axisGeometry in
                             let minPrice = priceData.map(\.price).min() ?? 0
                             let maxPrice = priceData.map(\.price).max() ?? 1
+                            let priceRange = maxPrice - minPrice
+                            let axisHeight = axisGeometry.size.height
                             
-                            Text("$\(maxPrice, specifier: "%.4f")")
-                                .font(.system(size: 8))
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Text("$\(minPrice, specifier: "%.4f")")
-                                .font(.system(size: 8))
-                                .foregroundColor(.gray)
+                            let priceLevels = getPriceLevels(min: minPrice, max: maxPrice)
+                            
+                            ForEach(priceLevels, id: \.self) { level in
+                                let y = axisHeight - ((level - minPrice) / priceRange) * axisHeight
+                                Text("$\(level, specifier: level < 1 ? "%.2f" : "%.1f")")
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.gray)
+                                    .position(x: 35, y: y)
+                            }
+                            
+                            // Always show min/max if they're not already covered by price levels
+                            if !priceLevels.contains(where: { abs($0 - minPrice) < 0.001 }) {
+                                Text("$\(minPrice, specifier: "%.3f")")
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.gray.opacity(0.7))
+                                    .position(x: 35, y: axisHeight)
+                            }
+                            
+                            if !priceLevels.contains(where: { abs($0 - maxPrice) < 0.001 }) {
+                                Text("$\(maxPrice, specifier: "%.3f")")
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.gray.opacity(0.7))
+                                    .position(x: 35, y: 0)
+                            }
                         }
                         .frame(width: 40)
                         
@@ -49,7 +68,7 @@ struct LineChartView: View {
                             let maxPrice = priceData.map(\.price).max() ?? 1
                             let priceRange = maxPrice - minPrice
                             
-                            // Price level lines
+                            // Price level lines (behind line chart)
                             let priceLevels = getPriceLevels(min: minPrice, max: maxPrice)
                             ForEach(priceLevels, id: \.self) { level in
                                 let y = height - ((level - minPrice) / priceRange) * height
@@ -57,7 +76,7 @@ struct LineChartView: View {
                                     path.move(to: CGPoint(x: 0, y: y))
                                     path.addLine(to: CGPoint(x: width, y: y))
                                 }
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1.0)
                             }
                             
                             // Line chart path
@@ -157,26 +176,27 @@ struct LineChartView: View {
     private func getPriceLevels(min: Double, max: Double) -> [Double] {
         var levels: [Double] = []
         
-        // Determine step size based on price range
+        // Determine step size based on overall price range
         let step: Double
         if max < 1.0 {
             step = 0.05  // Every $0.05 below $1
         } else {
-            step = 0.15  // Every $0.15 above $1
+            step = 0.15  // Every $0.15 above $1  
         }
         
-        // Start from a rounded value
-        let start = floor(min / step) * step
+        // Start from a level that gives good coverage
+        let start = floor((min - step/2) / step) * step
         var current = start
         
-        while current <= max {
-            if current >= min && current <= max {
-                levels.append(current)
+        // Generate levels that are within or slightly outside the range for better labeling
+        while current <= max + step {
+            if current >= min - step/4 && current <= max + step/4 {
+                levels.append(round(current * 100) / 100)  // Round to 2 decimal places
             }
             current += step
         }
         
-        return levels
+        return levels.sorted()
     }
 }
 
