@@ -450,12 +450,22 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     result: TransactionResult
   ) async {
     do {
+      // Calculate expected toAmount based on limit price
+      let expectedToAmount: String
+      if let fromDouble = Double(fromAmount), let limitDouble = Double(limitPrice) {
+        // For limit orders: toAmount = fromAmount / limitPrice
+        let calculatedAmount = fromDouble / limitDouble
+        expectedToAmount = String(format: "%.6f", calculatedAmount)
+      } else {
+        expectedToAmount = "0"
+      }
+      
       // Create transaction with user-provided parameters for accurate display
       let transaction = Transaction(
         type: "Limit Order",
         fromAmount: fromAmount,
         fromToken: fromToken,
-        toAmount: "Calculating...", // Will be updated when order fills
+        toAmount: expectedToAmount,
         toToken: toToken,
         limitPrice: limitPrice,
         status: .pending,

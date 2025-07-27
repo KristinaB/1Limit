@@ -70,7 +70,10 @@ class PriceService: ObservableObject {
     // Token addresses for Polygon 🌸
     private let tokenAddresses: [String: String] = [
         "WMATIC": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-        "USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
+        "MATIC": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", // Same as WMATIC
+        "USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+        "USDC.e": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", // Common variant
+        "USD Coin": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" // Full name variant
     ]
     
     // MARK: - Public Methods

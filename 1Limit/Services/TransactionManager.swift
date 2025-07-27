@@ -88,7 +88,10 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 }
                 print("💰 USD calculations completed")
                 
-                transactions = transactionsWithUSD
+                // Update the @Published property on main actor to trigger UI refresh
+                await MainActor.run {
+                    self.transactions = transactionsWithUSD
+                }
                 
                 // Update persistence with USD values
                 for transaction in transactionsWithUSD {

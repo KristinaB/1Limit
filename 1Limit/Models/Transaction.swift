@@ -181,8 +181,12 @@ struct Transaction: Identifiable, Codable {
         
         // Calculate to amount USD  
         let toPrice = priceService.getPrice(for: toToken)
+        print("🔍 USD Calc - toToken: \(toToken), price: \(toPrice?.usdPrice ?? 0), amount: \(toAmount)")
         if let toPrice = toPrice, let toDouble = Double(toAmount) {
             toUSD = toDouble * toPrice.usdPrice
+            print("✅ USD Calc - toUSD: \(toUSD ?? 0)")
+        } else {
+            print("❌ USD Calc - Failed to get toPrice or parse toAmount. toPrice: \(toPrice?.usdPrice ?? 0), toAmount: \(toAmount)")
         }
         
         // Calculate limit price USD (rate * from token price)
@@ -220,6 +224,7 @@ struct Transaction: Identifiable, Codable {
         )
         
         print("💰 USD Values - from: \(updatedTransaction.fromAmountUSD?.description ?? "nil"), to: \(updatedTransaction.toAmountUSD?.description ?? "nil"), limit: \(updatedTransaction.limitPriceUSD?.description ?? "nil")")
+        print("💰 Formatted USD - from: \(updatedTransaction.formattedFromAmountUSD ?? "nil"), to: \(updatedTransaction.formattedToAmountUSD ?? "nil"), limit: \(updatedTransaction.formattedLimitPriceUSD ?? "nil")")
         
         return updatedTransaction
     }

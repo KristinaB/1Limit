@@ -25,7 +25,8 @@
       "Bash(timeout:*)",
       "Bash(./run_single_test.sh:*)",
       "Bash(./run_fast_tests.sh:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(xcrun simctl install:*)"
     ],
     "deny": []
   }
