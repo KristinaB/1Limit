@@ -17,7 +17,9 @@ struct OHLCProvider: TimelineProvider {
             positions: samplePositions,
             totalValue: 125.50,
             priceData: samplePriceData,
-            chartData: sampleChartData
+            chartData: sampleChartData,
+            openOrders: [],
+            closedOrders: []
         )
     }
 
@@ -32,7 +34,9 @@ struct OHLCProvider: TimelineProvider {
             positions: loadPositions(),
             totalValue: calculateTotalValue(),
             priceData: loadPriceData(),
-            chartData: loadChartData()
+            chartData: loadChartData(),
+            openOrders: WidgetDataManager.shared.loadOpenOrders(),
+            closedOrders: []
         )
         completion(entry)
     }
@@ -45,13 +49,16 @@ struct OHLCProvider: TimelineProvider {
         
         let currentDate = Date()
         
-        // Create a single entry with minimal data loading
+        // Create a single entry with real open orders
+        let openOrders = WidgetDataManager.shared.loadOpenOrders()
         let entry = WidgetEntry(
             date: currentDate,
             positions: samplePositions, // Use sample data to avoid data loading issues
             totalValue: 125.50,
             priceData: samplePriceData,
-            chartData: sampleChartData
+            chartData: sampleChartData,
+            openOrders: openOrders,
+            closedOrders: []
         )
 
         // Set next refresh in 5 minutes (longer interval)

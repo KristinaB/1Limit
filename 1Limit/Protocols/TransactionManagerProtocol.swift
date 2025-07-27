@@ -15,4 +15,6 @@ protocol TransactionManagerProtocol {
     func getFilteredTransactions(by filter: String) -> [Transaction]
     func addTransaction(_ transaction: Transaction)
     func refreshTransactions() async
+    func getLatestOpenOrders(limit: Int) -> [Transaction]
+    func getLatestClosedOrders(limit: Int) -> [Transaction]
 }

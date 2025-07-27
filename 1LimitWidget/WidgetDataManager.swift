@@ -11,43 +11,7 @@ import Charts
 import SwiftUI
 
 // MARK: - Shared Models for Widget
-
-/// Widget-specific transaction status (mirrors main app's TransactionStatus)
-enum WidgetTransactionStatus: String, Codable {
-    case pending = "pending"
-    case confirmed = "confirmed"
-    case failed = "failed"
-    case cancelled = "cancelled"
-}
-
-/// Simplified transaction model for widget use
-struct WidgetTransaction: Codable {
-    let id: UUID
-    let type: String
-    let fromAmount: String
-    let fromToken: String
-    let toAmount: String
-    let toToken: String
-    let limitPrice: String
-    let status: WidgetTransactionStatus
-    let date: Date
-    let txHash: String?
-}
-
-/// Simplified OHLC data for widget use
-struct WidgetCandlestickData: Codable, Identifiable {
-    let id = UUID()
-    let timestamp: Date
-    let open: Double
-    let high: Double
-    let low: Double
-    let close: Double
-    let volume: Double
-    
-    var isBullish: Bool {
-        return close >= open
-    }
-}
+// Models are now defined in Models/WidgetModels.swift to avoid duplication
 
 class WidgetDataManager {
     static let shared = WidgetDataManager()
@@ -59,6 +23,8 @@ class WidgetDataManager {
     private let lastUpdateKey = "widget_last_update"
     private let chartDataKey = "widget_chart_data"
     private let lineChartDataKey = "widget_line_chart_data"
+    private let openOrdersKey = "widget_open_orders"
+    private let closedOrdersKey = "widget_closed_orders"
     
     private init() {}
     
@@ -70,6 +36,22 @@ class WidgetDataManager {
             return samplePositions // Fallback to sample data
         }
         return positions
+    }
+    
+    func loadOpenOrders() -> [WidgetTransaction] {
+        guard let data = userDefaults?.data(forKey: openOrdersKey),
+              let orders = try? JSONDecoder().decode([WidgetTransaction].self, from: data) else {
+            return []
+        }
+        return orders
+    }
+    
+    func loadClosedOrders() -> [WidgetTransaction] {
+        guard let data = userDefaults?.data(forKey: closedOrdersKey),
+              let orders = try? JSONDecoder().decode([WidgetTransaction].self, from: data) else {
+            return []
+        }
+        return orders
     }
     
     func loadRecentPriceData() -> [PricePoint] {
@@ -328,37 +310,3 @@ extension WidgetDataManager {
     }
 }
 
-// MARK: - Sample Chart Data
-
-let sampleChartData: [WidgetCandlestickData] = {
-    let basePrice = 0.45
-    let now = Date()
-    
-    return (0..<25).map { index in
-        let timestamp = now.addingTimeInterval(-Double(index) * 300) // 5-minute intervals
-        let openVariation = Double.random(in: -0.02...0.02)
-        let open = basePrice + openVariation
-        
-        let closeVariation = Double.random(in: -0.02...0.02)
-        let close = open + closeVariation
-        
-        let high = max(open, close) + Double.random(in: 0...0.01)
-        let low = min(open, close) - Double.random(in: 0...0.01)
-        let volume = Double.random(in: 1000...5000)
-        
-        return WidgetCandlestickData(
-            timestamp: timestamp,
-            open: max(0.1, open),
-            high: max(0.1, high),
-            low: max(0.1, low),
-            close: max(0.1, close),
-            volume: volume
-        )
-    }.reversed()
-}()
-
-// Force initialization to ensure sample data is always available
-private let sampleDataInitializer: Bool = {
-    print("🔧 Initializing widget sample chart data: \(sampleChartData.count) points")
-    return true
-}()

@@ -20,7 +20,7 @@ struct SmallOHLCWidgetView: View {
                     .foregroundColor(.white)
                 Spacer()
                 Circle()
-                    .fill(entry.positions.isEmpty ? Color.gray : Color.green)
+                    .fill(entry.openOrders.isEmpty ? Color.gray : Color.green)
                     .frame(width: 6, height: 6)
             }
             
@@ -49,24 +49,28 @@ struct SmallOHLCWidgetView: View {
             
             Spacer()
             
-            if !entry.positions.isEmpty {
+            if !entry.openOrders.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(entry.positions.count) Position\(entry.positions.count == 1 ? "" : "s")")
+                    Text("\(entry.openOrders.count) Open Order\(entry.openOrders.count == 1 ? "" : "s")")
                         .font(.caption2)
                         .foregroundColor(.gray)
                     
-                    ForEach(entry.positions.prefix(2), id: \.id) { position in
+                    ForEach(entry.openOrders.prefix(2)) { order in
                         HStack {
-                            Text(position.symbol)
+                            Text("\(order.fromToken)/\(order.toToken)")
                                 .font(.caption2)
                                 .foregroundColor(.white)
                             Spacer()
-                            Text(position.status.rawValue)
+                            Text("$\(order.limitPrice)")
                                 .font(.caption2)
-                                .foregroundColor(position.status.color)
+                                .foregroundColor(.orange)
                         }
                     }
                 }
+            } else {
+                Text("No open orders")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
             }
         }
         .padding(12)

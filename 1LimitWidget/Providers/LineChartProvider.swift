@@ -17,7 +17,9 @@ struct LineChartProvider: TimelineProvider {
             positions: [],
             totalValue: 0,
             priceData: samplePriceData,
-            chartData: sampleChartData
+            chartData: sampleChartData,
+            openOrders: [],
+            closedOrders: []
         )
     }
     
@@ -32,7 +34,9 @@ struct LineChartProvider: TimelineProvider {
             positions: [],
             totalValue: 0,
             priceData: loadLineChartData(),
-            chartData: sampleChartData
+            chartData: sampleChartData,
+            openOrders: [],
+            closedOrders: WidgetDataManager.shared.loadClosedOrders()
         )
         completion(entry)
     }
@@ -45,13 +49,16 @@ struct LineChartProvider: TimelineProvider {
         
         let currentDate = Date()
         
-        // Create a single entry with sample data (no async loading)
+        // Create a single entry with real closed orders
+        let closedOrders = WidgetDataManager.shared.loadClosedOrders()
         let entry = WidgetEntry(
             date: currentDate,
             positions: [],
             totalValue: 0,
             priceData: samplePriceData, // Use sample data to avoid async issues
-            chartData: sampleChartData
+            chartData: sampleChartData,
+            openOrders: [],
+            closedOrders: closedOrders
         )
 
         // Set next refresh in 5 minutes (longer interval)

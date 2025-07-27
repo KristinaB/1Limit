@@ -43,10 +43,12 @@ struct OHLCEntryView: View {
   OHLCWidget()
 } timeline: {
   WidgetEntry(
-    date: .now,
+    date: Date(),
     positions: samplePositions,
     totalValue: 125.50,
     priceData: samplePriceData,
-    chartData: sampleChartData
+    chartData: sampleChartData,
+    openOrders: [],
+    closedOrders: []
   )
 }

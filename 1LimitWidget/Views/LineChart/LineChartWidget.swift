@@ -41,10 +41,12 @@ struct LineChartEntryView: View {
     LineChartWidget()
 } timeline: {
     WidgetEntry(
-        date: .now,
+        date: Date(),
         positions: [],
         totalValue: 0,
         priceData: samplePriceData,
-        chartData: sampleChartData
+        chartData: sampleChartData,
+        openOrders: [],
+        closedOrders: []
     )
 }

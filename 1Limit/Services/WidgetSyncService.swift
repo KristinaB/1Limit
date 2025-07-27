@@ -55,6 +55,8 @@ class SimpleWidgetDataManager {
     
     private let userDefaults = UserDefaults(suiteName: "group.com.1limit.trading")
     private let positionsKey = "widget_positions"
+    private let openOrdersKey = "widget_open_orders"
+    private let closedOrdersKey = "widget_closed_orders"
     
     private init() {}
     
@@ -69,6 +71,28 @@ class SimpleWidgetDataManager {
         }
         
         WidgetCenter.shared.reloadTimelines(ofKind: "1LimitWidget")
+    }
+    
+    func syncOrdersWithMainApp(openOrders: [WidgetTransaction], closedOrders: [WidgetTransaction], chartData: [WidgetCandlestickData]? = nil) {
+        // Sync open orders
+        if let openEncoded = try? JSONEncoder().encode(openOrders) {
+            userDefaults?.set(openEncoded, forKey: openOrdersKey)
+        }
+        
+        // Sync closed orders
+        if let closedEncoded = try? JSONEncoder().encode(closedOrders) {
+            userDefaults?.set(closedEncoded, forKey: closedOrdersKey)
+        }
+        
+        // Sync chart data if provided
+        if let chartData = chartData,
+           let chartEncoded = try? JSONEncoder().encode(chartData) {
+            userDefaults?.set(chartEncoded, forKey: "widget_chart_data")
+        }
+        
+        // Reload both widgets
+        WidgetCenter.shared.reloadTimelines(ofKind: "1LimitWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "LineChartWidget")
     }
 }
 
@@ -92,19 +116,25 @@ class WidgetSyncService: ObservableObject {
     
     /// Manually sync current app state to widget
     func syncToWidget() {
-        let transactions = transactionManager.getAllTransactions()
-        let widgetTransactions = convertToWidgetTransactions(transactions)
+        // Get open and closed orders
+        let openOrders = transactionManager.getLatestOpenOrders(limit: 3)
+        let closedOrders = transactionManager.getLatestClosedOrders(limit: 3)
+        
+        // Convert to widget format
+        let widgetOpenOrders = convertToWidgetTransactions(openOrders)
+        let widgetClosedOrders = convertToWidgetTransactions(closedOrders)
         
         // Convert chart data for widget
         let widgetChartData = convertToWidgetChartData(chartService.candlestickData)
         
-        widgetDataManager.syncWithMainApp(
-            transactions: widgetTransactions, 
-            priceService: priceService,
+        // Sync with new method
+        widgetDataManager.syncOrdersWithMainApp(
+            openOrders: widgetOpenOrders,
+            closedOrders: widgetClosedOrders,
             chartData: widgetChartData
         )
         
-        print("📱 Widget synced with \(transactions.count) transactions and \(widgetChartData.count) chart points")
+        print("📱 Widget synced: \(openOrders.count) open orders, \(closedOrders.count) closed orders, \(widgetChartData.count) chart points")
     }
     
     /// Convert main app transactions to widget-compatible format
@@ -239,7 +269,7 @@ extension WidgetSyncService {
 class WidgetSyncServiceFactory {
     
     @MainActor static func createForProduction() -> WidgetSyncService {
-        let transactionManager = TransactionManagerFactory.createProduction()
+        let transactionManager = TransactionManager()
         let priceService = PriceService.shared
         return WidgetSyncService(transactionManager: transactionManager, priceService: priceService)
     }
@@ -266,6 +296,14 @@ class MockTransactionManager: TransactionManagerProtocol {
     
     func addTransaction(_ transaction: Transaction) {
         transactions.append(transaction)
+    }
+    
+    func getLatestOpenOrders(limit: Int) -> [Transaction] {
+        return transactions.filter { $0.status == .pending }.prefix(limit).map { $0 }
+    }
+    
+    func getLatestClosedOrders(limit: Int) -> [Transaction] {
+        return transactions.filter { $0.status != .pending }.prefix(limit).map { $0 }
     }
     
     var isLoading: Bool = false

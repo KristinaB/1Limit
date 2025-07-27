@@ -55,7 +55,7 @@ struct LineChartMediumWidgetView: View {
       // Line chart
       LineChartView(
         priceData: entry.priceData,
-        closedOrders: sampleClosedOrders
+        closedOrders: entry.closedOrders
       )
     }
     .padding(12)
@@ -135,7 +135,7 @@ struct LineChartLargeWidgetView: View {
       // Line chart (takes most space)
       LineChartView(
         priceData: entry.priceData,
-        closedOrders: sampleClosedOrders
+        closedOrders: entry.closedOrders
       )
       .frame(minHeight: 120)
 
@@ -147,27 +147,27 @@ struct LineChartLargeWidgetView: View {
             .fontWeight(.medium)
             .foregroundColor(.primary)
           Spacer()
-          Text("\(sampleClosedOrders.count)")
+          Text("\(entry.closedOrders.count)")
             .font(.caption2)
             .foregroundColor(.gray)
         }
 
         // Orders list
-        ForEach(sampleClosedOrders.prefix(2)) { order in
+        ForEach(entry.closedOrders.prefix(2)) { order in
           HStack(spacing: 6) {
             // Status indicator
             Circle()
-              .fill(order.isSuccessful ? Color.green : Color.red)
+              .fill(order.status == .confirmed ? Color.green : Color.red)
               .frame(width: 6, height: 6)
 
             // Order details
             VStack(alignment: .leading, spacing: 1) {
-              Text("\(order.amount, specifier: "%.1f") \(order.symbol)")
+              Text("\(order.fromAmount) \(order.fromToken)/\(order.toToken)")
                 .font(.caption2)
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
 
-              Text("$\(order.executionPrice, specifier: "%.4f")")
+              Text("$\(order.limitPrice)")
                 .font(.caption2)
                 .foregroundColor(.gray)
             }
@@ -176,11 +176,11 @@ struct LineChartLargeWidgetView: View {
 
             // Time and type
             VStack(alignment: .trailing, spacing: 1) {
-              Text(formatOrderTime(order.executedAt))
+              Text(formatOrderTime(order.date))
                 .font(.caption2)
                 .foregroundColor(.gray)
 
-              Text(order.type.rawValue)
+              Text(order.type)
                 .font(.caption2)
                 .fontWeight(.medium)
                 .foregroundColor(.blue)

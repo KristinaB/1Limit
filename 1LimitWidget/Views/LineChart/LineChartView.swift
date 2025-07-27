@@ -10,7 +10,7 @@ import WidgetKit
 
 struct LineChartView: View {
     let priceData: [PricePoint]
-    let closedOrders: [ClosedOrder]
+    let closedOrders: [WidgetTransaction]
     
     var body: some View {
         GeometryReader { geometry in
@@ -85,10 +85,11 @@ struct LineChartView: View {
                             
                             // Closed order dots
                             ForEach(closedOrders) { order in
-                                if let orderX = getXPosition(for: order.executedAt, width: width),
-                                   let orderY = getYPosition(for: order.executionPrice, minPrice: minPrice, maxPrice: maxPrice, height: height) {
+                                if let orderX = getXPosition(for: order.date, width: width),
+                                   let price = Double(order.limitPrice),
+                                   let orderY = getYPosition(for: price, minPrice: minPrice, maxPrice: maxPrice, height: height) {
                                     Circle()
-                                        .fill(order.isSuccessful ? Color.green : Color.red)
+                                        .fill(order.status == .confirmed ? Color.green : Color.red)
                                         .frame(width: 6, height: 6)
                                         .position(x: orderX, y: orderY)
                                         .overlay(
@@ -179,39 +180,5 @@ struct LineChartView: View {
     }
 }
 
-// MARK: - Closed Order Model
-
-struct ClosedOrder: Identifiable {
-    let id = UUID()
-    let symbol: String
-    let amount: Double
-    let executionPrice: Double
-    let executedAt: Date
-    let isSuccessful: Bool
-    let type: OrderType
-    
-    enum OrderType: String {
-        case limit = "Limit"
-        case market = "Market"
-    }
-}
-
-// Sample closed orders
-let sampleClosedOrders: [ClosedOrder] = [
-    ClosedOrder(
-        symbol: "WMATIC/USDC",
-        amount: 100,
-        executionPrice: 0.445,
-        executedAt: Date().addingTimeInterval(-3600 * 2),
-        isSuccessful: true,
-        type: .limit
-    ),
-    ClosedOrder(
-        symbol: "WMATIC/USDC",
-        amount: 50,
-        executionPrice: 0.451,
-        executedAt: Date().addingTimeInterval(-3600 * 5),
-        isSuccessful: false,
-        type: .limit
-    )
-]
+// Sample closed orders using WidgetTransaction
+let sampleClosedOrders: [WidgetTransaction] = []

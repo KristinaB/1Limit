@@ -17,6 +17,8 @@ struct WidgetEntry: TimelineEntry {
     let totalValue: Double
     let priceData: [PricePoint]
     let chartData: [WidgetCandlestickData]
+    let openOrders: [WidgetTransaction]
+    let closedOrders: [WidgetTransaction]
 }
 
 // MARK: - Widget Position
@@ -57,6 +59,44 @@ struct PricePoint: Identifiable, Codable {
     let price: Double
 }
 
+// MARK: - Widget Transaction
+
+enum WidgetTransactionStatus: String, Codable {
+    case pending = "pending"
+    case confirmed = "confirmed"
+    case failed = "failed"
+    case cancelled = "cancelled"
+}
+
+struct WidgetTransaction: Identifiable, Codable {
+    let id: UUID
+    let type: String
+    let fromAmount: String
+    let fromToken: String
+    let toAmount: String
+    let toToken: String
+    let limitPrice: String
+    let status: WidgetTransactionStatus
+    let date: Date
+    let txHash: String?
+}
+
+// MARK: - Widget Candlestick Data
+
+struct WidgetCandlestickData: Codable, Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let open: Double
+    let high: Double
+    let low: Double
+    let close: Double
+    let volume: Double
+    
+    var isBullish: Bool {
+        return close >= open
+    }
+}
+
 // MARK: - Sample Data
 
 let samplePositions = [
@@ -75,5 +115,30 @@ let samplePriceData: [PricePoint] = {
     }
 }()
 
-// This is defined in WidgetDataManager.swift
-// let sampleChartData: [WidgetCandlestickData]
+let sampleChartData: [WidgetCandlestickData] = {
+    let basePrice = 0.45
+    let now = Date()
+    
+    return (0..<25).map { index in
+        let timestamp = now.addingTimeInterval(-Double(index) * 300) // 5-minute intervals
+        let openVariation = Double.random(in: -0.02...0.02)
+        let open = basePrice + openVariation
+        
+        let closeVariation = Double.random(in: -0.02...0.02)
+        let close = open + closeVariation
+        
+        let high = max(open, close) + Double.random(in: 0...0.01)
+        let low = min(open, close) - Double.random(in: 0...0.01)
+        let volume = Double.random(in: 1000...5000)
+        
+        return WidgetCandlestickData(
+            timestamp: timestamp,
+            open: max(0.1, open),
+            high: max(0.1, high),
+            low: max(0.1, low),
+            close: max(0.1, close),
+            volume: volume
+        )
+    }.reversed()
+}()
+

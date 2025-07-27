@@ -176,6 +176,24 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
         }
     }
     
+    /// Get latest open orders (pending status)
+    func getLatestOpenOrders(limit: Int = 3) -> [Transaction] {
+        return transactions
+            .filter { $0.status == .pending }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(limit)
+            .map { $0 }
+    }
+    
+    /// Get latest closed orders (confirmed, failed, or cancelled)
+    func getLatestClosedOrders(limit: Int = 3) -> [Transaction] {
+        return transactions
+            .filter { $0.status == .confirmed || $0.status == .failed || $0.status == .cancelled }
+            .sorted { $0.createdAt > $1.createdAt }
+            .prefix(limit)
+            .map { $0 }
+    }
+    
     // MARK: - Private Methods
     
     /// Handle transaction updates from polling service
