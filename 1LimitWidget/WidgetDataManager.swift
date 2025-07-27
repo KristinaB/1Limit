@@ -58,6 +58,7 @@ class WidgetDataManager {
     private let portfolioValueKey = "widget_portfolio_value"
     private let lastUpdateKey = "widget_last_update"
     private let chartDataKey = "widget_chart_data"
+    private let lineChartDataKey = "widget_line_chart_data"
     
     private init() {}
     
@@ -94,6 +95,24 @@ class WidgetDataManager {
         } catch {
             print("❌ Failed to decode chart data: \(error), using sample data")
             return sampleChartData
+        }
+    }
+    
+    func loadLineChartData() -> [PricePoint] {
+        print("🔍 Widget loading line chart data...")
+        
+        guard let data = userDefaults?.data(forKey: lineChartDataKey) else {
+            print("❌ No line chart data found in UserDefaults, using sample data")
+            return generateSampleLineChartData()
+        }
+        
+        do {
+            let lineData = try JSONDecoder().decode([PricePoint].self, from: data)
+            print("✅ Successfully loaded \(lineData.count) line chart data points")
+            return lineData
+        } catch {
+            print("❌ Failed to decode line chart data: \(error), using sample data")
+            return generateSampleLineChartData()
         }
     }
     
@@ -135,12 +154,28 @@ class WidgetDataManager {
         reloadWidgets()
     }
     
+    func updateLineChartData(_ lineData: [PricePoint]) {
+        guard let encoded = try? JSONEncoder().encode(lineData) else { return }
+        userDefaults?.set(encoded, forKey: lineChartDataKey)
+        updateTimestamp()
+        reloadWidgets()
+    }
+    
     private func updateTimestamp() {
         userDefaults?.set(Date().timeIntervalSince1970, forKey: lastUpdateKey)
     }
     
     private func reloadWidgets() {
         WidgetCenter.shared.reloadTimelines(ofKind: "1LimitWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "LineChartWidget")
+    }
+    
+    /// Update line chart data from 1inch API
+    func updateLineChartData() async {
+        // This would be called from the main app to fetch fresh data
+        // For now, we'll generate sample data
+        let sampleData = generateSampleLineChartData()
+        updateLineChartData(sampleData)
     }
     
     // MARK: - Data Conversion (App -> Widget)
@@ -233,6 +268,23 @@ extension WidgetDataManager {
     private func generateSampleChartData() -> [WidgetCandlestickData] {
         return sampleChartData
     }
+    
+    private func generateSampleLineChartData() -> [PricePoint] {
+        let now = Date()
+        let basePrice = 0.45 // WMATIC price
+        
+        // Generate 24 hourly data points (24H period)
+        return (0..<24).map { hour in
+            let timestamp = now.addingTimeInterval(-Double(hour) * 3600) // 1-hour intervals
+            let variation = Double.random(in: -0.05...0.05)
+            let price = basePrice + variation
+            
+            return PricePoint(
+                timestamp: timestamp,
+                price: max(0.1, price) // Ensure positive price
+            )
+        }.reversed()
+    }
 }
 
 // MARK: - Live Activity Support (Future Enhancement)
@@ -263,6 +315,7 @@ extension WidgetDataManager {
         userDefaults?.removeObject(forKey: portfolioValueKey)
         userDefaults?.removeObject(forKey: lastUpdateKey)
         userDefaults?.removeObject(forKey: chartDataKey)
+        userDefaults?.removeObject(forKey: lineChartDataKey)
         reloadWidgets()
     }
     
@@ -270,6 +323,7 @@ extension WidgetDataManager {
         updatePositions(samplePositions)
         updatePriceData(samplePriceData)
         updateChartData(sampleChartData)
+        updateLineChartData(generateSampleLineChartData())
         updatePortfolioValue(125.50)
     }
 }
