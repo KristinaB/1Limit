@@ -96,6 +96,8 @@ class WalletBalanceService: ObservableObject {
     private let priceService: PriceService
     private var refreshTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var lastFetchTime: Date?
+    private var currentlyFetchingFor: String?
     
     // Polygon mainnet configuration
     private let nodeURL = "https://polygon-rpc.com"
@@ -133,8 +135,27 @@ class WalletBalanceService: ObservableObject {
             return
         }
         
+        // Prevent excessive calls - limit to once every 5 seconds
+        let now = Date()
+        if let lastFetch = lastFetchTime, now.timeIntervalSince(lastFetch) < 5.0 {
+            print("⏳ Skipping balance fetch - too soon since last fetch (last: \(lastFetch))")
+            return
+        }
+        
+        // Prevent concurrent fetches for the same wallet
+        if currentlyFetchingFor == walletAddress {
+            print("⏳ Already fetching balance for this wallet")
+            return
+        }
+        
+        currentlyFetchingFor = walletAddress
+        lastFetchTime = now
         isLoading = true
         lastError = nil
+        
+        defer {
+            currentlyFetchingFor = nil
+        }
         
         do {
             print("💰 Fetching wallet balance for: \(maskAddress(walletAddress))")
@@ -196,6 +217,12 @@ class WalletBalanceService: ObservableObject {
     
     /// Start automatic balance refresh every 30 seconds
     func startAutoRefresh(for walletAddress: String) {
+        // Don't start if already running for the same wallet
+        if refreshTimer != nil {
+            print("🔄 Auto-refresh already running, skipping")
+            return
+        }
+        
         stopAutoRefresh()
         
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -204,7 +231,7 @@ class WalletBalanceService: ObservableObject {
             }
         }
         
-        print("🔄 Started auto-refresh for wallet balance")
+        print("🔄 Started auto-refresh for wallet balance: \(maskAddress(walletAddress))")
     }
     
     /// Stop automatic balance refresh
