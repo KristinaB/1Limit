@@ -28,7 +28,7 @@ struct LineChartEntryView: View {
     var body: some View {
         switch family {
         case .systemSmall:
-            LineChartSmallWidgetView(entry: entry)
+            LineChartMediumWidgetView(entry: entry) // Use medium view since small was deleted
         case .systemMedium:
             LineChartMediumWidgetView(entry: entry)
         case .systemLarge:
