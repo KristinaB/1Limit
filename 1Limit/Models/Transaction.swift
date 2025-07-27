@@ -170,8 +170,12 @@ struct Transaction: Identifiable, Codable {
         
         // Calculate from amount USD
         let fromPrice = await MainActor.run { priceService.getPrice(for: fromToken) }
+        print("🔍 USD Calc - fromToken: \(fromToken), price: \(fromPrice?.usdPrice ?? 0), amount: \(fromAmount)")
         if let fromPrice = fromPrice, let fromDouble = Double(fromAmount) {
             fromUSD = fromDouble * fromPrice.usdPrice
+            print("✅ USD Calc - fromUSD: \(fromUSD ?? 0)")
+        } else {
+            print("❌ USD Calc - Failed to get fromPrice or parse fromAmount")
         }
         
         // Calculate to amount USD  
@@ -206,13 +210,17 @@ struct Transaction: Identifiable, Codable {
             totalUSD = fromValue
         }
         
-        return withUpdatedUSDValues(
+        let updatedTransaction = withUpdatedUSDValues(
             fromAmountUSD: fromUSD,
             toAmountUSD: toUSD,
             gasFeeUSD: gasUSD,
             limitPriceUSD: limitUSD,
             totalCostUSD: totalUSD
         )
+        
+        print("💰 USD Values - from: \(updatedTransaction.fromAmountUSD?.description ?? "nil"), to: \(updatedTransaction.toAmountUSD?.description ?? "nil"), limit: \(updatedTransaction.limitPriceUSD?.description ?? "nil")")
+        
+        return updatedTransaction
     }
     
     /// Formatted USD value strings for UI display
