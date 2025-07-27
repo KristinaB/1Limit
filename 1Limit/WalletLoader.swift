@@ -190,7 +190,7 @@ class WalletLoader: ObservableObject {
         guard cleanPrivateKey.count == 64 else { return nil }
         
         // Simplified address derivation (in production, use proper secp256k1 public key derivation)
-        let privateKeyData = Data(hex: cleanPrivateKey)
+        guard let privateKeyData = Data(hex: cleanPrivateKey) else { return nil }
         let hash = SHA256.hash(data: privateKeyData)
         let addressData = Data(hash.suffix(20)) // Take last 20 bytes
         

@@ -174,7 +174,8 @@ struct HomeView: View {
     
     let newMode: WalletMode = walletLoader.currentWalletMode == .testWallet ? .generatedWallet : .testWallet
     
-    if newMode == .generatedWallet && !(await walletLoader.hasGeneratedWallet()) {
+    let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
+    if newMode == .generatedWallet && !hasGeneratedWallet {
       print("⚠️ No generated wallet found, staying with test wallet")
       isLoadingWallet = false
       return

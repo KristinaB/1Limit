@@ -165,7 +165,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
   private func loadWallet() async throws -> WalletData {
     await addLog("📋 Step 1: Loading wallet...")
 
-    guard let loadedWallet = walletLoader.loadWallet() else {
+    guard let loadedWallet = await walletLoader.loadWallet() else {
       throw RouterV6Error.invalidOrderData
     }
 
@@ -390,7 +390,9 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       throw RouterV6Error.invalidOrderData
     }
 
-    let signatureData = Data(hex: String(signature.dropFirst(2)))
+    guard let signatureData = Data(hex: String(signature.dropFirst(2))) else {
+      throw RouterV6Error.signingFailed
+    }
     let compactSig = EIP712SignerWeb3.toCompactSignature(signature: signatureData)
 
     let result = try await transactionSubmitter.submitRouterV6Transaction(
@@ -419,7 +421,9 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       throw RouterV6Error.invalidOrderData
     }
 
-    let signatureData = Data(hex: String(signature.dropFirst(2)))
+    guard let signatureData = Data(hex: String(signature.dropFirst(2))) else {
+      throw RouterV6Error.signingFailed
+    }
     let compactSig = EIP712SignerWeb3.toCompactSignature(signature: signatureData)
 
     let result = try await transactionSubmitter.submitRouterV6Transaction(
@@ -570,7 +574,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
 
 /// Protocol for wallet loading operations
 protocol WalletLoaderProtocol {
-  func loadWallet() -> WalletData?
+  func loadWallet() async -> WalletData?
   func getWalletDisplayInfo(_ wallet: WalletData) -> WalletDisplayInfo
 }
 
@@ -661,8 +665,8 @@ class RouterV6ManagerFactory {
 /// Adapter to make existing WalletLoader compatible with protocol
 class WalletLoaderAdapter: WalletLoaderProtocol {
 
-  func loadWallet() -> WalletData? {
-    return WalletLoader.shared.loadWallet()
+  func loadWallet() async -> WalletData? {
+    return await WalletLoader.shared.loadWallet()
   }
 
   func getWalletDisplayInfo(_ wallet: WalletData) -> WalletDisplayInfo {
@@ -724,7 +728,7 @@ class DebugLogger: DebugLoggerProtocol {
 
 class MockWalletLoader: WalletLoaderProtocol {
 
-  func loadWallet() -> WalletData? {
+  func loadWallet() async -> WalletData? {
     return WalletData(
       address: "0x1234567890123456789012345678901234567890",
       privateKey: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"

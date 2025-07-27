@@ -136,7 +136,9 @@ class TransactionSubmitter: TransactionSubmitterProtocol {
         
         // Sign manually with private key
         let privateKeyHex = String(walletData.privateKey.dropFirst(2))
-        let privateKeyData = Data(hex: privateKeyHex)
+        guard let privateKeyData = Data(hex: privateKeyHex) else {
+            throw Web3Error.dataError
+        }
         
         var signedTx = manualTransaction
         try signedTx.sign(privateKey: privateKeyData)
@@ -243,10 +245,13 @@ class TransactionSubmitter: TransactionSubmitterProtocol {
         // Wait up to 30 attempts with 2 second intervals
         for attempt in 1...30 {
             do {
-                let txHashData = Data(hex: txHash.replacingOccurrences(of: "0x", with: ""))
+                guard let txHashData = Data(hex: txHash.replacingOccurrences(of: "0x", with: "")) else {
+                    await logMessage("❌ Invalid transaction hash format")
+                    return nil
+                }
                 let receipt = try await web3.eth.transactionReceipt(txHashData)
                 
-                if receipt.status == .ok {
+                if receipt.status == TransactionReceipt.TXStatus.ok {
                     await logMessage("✅ Transaction confirmed successfully!")
                     await logMessage("⛽ Gas used: \(receipt.gasUsed)")
                     await logMessage("📝 Logs: \(receipt.logs.count) events")
@@ -301,7 +306,9 @@ class AddressConverter {
             throw TransactionSubmissionError.invalidAddress
         }
         
-        let addressData = Data(hex: String(address.dropFirst(2)))
+        guard let addressData = Data(hex: String(address.dropFirst(2))) else {
+            throw Web3Error.dataError
+        }
         guard addressData.count == 20 else {
             throw TransactionSubmissionError.invalidAddress
         }

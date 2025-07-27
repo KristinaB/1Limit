@@ -76,6 +76,7 @@ protocol GasPriceEstimatorProtocol {
 /// Protocol for checking wallet and token balances
 protocol BalanceCheckerProtocol {
     func checkWalletBalance(walletAddress: String, nodeURL: String) async -> Bool
+    func checkTokenBalance(tokenAddress: String, walletAddress: String, requiredAmount: BigUInt, nodeURL: String) async -> TokenBalanceResult
     func checkTokenAllowances(order: RouterV6OrderInfo, walletAddress: String, routerAddress: String, nodeURL: String) async -> Bool
     func performComprehensiveCheck(order: RouterV6OrderInfo, walletAddress: String, routerAddress: String, nodeURL: String) async -> ComprehensiveBalanceResult
 }

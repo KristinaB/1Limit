@@ -113,7 +113,9 @@ class EIP712SignerWeb3 {
         
         // Remove 0x prefix if present
         let cleanPrivateKey = privateKey.hasPrefix("0x") ? String(privateKey.dropFirst(2)) : privateKey
-        let privateKeyData = Data(hex: cleanPrivateKey)
+        guard let privateKeyData = Data(hex: cleanPrivateKey) else {
+            throw EIP712Error.invalidPrivateKey
+        }
         guard privateKeyData.count == 32 else {
             throw EIP712Error.invalidPrivateKey
         }
@@ -293,7 +295,9 @@ class EIP712SignerWeb3 {
             // Address encoding
             if let address = value as? String {
                 let cleanAddress = address.hasPrefix("0x") ? String(address.dropFirst(2)) : address
-                let addressData = Data(hex: cleanAddress)
+                guard let addressData = Data(hex: cleanAddress) else {
+                    throw EIP712Error.invalidAddress
+                }
                 return Data(repeating: 0, count: 12) + addressData
             }
         } else if type == "uint256" {
@@ -396,7 +400,9 @@ class EIP712Signer {
             // Address encoding
             if let address = value as? String {
                 let cleanAddress = address.hasPrefix("0x") ? String(address.dropFirst(2)) : address
-                let addressData = Data(hex: cleanAddress)
+                guard let addressData = Data(hex: cleanAddress) else {
+                    throw EIP712Error.invalidAddress
+                }
                 return Data(repeating: 0, count: 12) + addressData
             }
         } else if type == "uint256" {
