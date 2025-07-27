@@ -140,13 +140,17 @@ class TransactionLoadingUITests: XCTestCase {
     func testEmptyTransactionsState() throws {
         print("🧪 Testing empty transactions state...")
         
-        // Launch app without mock data
+        // Launch app with explicit empty transactions
         app.terminate()
         app.launchEnvironment.removeValue(forKey: "MOCK_TRANSACTIONS_JSON")
+        app.launchEnvironment["MOCK_TRANSACTIONS_JSON"] = "[]"  // Empty array
         app.launch()
         
         // Navigate to Transactions tab
         app.tabBars.buttons["Transactions"].tap()
+        
+        // Wait for loading to complete
+        sleep(2)
         
         // Should show empty state
         let emptyTitle = app.staticTexts["No Transactions Yet"]
