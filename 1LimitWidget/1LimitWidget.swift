@@ -638,10 +638,111 @@ let samplePriceData: [PricePoint] = {
     }
 }()
 
+// MARK: - Line Chart Widget
+
+struct LineChartProvider: TimelineProvider {
+    func placeholder(in context: Context) -> WidgetEntry {
+        WidgetEntry(
+            date: Date(),
+            positions: samplePositions,
+            totalValue: 125.50,
+            priceData: samplePriceData,
+            chartData: sampleChartData
+        )
+    }
+    
+    func getSnapshot(in context: Context, completion: @escaping (WidgetEntry) -> ()) {
+        let entry = WidgetEntry(
+            date: Date(),
+            positions: [],
+            totalValue: 0,
+            priceData: samplePriceData,
+            chartData: sampleChartData
+        )
+        completion(entry)
+    }
+    
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
+        var entries: [WidgetEntry] = []
+        let currentDate = Date()
+        
+        // Update every 5 minutes
+        for minuteOffset in stride(from: 0, to: 60, by: 5) {
+            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
+            let entry = WidgetEntry(
+                date: entryDate,
+                positions: [],
+                totalValue: 0,
+                priceData: samplePriceData,
+                chartData: sampleChartData
+            )
+            entries.append(entry)
+        }
+        
+        let timeline = Timeline(entries: entries, policy: .atEnd)
+        completion(timeline)
+    }
+}
+
+struct LineChartWidgetEntryView: View {
+    var entry: LineChartProvider.Entry
+    @Environment(\.widgetFamily) var family
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            VStack(spacing: 12) {
+                HStack {
+                    Text("1Limit Price Chart")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .padding(.horizontal)
+                .padding(.top)
+                
+                Text("Line Chart Coming Soon")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                
+                Spacer()
+            }
+        }
+        .containerBackground(for: .widget) {
+            Color.clear
+        }
+    }
+}
+
+struct _LimitLineChartWidget: Widget {
+    let kind: String = "1LimitLineChartWidget"
+    
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: LineChartProvider()) { entry in
+            LineChartWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("1Limit Line Chart")
+        .description("Price trend visualization with line chart")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
 @main
 struct _LimitWidgetBundle: WidgetBundle {
     var body: some Widget {
         _LimitWidget()
+        _LimitLineChartWidget()
     }
 }
 
