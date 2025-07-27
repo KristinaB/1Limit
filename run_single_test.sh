@@ -55,8 +55,20 @@ else
             echo "$TAB_RESULT"
             echo "✅ TabBar Test completed"
         else
-            # Try unit tests
-            echo "🔬 Trying Unit Tests..."
+            # Try TradeFormInteractionTests
+            echo "📝 Trying TradeFormInteractionTests..."
+            FORM_RESULT=$(xcodebuild test \
+                -scheme 1Limit \
+                -destination 'platform=iOS Simulator,name=iPhone 16' \
+                -only-testing:1LimitUITests/TradeFormInteractionTests/$TEST_NAME \
+                2>&1 | xcpretty --test --color || true)
+            
+            if echo "$FORM_RESULT" | grep -q "Executed 1 test"; then
+                echo "$FORM_RESULT"
+                echo "✅ Trade Form Test completed"
+            else
+                # Try unit tests
+                echo "🔬 Trying Unit Tests..."
             UNIT_RESULT=$(xcodebuild test \
                 -scheme 1Limit \
                 -destination 'platform=iOS Simulator,name=iPhone 16' \
@@ -90,13 +102,22 @@ else
     echo "  - testTransactionsViewContentRendering"
     echo "  - (check file for other tests)"
     echo ""
+    echo "Available TradeFormInteractionTests:"
+    echo "  - testAmountFieldInteraction"
+    echo "  - testLimitPriceFieldInteraction" 
+    echo "  - testSwapTokensInteraction"
+    echo "  - testChartButtonInteraction"
+    echo "  - testOrderCreationFlow"
+    echo "  - (check file for other tests)"
+    echo ""
     echo "Available Unit tests:"
     echo "  - testOrderCreationWithValidInputs"
     echo "  - testOrderPlacementValidInput"
     echo "  - testMockTransactionSubmitter"
     echo "  - testOrderEncoding"
     echo "  - testEIP712Signing"
-                exit 1
+                    exit 1
+                fi
             fi
         fi
     fi
