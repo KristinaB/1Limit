@@ -157,14 +157,26 @@ struct SmallWidgetView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Portfolio")
+                    Text("WMATIC/USDC")
                         .font(.caption2)
                         .foregroundColor(.gray)
                     
-                    Text("$\(entry.totalValue, specifier: "%.2f")")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+                    if let lastCandle = entry.chartData.last {
+                        Text("$\(lastCandle.close, specifier: "%.4f")")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        let change = lastCandle.close - lastCandle.open
+                        let changePercent = (change / lastCandle.open) * 100
+                        HStack(spacing: 2) {
+                            Image(systemName: change >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.caption2)
+                            Text("\(changePercent, specifier: "%.2f")%")
+                                .font(.caption2)
+                        }
+                        .foregroundColor(change >= 0 ? .green : .red)
+                    }
                 }
                 
                 Spacer()
@@ -219,14 +231,26 @@ struct MediumWidgetView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Portfolio Value")
+                        Text("WMATIC/USDC")
                             .font(.caption)
                             .foregroundColor(.gray)
                         
-                        Text("$\(entry.totalValue, specifier: "%.2f")")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
+                        if let lastCandle = entry.chartData.last {
+                            Text("$\(lastCandle.close, specifier: "%.4f")")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            
+                            let change = lastCandle.close - lastCandle.open
+                            let changePercent = (change / lastCandle.open) * 100
+                            HStack(spacing: 2) {
+                                Image(systemName: change >= 0 ? "arrow.up" : "arrow.down")
+                                    .font(.caption)
+                                Text("\(changePercent, specifier: "%.2f")%")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(change >= 0 ? .green : .red)
+                        }
                     }
                     
                     if !entry.positions.isEmpty {
@@ -297,9 +321,11 @@ struct LargeWidgetView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                         
-                        Text("Portfolio Value: $\(entry.totalValue, specifier: "%.2f")")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                        if let lastCandle = entry.chartData.last {
+                            Text("WMATIC/USDC: $\(lastCandle.close, specifier: "%.4f")")
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                        }
                     }
                     
                     Spacer()
@@ -386,42 +412,88 @@ struct MiniOHLCChartView: View {
                         }
                     )
             } else {
-                let width = geometry.size.width
-                let height = geometry.size.height
-                
-                let minPrice = chartData.map(\.low).min() ?? 0
-                let maxPrice = chartData.map(\.high).max() ?? 1
-                let priceRange = maxPrice - minPrice
-                
-                let candleWidth = width / CGFloat(chartData.count) * 0.8
-                let spacing = width / CGFloat(chartData.count) * 0.2
-                
-                ForEach(Array(chartData.enumerated()), id: \.element.id) { index, candle in
-                    let x = CGFloat(index) * (candleWidth + spacing) + candleWidth / 2
-                    
-                    // High-Low wick
-                    let highY = height - ((candle.high - minPrice) / priceRange) * height
-                    let lowY = height - ((candle.low - minPrice) / priceRange) * height
-                    
-                    Path { path in
-                        path.move(to: CGPoint(x: x, y: highY))
-                        path.addLine(to: CGPoint(x: x, y: lowY))
+                VStack(spacing: 0) {
+                    HStack(spacing: 4) {
+                        // Price axis legend
+                        VStack(alignment: .trailing, spacing: 0) {
+                            let minPrice = chartData.map(\.low).min() ?? 0
+                            let maxPrice = chartData.map(\.high).max() ?? 1
+                            
+                            Text("$\(maxPrice, specifier: "%.4f")")
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("$\(minPrice, specifier: "%.4f")")
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 40)
+                        
+                        // Chart area
+                        GeometryReader { chartGeometry in
+                            let width = chartGeometry.size.width
+                            let height = chartGeometry.size.height
+                            
+                            let minPrice = chartData.map(\.low).min() ?? 0
+                            let maxPrice = chartData.map(\.high).max() ?? 1
+                            let priceRange = maxPrice - minPrice
+                            
+                            let candleWidth = width / CGFloat(chartData.count) * 0.8
+                            let spacing = width / CGFloat(chartData.count) * 0.2
+                            
+                            ForEach(Array(chartData.enumerated()), id: \.element.id) { index, candle in
+                                let x = CGFloat(index) * (candleWidth + spacing) + candleWidth / 2
+                                
+                                // High-Low wick
+                                let highY = height - ((candle.high - minPrice) / priceRange) * height
+                                let lowY = height - ((candle.low - minPrice) / priceRange) * height
+                                
+                                Path { path in
+                                    path.move(to: CGPoint(x: x, y: highY))
+                                    path.addLine(to: CGPoint(x: x, y: lowY))
+                                }
+                                .stroke(candle.isBullish ? Color.green : Color.red, lineWidth: 1)
+                                
+                                // Open-Close body
+                                let openY = height - ((candle.open - minPrice) / priceRange) * height
+                                let closeY = height - ((candle.close - minPrice) / priceRange) * height
+                                let bodyTop = min(openY, closeY)
+                                let bodyHeight = abs(openY - closeY)
+                                
+                                Rectangle()
+                                    .fill(candle.isBullish ? Color.green : Color.red)
+                                    .frame(width: candleWidth, height: max(1, bodyHeight))
+                                    .position(x: x, y: bodyTop + bodyHeight / 2)
+                            }
+                        }
                     }
-                    .stroke(candle.isBullish ? Color.green : Color.red, lineWidth: 1)
                     
-                    // Open-Close body
-                    let openY = height - ((candle.open - minPrice) / priceRange) * height
-                    let closeY = height - ((candle.close - minPrice) / priceRange) * height
-                    let bodyTop = min(openY, closeY)
-                    let bodyHeight = abs(openY - closeY)
-                    
-                    Rectangle()
-                        .fill(candle.isBullish ? Color.green : Color.red)
-                        .frame(width: candleWidth, height: max(1, bodyHeight))
-                        .position(x: x, y: bodyTop + bodyHeight / 2)
+                    // Time axis legend
+                    HStack {
+                        Spacer(minLength: 40)
+                        if let firstTime = chartData.first?.timestamp,
+                           let lastTime = chartData.last?.timestamp {
+                            HStack {
+                                Text(formatTime(firstTime))
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text(formatTime(lastTime))
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    .frame(height: 12)
                 }
             }
         }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }
 
