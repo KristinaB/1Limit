@@ -35,12 +35,12 @@ struct LineChartProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         Task {
             let lineData = await loadLineChartDataAsync()
-            
             var entries: [WidgetEntry] = []
             let currentDate = Date()
             
-            // Update every 5 minutes
-            for minuteOffset in stride(from: 0, to: 60, by: 5) {
+            // Create entries: 1-minute intervals for first 10 minutes, then 10-minute intervals
+            // First 10 entries at 1-minute intervals (for active usage)
+            for minuteOffset in 0..<10 {
                 let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
                 let entry = WidgetEntry(
                     date: entryDate,
@@ -52,6 +52,19 @@ struct LineChartProvider: TimelineProvider {
                 entries.append(entry)
             }
             
+            // Then 6 more entries at 10-minute intervals (for background)
+            for tenMinuteOffset in 1...6 {
+                let entryDate = Calendar.current.date(byAdding: .minute, value: 10 + (tenMinuteOffset * 10), to: currentDate)!
+                let entry = WidgetEntry(
+                    date: entryDate,
+                    positions: [],
+                    totalValue: 0,
+                    priceData: lineData,
+                    chartData: sampleChartData
+                )
+                entries.append(entry)
+            }
+
             let timeline = Timeline(entries: entries, policy: .atEnd)
             completion(timeline)
         }
