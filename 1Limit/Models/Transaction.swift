@@ -161,6 +161,7 @@ struct Transaction: Identifiable, Codable {
     }
     
     /// Calculate USD values from current token prices
+    @MainActor
     func calculateUSDValues(using priceService: PriceService) -> Transaction {
         var fromUSD: Double? = nil
         var toUSD: Double? = nil
