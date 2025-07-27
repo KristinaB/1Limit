@@ -144,8 +144,16 @@ struct TransactionRow: View {
                         .statusText(status: statusType(for: transaction.status))
                 }
                 
-                Text("\(transaction.fromAmount) \(transaction.fromToken) → \(transaction.toAmount) \(transaction.toToken)")
-                    .secondaryText()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(transaction.fromAmount) \(transaction.fromToken) → \(transaction.toAmount) \(transaction.toToken)")
+                        .secondaryText()
+                    
+                    if let fromUSD = transaction.formattedFromAmountUSD, let toUSD = transaction.formattedToAmountUSD {
+                        Text("\(fromUSD) → \(toUSD)")
+                            .captionText()
+                            .foregroundColor(.green)
+                    }
+                }
                 
                 HStack {
                     Text(transaction.date.formatted(date: .abbreviated, time: .shortened))
@@ -274,8 +282,11 @@ struct TransactionDetailView: View {
                             title: "Transaction Details",
                             items: [
                                 ("From Amount", "\(transaction.fromAmount) \(transaction.fromToken)", nil),
+                                ("From Value USD", transaction.formattedFromAmountUSD ?? "Calculating...", nil),
                                 ("To Amount", "\(transaction.toAmount) \(transaction.toToken)", nil),
+                                ("To Value USD", transaction.formattedToAmountUSD ?? "Calculating...", nil),
                                 ("Limit Price", transaction.limitPrice, nil),
+                                ("Limit Price USD", transaction.formattedLimitPriceUSD ?? "Calculating...", nil),
                                 ("Date", transaction.date.formatted(date: .abbreviated, time: .complete), nil),
                                 ("Status", transaction.status.rawValue, nil)
                             ] + blockchainDetailsItems()
@@ -348,6 +359,14 @@ struct TransactionDetailView: View {
         
         if let gasPrice = transaction.gasPrice {
             items.append(("Gas Price", "\(gasPrice) wei", nil))
+        }
+        
+        if let gasFeeUSD = transaction.formattedGasFeeUSD {
+            items.append(("Gas Fee USD", gasFeeUSD, nil))
+        }
+        
+        if let totalCostUSD = transaction.formattedTotalCostUSD {
+            items.append(("Total Cost USD", totalCostUSD, .orange))
         }
         
         if let lastPolled = transaction.lastPolledAt {

@@ -22,21 +22,25 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
     
     private let persistenceManager: TransactionPersistenceProtocol
     private var pollingService: TransactionPollingProtocol
+    private let priceService: PriceService
     
     // MARK: - Initialization
     
     init(
         persistenceManager: TransactionPersistenceProtocol = TransactionPersistenceManager(),
-        pollingService: TransactionPollingProtocol? = nil
+        pollingService: TransactionPollingProtocol? = nil,
+        priceService: PriceService = .shared
     ) {
         self.persistenceManager = persistenceManager
+        self.priceService = priceService
         
         // Create polling service with persistence manager if not provided
         if let pollingService = pollingService {
             self.pollingService = pollingService
         } else {
             self.pollingService = TransactionPollingService(
-                persistenceManager: persistenceManager
+                persistenceManager: persistenceManager,
+                priceService: priceService
             )
         }
         
@@ -69,7 +73,21 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 transactions = mockTransactions
             } else {
                 let loadedTransactions = try await persistenceManager.loadTransactions()
-                transactions = loadedTransactions
+                
+                // Fetch current prices for USD calculations
+                await priceService.fetchPrices()
+                
+                // Calculate USD values for all transactions
+                let transactionsWithUSD = loadedTransactions.map { transaction in
+                    transaction.calculateUSDValues(using: priceService)
+                }
+                
+                transactions = transactionsWithUSD
+                
+                // Update persistence with USD values
+                for transaction in transactionsWithUSD {
+                    try? await persistenceManager.updateTransaction(transaction)
+                }
             }
         } catch {
             errorMessage = "Failed to load transactions: \(error.localizedDescription)"
@@ -224,13 +242,16 @@ class TransactionManagerFactory {
     
     @MainActor static func createProduction() -> TransactionManager {
         let persistenceManager = TransactionPersistenceManager()
+        let priceService = PriceService.shared
         let pollingService = TransactionPollingService(
-            persistenceManager: persistenceManager
+            persistenceManager: persistenceManager,
+            priceService: priceService
         )
         
         return TransactionManager(
             persistenceManager: persistenceManager,
-            pollingService: pollingService
+            pollingService: pollingService,
+            priceService: priceService
         )
     }
     
