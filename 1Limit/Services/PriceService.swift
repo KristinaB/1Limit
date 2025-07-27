@@ -154,18 +154,6 @@ class PriceService: ObservableObject {
             print("❌ api_keys.txt not found in app bundle")
         }
         
-        // Try to load from config directory (fallback for development)
-        if let homeDir = NSHomeDirectory() as String? {
-            let configPath = "\(homeDir)/config/api_keys.txt"
-            print("🔍 Trying config path: \(configPath)")
-            if let content = try? String(contentsOfFile: configPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-               !content.isEmpty {
-                print("✅ Found API key in config directory")
-                return content
-            } else {
-                print("❌ Config file not found or empty")
-            }
-        }
         
         print("❌ No API key found in any location")
         return nil
