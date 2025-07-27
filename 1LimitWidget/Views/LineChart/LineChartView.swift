@@ -76,7 +76,7 @@ struct LineChartView: View {
                                     path.move(to: CGPoint(x: 0, y: y))
                                     path.addLine(to: CGPoint(x: width, y: y))
                                 }
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1.0)
+                                .stroke(Color.white.opacity(0.6), lineWidth: 1.0)
                             }
                             
                             // Line chart path

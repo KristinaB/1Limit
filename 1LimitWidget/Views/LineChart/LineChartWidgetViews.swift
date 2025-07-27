@@ -21,13 +21,13 @@ struct LineChartMediumWidgetView: View {
           Text("WMATIC/USDC")
             .font(.caption)
             .fontWeight(.medium)
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
 
           if let currentPrice = entry.priceData.last?.price {
             Text("$\(currentPrice, specifier: "%.4f")")
               .font(.title3)
               .fontWeight(.bold)
-              .foregroundColor(.blue)
+              .foregroundColor(.white)
           }
         }
 
@@ -60,7 +60,11 @@ struct LineChartMediumWidgetView: View {
     }
     .padding(12)
     .containerBackground(for: .widget) {
-      Color(.systemBackground)
+      LinearGradient(
+        colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
     }
   }
 
@@ -88,16 +92,16 @@ struct LineChartLargeWidgetView: View {
       // Header section
       HStack {
         VStack(alignment: .leading, spacing: 3) {
-          Text("WMATIC/USDC Line Chart")
+          Text("WMATIC/USDC")
             .font(.headline)
             .fontWeight(.bold)
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
 
           if let currentPrice = entry.priceData.last?.price {
             Text("$\(currentPrice, specifier: "%.4f")")
               .font(.title2)
               .fontWeight(.bold)
-              .foregroundColor(.blue)
+              .foregroundColor(.white)
           }
         }
 
@@ -145,7 +149,7 @@ struct LineChartLargeWidgetView: View {
           Text("Recent Orders")
             .font(.caption)
             .fontWeight(.medium)
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
           Spacer()
           Text("\(entry.closedOrders.count)")
             .font(.caption2)
@@ -165,7 +169,7 @@ struct LineChartLargeWidgetView: View {
               Text("\(order.fromAmount) \(order.fromToken)/\(order.toToken)")
                 .font(.caption2)
                 .fontWeight(.medium)
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
 
               Text("$\(order.limitPrice)")
                 .font(.caption2)
@@ -194,7 +198,11 @@ struct LineChartLargeWidgetView: View {
     }
     .padding(16)
     .containerBackground(for: .widget) {
-      Color(.systemBackground)
+      LinearGradient(
+        colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
     }
   }
 
