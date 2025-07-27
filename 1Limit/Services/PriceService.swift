@@ -70,10 +70,7 @@ class PriceService: ObservableObject {
     // Token addresses for Polygon 🌸
     private let tokenAddresses: [String: String] = [
         "WMATIC": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-        "MATIC": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", // Same as WMATIC
-        "USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
-        "USDC.e": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359", // Common variant
-        "USD Coin": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359" // Full name variant
+        "USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
     ]
     
     // MARK: - Public Methods
@@ -108,9 +105,28 @@ class PriceService: ObservableObject {
         }
     }
     
-    /// Get price for specific token
+    /// Get price for specific token (with fallback handling for variants)
     func getPrice(for token: String) -> TokenPrice? {
-        return prices[token]
+        // First try exact match
+        if let price = prices[token] {
+            return price
+        }
+        
+        // Handle token variants by normalizing to core tokens
+        let normalizedToken = normalizeTokenSymbol(token)
+        return prices[normalizedToken]
+    }
+    
+    /// Normalize token symbols to core tokens used for price fetching
+    private func normalizeTokenSymbol(_ token: String) -> String {
+        switch token.uppercased() {
+        case "MATIC", "WMATIC":
+            return "WMATIC"
+        case "USDC", "USDC.E", "USD COIN":
+            return "USDC"
+        default:
+            return token
+        }
     }
     
     /// Calculate swap values and exchange rate

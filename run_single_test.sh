@@ -14,6 +14,7 @@ if [ $# -eq 0 ]; then
     echo "Available test suites:"
     echo "  - BundledUITests (FAST - recommended)"
     echo "  - TradeViewUnitTests"
+    echo "  - TransactionIntegrationTests"
     exit 1
 fi
 
@@ -40,6 +41,10 @@ run_test_in_suite() {
         "TradeViewUnitTests")
             target_path="1LimitTests/TradeViewUnitTests"
             suite_name="Trade View Unit Tests"
+            ;;
+        "TransactionIntegrationTests")
+            target_path="1LimitTests/TransactionIntegrationTests"
+            suite_name="Transaction Integration Tests"
             ;;
         *)
             echo "❌ Unknown test suite: $suite"

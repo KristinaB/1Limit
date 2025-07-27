@@ -40,6 +40,9 @@ The project uses a bundled test approach for maximum speed (~60 seconds total):
 # Run individual bundled tests
 ./run_single_test.sh testNavigationAndTabBarBundle BundledUITests
 ./run_single_test.sh testTradeFormInteractionsBundle BundledUITests
+
+# Run single test from integration tests (for debugging)
+./run_single_test.sh testCompleteTransactionLifecycle TransactionIntegrationTests
 ```
 
 **Test Architecture:**

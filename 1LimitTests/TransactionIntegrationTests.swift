@@ -214,11 +214,16 @@ final class TransactionIntegrationTests: XCTestCase {
             gasPrice: "30000000000"
         )
         
-        // Simulate successful polling update
+        // Simulate successful polling update via the mock service
         mockPolling.onTransactionUpdate?(confirmedTransaction)
         
-        // Give time for async update to propagate
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        // Give time for async update to propagate through the Task wrapper
+        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+        
+        // Debug: Check current state
+        print("Debug: Transaction count: \(transactionManager.transactions.count)")
+        print("Debug: First transaction status: \(String(describing: transactionManager.transactions.first?.status))")
+        print("Debug: First transaction block: \(String(describing: transactionManager.transactions.first?.blockNumber))")
         
         // Then: Transaction should be updated
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
