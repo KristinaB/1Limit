@@ -79,7 +79,7 @@ struct Provider: TimelineProvider {
     
     private func createTestChartData() -> [WidgetCandlestickData] {
         let now = Date()
-        return (0..<8).map { index in
+        return (0..<25).map { index in
             let timestamp = now.addingTimeInterval(-Double(index) * 300)
             let basePrice = 0.45
             let open = basePrice + Double.random(in: -0.01...0.01)

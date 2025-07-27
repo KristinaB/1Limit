@@ -280,7 +280,7 @@ let sampleChartData: [WidgetCandlestickData] = {
     let basePrice = 0.45
     let now = Date()
     
-    return (0..<12).map { index in
+    return (0..<25).map { index in
         let timestamp = now.addingTimeInterval(-Double(index) * 300) // 5-minute intervals
         let openVariation = Double.random(in: -0.02...0.02)
         let open = basePrice + openVariation
