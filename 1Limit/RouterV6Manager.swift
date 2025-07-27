@@ -27,6 +27,8 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
   private let transactionSubmitter: TransactionSubmitterProtocol
   private let walletLoader: WalletLoaderProtocol
   private let debugLogger: DebugLoggerProtocol
+  private let transactionPersistence: TransactionPersistenceProtocol
+  private let transactionPolling: TransactionPollingProtocol
 
   // MARK: - Configuration
 
@@ -46,6 +48,8 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     transactionSubmitter: TransactionSubmitterProtocol,
     walletLoader: WalletLoaderProtocol,
     debugLogger: DebugLoggerProtocol,
+    transactionPersistence: TransactionPersistenceProtocol,
+    transactionPolling: TransactionPollingProtocol,
     networkConfig: NetworkConfig
   ) {
     self.orderFactory = orderFactory
@@ -55,6 +59,8 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     self.transactionSubmitter = transactionSubmitter
     self.walletLoader = walletLoader
     self.debugLogger = debugLogger
+    self.transactionPersistence = transactionPersistence
+    self.transactionPolling = transactionPolling
     self.networkConfig = networkConfig
 
     // Set up debug logging
@@ -134,9 +140,13 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       try await performPreflightChecks(orderResult.order)
 
       // Step 5: Submit transaction
-      _ = try await submitTransaction(
+      _ = try await submitTransactionWithUserParams(
         order: orderResult.order,
-        signature: signature
+        signature: signature,
+        fromAmount: fromAmount,
+        fromToken: fromToken,
+        toToken: toToken,
+        limitPrice: limitPrice
       )
 
       await addLog("🎉 Dynamic Order Placed Successfully! 🎊")
@@ -390,7 +400,141 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       config: networkConfig
     )
 
+    // Create and save transaction for tracking
+    await createAndTrackTransaction(order: order, result: result)
+
     return result
+  }
+  
+  /// Submit transaction with user-provided parameters for better transaction tracking
+  private func submitTransactionWithUserParams(
+    order: RouterV6OrderInfo,
+    signature: String,
+    fromAmount: String,
+    fromToken: String,
+    toToken: String,
+    limitPrice: String
+  ) async throws -> TransactionResult {
+    guard let wallet = wallet else {
+      throw RouterV6Error.invalidOrderData
+    }
+
+    let signatureData = Data(hex: String(signature.dropFirst(2)))
+    let compactSig = EIP712SignerWeb3.toCompactSignature(signature: signatureData)
+
+    let result = try await transactionSubmitter.submitRouterV6Transaction(
+      order: order,
+      compactSignature: compactSig,
+      walletData: wallet,
+      config: networkConfig
+    )
+
+    // Create and save transaction with user parameters for accurate display
+    await createAndTrackTransactionWithUserParams(
+      fromAmount: fromAmount,
+      fromToken: fromToken,
+      toToken: toToken,
+      limitPrice: limitPrice,
+      result: result
+    )
+
+    return result
+  }
+  
+  /// Create transaction record with user parameters and start polling for status updates
+  private func createAndTrackTransactionWithUserParams(
+    fromAmount: String,
+    fromToken: String,
+    toToken: String,
+    limitPrice: String,
+    result: TransactionResult
+  ) async {
+    do {
+      // Create transaction with user-provided parameters for accurate display
+      let transaction = Transaction(
+        type: "Limit Order",
+        fromAmount: fromAmount,
+        fromToken: fromToken,
+        toAmount: "Calculating...", // Will be updated when order fills
+        toToken: toToken,
+        limitPrice: limitPrice,
+        status: .pending,
+        txHash: result.hash
+      )
+      
+      // Save transaction
+      try await transactionPersistence.saveTransaction(transaction)
+      await addLog("💾 Transaction saved with ID: \(transaction.id)")
+      
+      // Start polling if we have a transaction hash
+      if result.hash != nil {
+        await transactionPolling.startPolling(for: transaction)
+        await addLog("🔄 Started polling for transaction status")
+      }
+      
+    } catch {
+      await addLog("⚠️ Failed to save transaction: \(error.localizedDescription)")
+    }
+  }
+  
+  /// Create transaction record and start polling for status updates
+  private func createAndTrackTransaction(order: RouterV6OrderInfo, result: TransactionResult) async {
+    do {
+      // Create transaction from order and result
+      let transaction = Transaction(
+        type: "Limit Order",
+        fromAmount: formatTokenAmount(order.makingAmount, tokenSymbol: "WMATIC"),
+        fromToken: "WMATIC",
+        toAmount: formatTokenAmount(order.takingAmount, tokenSymbol: "USDC"),
+        toToken: "USDC", 
+        limitPrice: calculateLimitPrice(makingAmount: order.makingAmount, takingAmount: order.takingAmount),
+        status: .pending,
+        txHash: result.hash
+      )
+      
+      // Save transaction
+      try await transactionPersistence.saveTransaction(transaction)
+      await addLog("💾 Transaction saved with ID: \(transaction.id)")
+      
+      // Start polling if we have a transaction hash
+      if result.hash != nil {
+        await transactionPolling.startPolling(for: transaction)
+        await addLog("🔄 Started polling for transaction status")
+      }
+      
+    } catch {
+      await addLog("⚠️ Failed to save transaction: \(error.localizedDescription)")
+    }
+  }
+  
+  /// Format token amount for display
+  private func formatTokenAmount(_ amount: BigUInt, tokenSymbol: String) -> String {
+    let decimals = tokenSymbol == "USDC" ? 6 : 18
+    let divisor = BigUInt(10).power(decimals)
+    let wholePart = amount / divisor
+    let fractionalPart = amount % divisor
+    
+    if fractionalPart == 0 {
+      return "\(wholePart)"
+    } else {
+      let fractionalString = String(fractionalPart)
+      let paddedFractional = String(repeating: "0", count: decimals - fractionalString.count) + fractionalString
+      let trimmed = paddedFractional.trimmingCharacters(in: CharacterSet(charactersIn: "0"))
+      return "\(wholePart).\(trimmed.isEmpty ? "0" : trimmed)"
+    }
+  }
+  
+  /// Calculate limit price from amounts
+  private func calculateLimitPrice(makingAmount: BigUInt, takingAmount: BigUInt) -> String {
+    // Price = takingAmount / makingAmount (adjusted for decimals)
+    let makingDecimal = 18 // WMATIC decimals
+    let takingDecimal = 6  // USDC decimals
+    
+    // Adjust for decimal differences
+    let adjustedTaking = takingAmount * BigUInt(10).power(makingDecimal - takingDecimal)
+    let price = adjustedTaking / makingAmount
+    
+    return "\(price)"
   }
 
   // MARK: - LoggerProtocol Implementation
@@ -446,6 +590,11 @@ class RouterV6ManagerFactory {
 
     let debugLogger = DebugLogger()
 
+    let transactionPersistence = TransactionPersistenceManager()
+    let transactionPolling = TransactionPollingService(
+      persistenceManager: transactionPersistence
+    )
+
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createProductionFactory(logger: nil),
       domainProvider: DomainProviderFactory.createPolygonMainnetProvider(),
@@ -455,6 +604,8 @@ class RouterV6ManagerFactory {
       transactionSubmitter: TransactionSubmitterFactory.createProductionSubmitter(),
       walletLoader: WalletLoaderAdapter(),
       debugLogger: debugLogger,
+      transactionPersistence: transactionPersistence,
+      transactionPolling: transactionPolling,
       networkConfig: networkConfig
     )
 
@@ -474,6 +625,9 @@ class RouterV6ManagerFactory {
       domainVersion: "6"
     )
 
+    let mockTransactionPersistence = MockTransactionPersistenceManager()
+    let mockTransactionPolling = MockTransactionPollingService()
+
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createTestFactory(),
       domainProvider: DomainProviderFactory.createTestnetProvider(
@@ -483,6 +637,8 @@ class RouterV6ManagerFactory {
       transactionSubmitter: TransactionSubmitterFactory.createTestSubmitter(),
       walletLoader: MockWalletLoader(),
       debugLogger: MockDebugLogger(),
+      transactionPersistence: mockTransactionPersistence,
+      transactionPolling: mockTransactionPolling,
       networkConfig: networkConfig
     )
 

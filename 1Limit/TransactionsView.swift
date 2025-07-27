@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct TransactionsView: View {
+    @StateObject private var transactionManager = TransactionManagerFactory.createProduction()
     @State private var selectedFilter = "All"
-    private let filters = ["All", "Pending", "Filled"]
+    private let filters = ["All", "Pending", "Confirmed", "Failed"]
     
     var body: some View {
         ZStack {
@@ -35,7 +36,12 @@ struct TransactionsView: View {
                 .padding(.horizontal)
                 
                 // Transactions list
-                if mockTransactions.isEmpty {
+                if transactionManager.isLoading {
+                    Spacer()
+                    ProgressView("Loading transactions...")
+                        .foregroundColor(.secondaryText)
+                    Spacer()
+                } else if filteredTransactions.isEmpty {
                     Spacer()
                     EmptyTransactionsView()
                     Spacer()
@@ -50,23 +56,39 @@ struct TransactionsView: View {
                         .padding(.vertical)
                     }
                 }
+                
+                // Error message
+                if let errorMessage = transactionManager.errorMessage {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
+                }
             }
         }
         .navigationTitle("Transactions")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(Color.appBackground, for: .navigationBar)
+        .refreshable {
+            await transactionManager.refreshTransactions()
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Refresh") {
+                    Task {
+                        await transactionManager.refreshTransactions()
+                    }
+                }
+            }
+        }
     }
     
-    private var filteredTransactions: [MockTransaction] {
-        if selectedFilter == "All" {
-            return mockTransactions
-        }
-        return mockTransactions.filter { $0.status.rawValue == selectedFilter }
+    private var filteredTransactions: [Transaction] {
+        return transactionManager.getFilteredTransactions(by: selectedFilter)
     }
 }
 
 struct TransactionRow: View {
-    let transaction: MockTransaction
+    let transaction: Transaction
     @State private var showingDetails = false
     
     var body: some View {
@@ -96,6 +118,12 @@ struct TransactionRow: View {
                             showingDetails = true
                         }
                     }
+                    
+                    // Show polling indicator for pending transactions
+                    if transaction.status == .pending && transaction.needsPolling {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    }
                 }
             }
         }
@@ -108,9 +136,9 @@ struct TransactionRow: View {
         switch status {
         case .pending:
             return .pending
-        case .filled:
+        case .confirmed:
             return .success
-        case .cancelled:
+        case .failed, .cancelled:
             return .error
         }
     }
@@ -138,7 +166,7 @@ struct EmptyTransactionsView: View {
 }
 
 struct TransactionDetailView: View {
-    let transaction: MockTransaction
+    let transaction: Transaction
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -181,7 +209,7 @@ struct TransactionDetailView: View {
                                             .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
                                             .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
                                         
-                                        Image(systemName: transaction.status == .filled ? "checkmark" : "clock")
+                                        Image(systemName: transaction.status == .confirmed ? "checkmark" : "clock")
                                             .font(.system(size: 24, weight: .medium))
                                             .foregroundColor(.white)
                                     }
@@ -207,9 +235,10 @@ struct TransactionDetailView: View {
                             items: [
                                 ("From Amount", "\\(transaction.fromAmount) \\(transaction.fromToken)", nil),
                                 ("To Amount", "\\(transaction.toAmount) \\(transaction.toToken)", nil),
+                                ("Limit Price", transaction.limitPrice, nil),
                                 ("Date", transaction.date.formatted(date: .abbreviated, time: .complete), nil),
                                 ("Status", transaction.status.rawValue, nil)
-                            ]
+                            ] + blockchainDetailsItems()
                         )
                         
                         // Transaction ID and explorer link
@@ -265,90 +294,40 @@ struct TransactionDetailView: View {
         .preferredColorScheme(.dark)
     }
     
+    /// Get blockchain-specific details for display
+    private func blockchainDetailsItems() -> [(String, String, Color?)] {
+        var items: [(String, String, Color?)] = []
+        
+        if let blockNumber = transaction.blockNumber {
+            items.append(("Block Number", blockNumber, nil))
+        }
+        
+        if let gasUsed = transaction.gasUsed {
+            items.append(("Gas Used", gasUsed, nil))
+        }
+        
+        if let gasPrice = transaction.gasPrice {
+            items.append(("Gas Price", "\(gasPrice) wei", nil))
+        }
+        
+        if let lastPolled = transaction.lastPolledAt {
+            items.append(("Last Updated", lastPolled.formatted(date: .abbreviated, time: .shortened), nil))
+        }
+        
+        return items
+    }
+    
     private func statusType(for status: TransactionStatus) -> StatusType {
         switch status {
         case .pending:
             return .pending
-        case .filled:
+        case .confirmed:
             return .success
-        case .cancelled:
+        case .failed, .cancelled:
             return .error
         }
     }
 }
-
-// MARK: - Mock Data
-
-struct MockTransaction: Identifiable {
-    let id = UUID()
-    let type: String
-    let fromAmount: String
-    let fromToken: String
-    let toAmount: String
-    let toToken: String
-    let status: TransactionStatus
-    let date: Date
-    let txHash: String?
-}
-
-enum TransactionStatus: String {
-    case pending = "Pending"
-    case filled = "Filled"
-    case cancelled = "Cancelled"
-}
-
-private let mockTransactions: [MockTransaction] = [
-    MockTransaction(
-        type: "Limit Order",
-        fromAmount: "100.0",
-        fromToken: "WMATIC",
-        toAmount: "85.5",
-        toToken: "USDC",
-        status: .filled,
-        date: Calendar.current.date(byAdding: .hour, value: -2, to: Date()) ?? Date(),
-        txHash: "0x1234...abcd"
-    ),
-    MockTransaction(
-        type: "Limit Order",
-        fromAmount: "50.25",
-        fromToken: "USDC",
-        toAmount: "58.8",
-        toToken: "WMATIC",
-        status: .pending,
-        date: Calendar.current.date(byAdding: .minute, value: -30, to: Date()) ?? Date(),
-        txHash: nil
-    ),
-    MockTransaction(
-        type: "Limit Order",
-        fromAmount: "200.0",
-        fromToken: "WMATIC",
-        toAmount: "170.2",
-        toToken: "USDC",
-        status: .filled,
-        date: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
-        txHash: "0x5678...efgh"
-    ),
-    MockTransaction(
-        type: "Limit Order",
-        fromAmount: "75.0",
-        fromToken: "USDC",
-        toAmount: "87.9",
-        toToken: "WMATIC",
-        status: .filled,
-        date: Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date(),
-        txHash: "0x9abc...ijkl"
-    ),
-    MockTransaction(
-        type: "Limit Order",
-        fromAmount: "25.5",
-        fromToken: "WMATIC",
-        toAmount: "21.7",
-        toToken: "USDC",
-        status: .pending,
-        date: Calendar.current.date(byAdding: .minute, value: -15, to: Date()) ?? Date(),
-        txHash: nil
-    )
-]
 
 #Preview {
     TransactionsView()
