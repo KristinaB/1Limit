@@ -143,11 +143,13 @@ class TradeFormInteractionTests: XCTestCase {
         let limitPriceFields = app.textFields.matching(NSPredicate(format: "placeholderValue == '0.00'"))
         let limitPriceField = limitPriceFields.element(boundBy: 1)
         
-        // When: Entering invalid amount
-        amountField.tap()
+        // When: Entering invalid amount using coordinate-based tap to avoid scroll errors
+        let amountCoordinate = amountField.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        amountCoordinate.tap()
         amountField.typeText("invalid")
         
-        limitPriceField.tap()
+        let limitPriceCoordinate = limitPriceField.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        limitPriceCoordinate.tap()
         limitPriceField.typeText("0.851")
         
         // Then: Should handle invalid input gracefully
@@ -157,9 +159,24 @@ class TradeFormInteractionTests: XCTestCase {
             XCTAssertTrue(app.state == .runningForeground, "App should handle invalid amount input")
         }
         
-        // When: Entering invalid price
-        amountField.clearAndEnterText("1.0")
-        limitPriceField.clearAndEnterText("invalid")
+        // When: Testing with valid amount and invalid price - use coordinate taps
+        amountCoordinate.tap()
+        // Clear field by selecting all and typing new value
+        amountField.tap()
+        if let currentValue = amountField.value as? String, !currentValue.isEmpty {
+            let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
+            amountField.typeText(deleteString)
+        }
+        amountField.typeText("1.0")
+        
+        limitPriceCoordinate.tap()
+        // Clear field by selecting all and typing new value
+        limitPriceField.tap()
+        if let currentValue = limitPriceField.value as? String, !currentValue.isEmpty {
+            let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
+            limitPriceField.typeText(deleteString)
+        }
+        limitPriceField.typeText("invalid")
         
         // Then: Should handle invalid price gracefully
         if createOrderButton.isEnabled {
