@@ -233,10 +233,10 @@ class NavigationFlowTests: XCTestCase {
         let confirmTitle = app.staticTexts["Confirm Your Order"]
         XCTAssertTrue(confirmTitle.waitForExistence(timeout: 5), "Order confirmation should appear")
         
-        // Test cancellation
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.exists, "Cancel button should exist")
-        cancelButton.tap()
+        // Test cancellation - use first matching cancel button
+        let cancelButtons = app.buttons.matching(identifier: "Cancel")
+        XCTAssertTrue(cancelButtons.count > 0, "Cancel button should exist")
+        cancelButtons.firstMatch.tap()
         
         // Should return to Trade view
         let createOrderTitle = app.staticTexts["Create Limit Order"]
