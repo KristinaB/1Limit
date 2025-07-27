@@ -222,10 +222,10 @@ class BundledUITests: XCTestCase {
         // Test 1: Wallet creation button exists
         print("🎯 Testing wallet creation availability...")
         let createWalletButton = app.buttons["Create Wallet"]
-        let importWalletButton = app.buttons["Import Wallet"]
+        let loadTestWalletButton = app.buttons["Load Test Wallet"]
         
         XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
-        XCTAssertTrue(importWalletButton.exists, "Import Wallet button should exist")
+        XCTAssertTrue(loadTestWalletButton.exists, "Load Test Wallet button should exist")
         XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
         
         // Test 2: Start wallet creation flow

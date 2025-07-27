@@ -184,7 +184,7 @@ struct HomeView: View {
     self.currentWallet = await walletLoader.switchWalletMode(to: newMode)
     
     if let wallet = self.currentWallet {
-      await balanceService.fetchWalletBalance(for: wallet.address)
+      await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
     
