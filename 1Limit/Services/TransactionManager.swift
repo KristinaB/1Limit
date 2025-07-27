@@ -10,7 +10,7 @@ import SwiftUI
 
 /// Main transaction coordinator for the app
 @MainActor
-class TransactionManager: ObservableObject {
+class TransactionManager: ObservableObject, TransactionManagerProtocol {
     
     // MARK: - Published Properties
     
@@ -133,6 +133,30 @@ class TransactionManager: ObservableObject {
             transactions.removeAll { $0.id == transaction.id }
         } catch {
             errorMessage = "Failed to delete transaction: \(error.localizedDescription)"
+        }
+    }
+    
+    // MARK: - TransactionManagerProtocol Methods
+    
+    /// Get all transactions (for widget sync)
+    func getAllTransactions() -> [Transaction] {
+        return transactions
+    }
+    
+    /// Add a new transaction (for widget integration)
+    func addTransaction(_ transaction: Transaction) {
+        // Add to local array
+        transactions.append(transaction)
+        
+        // Persist asynchronously
+        Task {
+            do {
+                try await persistenceManager.saveTransaction(transaction)
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Failed to save transaction: \(error.localizedDescription)"
+                }
+            }
         }
     }
     

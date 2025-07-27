@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TransactionsView: View {
     @StateObject private var transactionManager = TransactionManagerFactory.createProduction()
+    @EnvironmentObject private var widgetSyncService: WidgetSyncService
     @State private var selectedFilter = "All"
     private let filters = ["All", "Pending", "Confirmed", "Failed"]
     
@@ -107,12 +108,14 @@ struct TransactionsView: View {
         .toolbarBackground(Color.appBackground, for: .navigationBar)
         .refreshable {
             await transactionManager.refreshTransactions()
+            widgetSyncService.syncToWidget()
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Refresh") {
                     Task {
                         await transactionManager.refreshTransactions()
+                        widgetSyncService.syncToWidget()
                     }
                 }
             }

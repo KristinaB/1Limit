@@ -1,0 +1,514 @@
+//
+//  1LimitWidget.swift
+//  1LimitWidget
+//
+//  iOS Widget showing limit order status and trading positions 📱✨
+//
+
+import WidgetKit
+import SwiftUI
+
+struct Provider: TimelineProvider {
+    func placeholder(in context: Context) -> WidgetEntry {
+        WidgetEntry(
+            date: Date(),
+            positions: samplePositions,
+            totalValue: 125.50,
+            priceData: samplePriceData
+        )
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (WidgetEntry) -> ()) {
+        let entry = WidgetEntry(
+            date: Date(),
+            positions: loadPositions(),
+            totalValue: calculateTotalValue(),
+            priceData: loadPriceData()
+        )
+        completion(entry)
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
+        var entries: [WidgetEntry] = []
+        let currentDate = Date()
+        
+        // Update every 5 minutes
+        for minuteOffset in stride(from: 0, to: 60, by: 5) {
+            let entryDate = Calendar.current.date(byAdding: .minute, value: minuteOffset, to: currentDate)!
+            let entry = WidgetEntry(
+                date: entryDate,
+                positions: loadPositions(),
+                totalValue: calculateTotalValue(),
+                priceData: loadPriceData()
+            )
+            entries.append(entry)
+        }
+
+        let timeline = Timeline(entries: entries, policy: .atEnd)
+        completion(timeline)
+    }
+    
+    private func loadPositions() -> [WidgetPosition] {
+        // Load from shared UserDefaults or App Group container
+        return WidgetDataManager.shared.loadPositions()
+    }
+    
+    private func calculateTotalValue() -> Double {
+        return WidgetDataManager.shared.calculateTotalPortfolioValue()
+    }
+    
+    private func loadPriceData() -> [PricePoint] {
+        return WidgetDataManager.shared.loadRecentPriceData()
+    }
+}
+
+struct WidgetEntry: TimelineEntry {
+    let date: Date
+    let positions: [WidgetPosition]
+    let totalValue: Double
+    let priceData: [PricePoint]
+}
+
+struct _LimitWidgetEntryView: View {
+    var entry: Provider.Entry
+    @Environment(\.widgetFamily) var family
+    
+    var body: some View {
+        switch family {
+        case .systemSmall:
+            SmallWidgetView(entry: entry)
+        case .systemMedium:
+            MediumWidgetView(entry: entry)
+        case .systemLarge:
+            LargeWidgetView(entry: entry)
+        default:
+            SmallWidgetView(entry: entry)
+        }
+    }
+}
+
+struct _LimitWidget: Widget {
+    let kind: String = "1LimitWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+            _LimitWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("1Limit Trading")
+        .description("Monitor your limit orders and trading positions")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+    }
+}
+
+// MARK: - Widget Sizes
+
+struct SmallWidgetView: View {
+    let entry: WidgetEntry
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("1Limit")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    Spacer()
+                    Circle()
+                        .fill(entry.positions.isEmpty ? Color.gray : Color.green)
+                        .frame(width: 6, height: 6)
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Portfolio")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    
+                    Text("$\(entry.totalValue, specifier: "%.2f")")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                if !entry.positions.isEmpty {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(entry.positions.count) Position\(entry.positions.count == 1 ? "" : "s")")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                        
+                        ForEach(entry.positions.prefix(2), id: \.id) { position in
+                            HStack {
+                                Text(position.symbol)
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Text(position.status.rawValue)
+                                    .font(.caption2)
+                                    .foregroundColor(position.status.color)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+        }
+    }
+}
+
+struct MediumWidgetView: View {
+    let entry: WidgetEntry
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            HStack(spacing: 16) {
+                // Left side - Portfolio info
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("1Limit")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Circle()
+                            .fill(entry.positions.isEmpty ? Color.gray : Color.green)
+                            .frame(width: 8, height: 8)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Portfolio Value")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Text("$\(entry.totalValue, specifier: "%.2f")")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                    }
+                    
+                    if !entry.positions.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Active Positions")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            
+                            ForEach(entry.positions.prefix(3), id: \.id) { position in
+                                HStack {
+                                    Text(position.symbol)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Text(position.status.rawValue)
+                                        .font(.caption)
+                                        .foregroundColor(position.status.color)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(
+                                            Capsule()
+                                                .fill(position.status.color.opacity(0.2))
+                                        )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Right side - Mini chart
+                VStack(alignment: .trailing, spacing: 8) {
+                    Text("24h Chart")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    MiniChartView(priceData: entry.priceData)
+                        .frame(width: 80, height: 60)
+                    
+                    Text("Last: \(entry.date.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(16)
+        }
+    }
+}
+
+struct LargeWidgetView: View {
+    let entry: WidgetEntry
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            
+            VStack(spacing: 16) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("1Limit Trading")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("Portfolio Value: $\(entry.totalValue, specifier: "%.2f")")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing) {
+                        Circle()
+                            .fill(entry.positions.isEmpty ? Color.gray : Color.green)
+                            .frame(width: 8, height: 8)
+                        
+                        Text("Updated \(entry.date.formatted(date: .omitted, time: .shortened))")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                // Chart section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Price Chart (24h)")
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                    
+                    MiniChartView(priceData: entry.priceData)
+                        .frame(height: 80)
+                }
+                
+                // Positions list
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Active Positions")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Text("\(entry.positions.count) Total")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    if entry.positions.isEmpty {
+                        Text("No active positions")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 8)
+                    } else {
+                        ForEach(entry.positions.prefix(5), id: \.id) { position in
+                            PositionRowView(position: position)
+                        }
+                    }
+                }
+                
+                Spacer()
+            }
+            .padding(16)
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+struct MiniChartView: View {
+    let priceData: [PricePoint]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            if priceData.isEmpty {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .overlay(
+                        Text("No Data")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    )
+            } else {
+                Path { path in
+                    let width = geometry.size.width
+                    let height = geometry.size.height
+                    
+                    guard let minPrice = priceData.map(\.price).min(),
+                          let maxPrice = priceData.map(\.price).max(),
+                          maxPrice > minPrice else { return }
+                    
+                    let stepWidth = width / CGFloat(priceData.count - 1)
+                    
+                    for (index, point) in priceData.enumerated() {
+                        let x = CGFloat(index) * stepWidth
+                        let normalizedY = (point.price - minPrice) / (maxPrice - minPrice)
+                        let y = height - (normalizedY * height)
+                        
+                        if index == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.blue, Color.purple],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 2
+                )
+            }
+        }
+    }
+}
+
+struct PositionRowView: View {
+    let position: WidgetPosition
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(position.symbol)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                Text("\(position.amount, specifier: "%.6f")")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(position.status.rawValue)
+                    .font(.caption)
+                    .foregroundColor(position.status.color)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(position.status.color.opacity(0.2))
+                    )
+                
+                Text("$\(position.value, specifier: "%.2f")")
+                    .font(.caption2)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Data Models
+
+struct WidgetPosition: Identifiable, Codable {
+    let id = UUID()
+    let symbol: String
+    let amount: Double
+    let value: Double
+    let status: PositionStatus
+}
+
+enum PositionStatus: String, Codable, CaseIterable {
+    case pending = "Pending"
+    case filled = "Filled"
+    case cancelled = "Cancelled"
+    case failed = "Failed"
+    
+    var color: Color {
+        switch self {
+        case .pending:
+            return .gray
+        case .filled:
+            return .blue
+        case .cancelled:
+            return .orange
+        case .failed:
+            return .purple
+        }
+    }
+}
+
+struct PricePoint: Identifiable, Codable {
+    let id = UUID()
+    let timestamp: Date
+    let price: Double
+}
+
+// MARK: - Sample Data
+
+let samplePositions = [
+    WidgetPosition(symbol: "WMATIC/USDC", amount: 10.0, value: 45.50, status: .filled),
+    WidgetPosition(symbol: "USDC/WMATIC", amount: 25.0, value: 80.0, status: .pending)
+]
+
+let samplePriceData: [PricePoint] = {
+    let basePrice = 1.25
+    return (0..<24).map { hour in
+        let variation = Double.random(in: -0.1...0.1)
+        return PricePoint(
+            timestamp: Date().addingTimeInterval(-Double(hour) * 3600),
+            price: basePrice + variation
+        )
+    }
+}()
+
+@main
+struct _LimitWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        _LimitWidget()
+    }
+}
+
+#Preview("Small", as: .systemSmall) {
+    _LimitWidget()
+} timeline: {
+    WidgetEntry(
+        date: Date(),
+        positions: samplePositions,
+        totalValue: 125.50,
+        priceData: samplePriceData
+    )
+}
+
+#Preview("Medium", as: .systemMedium) {
+    _LimitWidget()
+} timeline: {
+    WidgetEntry(
+        date: Date(),
+        positions: samplePositions,
+        totalValue: 125.50,
+        priceData: samplePriceData
+    )
+}
+
+#Preview("Large", as: .systemLarge) {
+    _LimitWidget()
+} timeline: {
+    WidgetEntry(
+        date: Date(),
+        positions: samplePositions,
+        totalValue: 125.50,
+        priceData: samplePriceData
+    )
+}

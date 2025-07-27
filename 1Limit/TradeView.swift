@@ -368,6 +368,7 @@ struct TradeView: View {
 
 struct OrderConfirmationView: View {
   @Environment(\.dismiss) private var dismiss
+  @EnvironmentObject private var widgetSyncService: WidgetSyncService
   @StateObject private var orderService = OrderPlacementService()
   @StateObject private var priceValidation = PriceValidationService()
   @State private var validationResult: PriceValidationResult?
@@ -606,6 +607,9 @@ struct OrderConfirmationView: View {
       )
       
       if result.success {
+        // Sync with widget after successful order placement
+        widgetSyncService.syncAfterTransactionUpdate()
+        
         // Order placed successfully - dismiss and redirect to transactions
         dismiss()
         // TODO: Navigate to transactions tab with pending filter

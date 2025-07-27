@@ -10,14 +10,20 @@ import SwiftUI
 @main
 struct _LimitApp: App {
   @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+  @StateObject private var widgetSyncService = WidgetSyncServiceFactory.createForProduction()
   
   var body: some Scene {
     WindowGroup {
       ContentView()
         .preferredColorScheme(.dark)
+        .environmentObject(widgetSyncService)
         .onAppear {
           // Lock orientation to portrait
           AppDelegate.orientationLock = UIInterfaceOrientationMask.portrait
+          
+          // Setup widget sync
+          widgetSyncService.setupAppLifecycleObservers()
+          widgetSyncService.syncToWidget()
         }
     }
   }
