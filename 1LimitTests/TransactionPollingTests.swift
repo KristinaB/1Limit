@@ -15,12 +15,15 @@ final class TransactionPollingTests: XCTestCase {
     var realPollingService: TransactionPollingService!
     var mockURLSession: MockURLSession!
     
-    @MainActor
     override func setUp() {
         super.setUp()
         mockPollingService = MockTransactionPollingService()
         mockPersistence = MockTransactionPersistenceManager()
         mockURLSession = MockURLSession()
+    }
+    
+    @MainActor
+    func setupRealPollingService() {
         realPollingService = TransactionPollingService(
             polygonApiKey: "test-api-key",
             persistenceManager: mockPersistence,
@@ -99,28 +102,43 @@ final class TransactionPollingTests: XCTestCase {
         XCTAssertEqual(receivedTransaction?.status, .pending) // Should remain pending on error
     }
     
-    func testMockPollingStopAll() {
+    @MainActor
+    func testMockPollingStopAll() async {
         // Given
         let transaction1 = createTestTransaction()
         let transaction2 = createTestTransaction()
         
-        // When
+        // Configure mock to have a longer delay so we can test stopping
+        mockPollingService.mockDelay = 1.0 // 1 second delay
+        
+        // When - Start polling without awaiting
         Task {
             await mockPollingService.startPolling(for: transaction1)
-            await mockPollingService.startPolling(for: transaction2)
-            
-            // Then
-            XCTAssertEqual(mockPollingService.getPollingCount(), 2)
-            
-            mockPollingService.stopAllPolling()
-            XCTAssertEqual(mockPollingService.getPollingCount(), 0)
         }
+        Task {
+            await mockPollingService.startPolling(for: transaction2)
+        }
+        
+        // Give a moment for tasks to start
+        try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 seconds
+        
+        // Then - Check count while polling is active
+        XCTAssertGreaterThan(mockPollingService.getPollingCount(), 0)
+        
+        // When - Stop all polling
+        mockPollingService.stopAllPolling()
+        
+        // Then - All polling should be stopped
+        XCTAssertEqual(mockPollingService.getPollingCount(), 0)
     }
     
     // MARK: - Real TransactionPollingService Tests
     
     @MainActor
     func testPollingServiceInitialization() {
+        // Given
+        setupRealPollingService()
+        
         // Then
         XCTAssertNotNil(realPollingService)
     }
@@ -128,6 +146,7 @@ final class TransactionPollingTests: XCTestCase {
     @MainActor
     func testPollingServiceDoesNotPollWithoutTxHash() async {
         // Given
+        setupRealPollingService()
         let transaction = createTestTransaction(txHash: nil)
         
         // When
@@ -141,6 +160,7 @@ final class TransactionPollingTests: XCTestCase {
     @MainActor
     func testPollingServiceDoesNotPollConfirmedTransaction() async {
         // Given
+        setupRealPollingService()
         let transaction = createTestTransaction(status: .confirmed)
         
         // When
@@ -153,6 +173,7 @@ final class TransactionPollingTests: XCTestCase {
     @MainActor
     func testPollingServiceStopPolling() async {
         // Given
+        setupRealPollingService()
         let transaction = createTestTransaction()
         
         // When
@@ -166,6 +187,7 @@ final class TransactionPollingTests: XCTestCase {
     @MainActor
     func testPollingServiceStopAllPolling() async {
         // Given
+        setupRealPollingService()
         let transaction1 = createTestTransaction()
         let transaction2 = createTestTransaction()
         
@@ -207,6 +229,7 @@ final class TransactionPollingTests: XCTestCase {
         // The real polling service is tested through the mock polling service which
         // simulates the same behavior patterns
         
+        setupRealPollingService()
         let transaction = createTestTransaction()
         
         // Test that polling can be started and stopped without crashing
