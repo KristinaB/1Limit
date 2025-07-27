@@ -73,3 +73,12 @@ The app uses a dependency injection pattern with protocol-based architecture for
 - **Wallet Security**: Wallet data loads from `wallet_0x3f847d.json` in bundle or documents directory
 - **Logging**: Debug transactions create timestamped log files for debugging Router V6 flows
 - **Architecture**: Follow the existing protocol-based dependency injection pattern when adding new services
+
+## Git Commit Style
+
+When creating commit messages, use lots of emojis including:
+- 👩‍💻 Girl doing jobs emojis (👩‍🔧👩‍🎨👩‍🚀👩‍💼👩‍🔬👩‍🎓👩‍⚕️👩‍🏫👩‍🌾👩‍🍳👩‍🎤👩‍🎬👩‍🎯👩‍🏭👩‍💻👩‍🔧👩‍✈️)
+- 🎯 Action emojis (🚀🎨🔧💫✨🎯🔥💎⚡️🎪🎭🎨🎬🎵🎪)
+- 🦄 Animals (🦄🐱🐶🐼🐨🐸🐧🦋🐝🦊🐺🐯🦁🐘🐙🦀🐬🐳🦈🦖🦕🐲)
+
+Example: "👩‍💻🦄 Fix wallet creation tests with sparkly new assertions! ✨🎯🐱"

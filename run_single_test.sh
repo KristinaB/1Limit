@@ -52,6 +52,10 @@ run_test_in_suite() {
             target_path="1LimitUITests/TradeFormInteractionTests"
             suite_name="Trade Form Interaction Tests"
             ;;
+        "WalletFlowTests")
+            target_path="1LimitUITests/WalletFlowTests"
+            suite_name="Wallet Flow Tests"
+            ;;
         "TradeViewUnitTests")
             target_path="1LimitTests/TradeViewUnitTests"
             suite_name="Trade View Unit Tests"
