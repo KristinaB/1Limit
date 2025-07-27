@@ -161,8 +161,7 @@ struct Transaction: Identifiable, Codable {
     }
     
     /// Calculate USD values from current token prices
-    @MainActor
-    func calculateUSDValues(using priceService: PriceService) -> Transaction {
+    func calculateUSDValues(using priceService: PriceService) async -> Transaction {
         var fromUSD: Double? = nil
         var toUSD: Double? = nil
         var limitUSD: Double? = nil
@@ -170,32 +169,34 @@ struct Transaction: Identifiable, Codable {
         var totalUSD: Double? = nil
         
         // Calculate from amount USD
-        if let fromPrice = priceService.getPrice(for: fromToken),
-           let fromDouble = Double(fromAmount) {
+        let fromPrice = await MainActor.run { priceService.getPrice(for: fromToken) }
+        if let fromPrice = fromPrice, let fromDouble = Double(fromAmount) {
             fromUSD = fromDouble * fromPrice.usdPrice
         }
         
         // Calculate to amount USD  
-        if let toPrice = priceService.getPrice(for: toToken),
-           let toDouble = Double(toAmount) {
+        let toPrice = await MainActor.run { priceService.getPrice(for: toToken) }
+        if let toPrice = toPrice, let toDouble = Double(toAmount) {
             toUSD = toDouble * toPrice.usdPrice
         }
         
         // Calculate limit price USD (rate * from token price)
-        if let fromPrice = priceService.getPrice(for: fromToken),
-           let limitDouble = Double(limitPrice) {
-            limitUSD = limitDouble * fromPrice.usdPrice
+        let limitFromPrice = await MainActor.run { priceService.getPrice(for: fromToken) }
+        if let limitFromPrice = limitFromPrice, let limitDouble = Double(limitPrice) {
+            limitUSD = limitDouble * limitFromPrice.usdPrice
         }
         
         // Calculate gas fee USD (if transaction is confirmed)
         if let gasUsedStr = gasUsed,
            let gasPriceStr = gasPrice,
            let gasUsedValue = Double(gasUsedStr),
-           let gasPriceValue = Double(gasPriceStr),
-           let maticPrice = priceService.getPrice(for: "WMATIC") {
-            // Convert wei to MATIC (1 MATIC = 10^18 wei)
-            let gasFeeInMatic = (gasUsedValue * gasPriceValue) / 1e18
-            gasUSD = gasFeeInMatic * maticPrice.usdPrice
+           let gasPriceValue = Double(gasPriceStr) {
+            let maticPrice = await MainActor.run { priceService.getPrice(for: "WMATIC") }
+            if let maticPrice = maticPrice {
+                // Convert wei to MATIC (1 MATIC = 10^18 wei)
+                let gasFeeInMatic = (gasUsedValue * gasPriceValue) / 1e18
+                gasUSD = gasFeeInMatic * maticPrice.usdPrice
+            }
         }
         
         // Calculate total cost USD (from amount + gas fee)

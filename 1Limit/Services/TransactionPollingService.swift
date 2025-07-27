@@ -122,7 +122,7 @@ class TransactionPollingService: TransactionPollingProtocol {
                 
                 // Calculate USD values with current prices
                 await priceService.fetchPrices()
-                let transactionWithUSD = updatedTransaction.calculateUSDValues(using: priceService)
+                let transactionWithUSD = await updatedTransaction.calculateUSDValues(using: priceService)
                 
                 // Save updated transaction
                 try await persistenceManager.updateTransaction(transactionWithUSD)

@@ -78,8 +78,10 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 await priceService.fetchPrices()
                 
                 // Calculate USD values for all transactions
-                let transactionsWithUSD = loadedTransactions.map { transaction in
-                    transaction.calculateUSDValues(using: priceService)
+                var transactionsWithUSD: [Transaction] = []
+                for transaction in loadedTransactions {
+                    let updatedTransaction = await transaction.calculateUSDValues(using: priceService)
+                    transactionsWithUSD.append(updatedTransaction)
                 }
                 
                 transactions = transactionsWithUSD
