@@ -11,6 +11,7 @@ struct HomeView: View {
   @Binding var selectedTab: Int
   @State private var showingWalletCreation = false
   @State private var showingDebug = false
+  @State private var showingReceiveFunds = false
   
   // Wallet management state
   @StateObject private var walletLoader = WalletLoader.shared
@@ -93,9 +94,15 @@ struct HomeView: View {
             }
             
             if currentWallet != nil {
-              SecondaryButton("Switch Wallet Mode", icon: "arrow.triangle.2.circlepath") {
-                Task {
-                  await switchWalletMode()
+              HStack(spacing: 12) {
+                SecondaryButton("Switch Wallet Mode", icon: "arrow.triangle.2.circlepath") {
+                  Task {
+                    await switchWalletMode()
+                  }
+                }
+                
+                PrimaryButton("Load Funds", icon: "plus.circle") {
+                  showingReceiveFunds = true
                 }
               }
             }
@@ -126,6 +133,11 @@ struct HomeView: View {
     }
     .sheet(isPresented: $showingDebug) {
       DebugView()
+    }
+    .sheet(isPresented: $showingReceiveFunds) {
+      if let wallet = currentWallet {
+        ReceiveFundsView(wallet: wallet)
+      }
     }
     .onAppear {
       Task {
