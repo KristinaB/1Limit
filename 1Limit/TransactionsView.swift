@@ -216,6 +216,7 @@ struct EmptyTransactionsView: View {
 struct TransactionDetailView: View {
     let transaction: Transaction
     @Environment(\.dismiss) private var dismiss
+    @State private var isMoreDetailsExpanded = false
     
     var body: some View {
         NavigationView {
@@ -287,9 +288,9 @@ struct TransactionDetailView: View {
                                 ("To Value USD", transaction.formattedToAmountUSD ?? "Calculating...", nil),
                                 ("Limit Price", transaction.limitPrice, nil),
                                 ("Limit Price USD", transaction.formattedLimitPriceUSD ?? "Calculating...", nil),
-                                ("Date", transaction.date.formatted(date: .abbreviated, time: .complete), nil),
+                                ("Date", formatDate(transaction.date), nil),
                                 ("Status", transaction.status.rawValue, nil)
-                            ] + blockchainDetailsItems()
+                            ]
                         )
                         
                         // Transaction ID and explorer link
@@ -326,6 +327,72 @@ struct TransactionDetailView: View {
                             }
                         }
                         
+                        // More Details Accordion
+                        if hasMoreDetails() {
+                            AppCard {
+                                VStack(spacing: 0) {
+                                    Button(action: {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            isMoreDetailsExpanded.toggle()
+                                        }
+                                    }) {
+                                        HStack {
+                                            Text("More Details")
+                                                .cardTitle()
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: isMoreDetailsExpanded ? "chevron.up" : "chevron.down")
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(.secondaryText)
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    
+                                    if isMoreDetailsExpanded {
+                                        VStack(spacing: 20) {
+                                            Divider()
+                                                .background(Color.borderGray.opacity(0.3))
+                                                .padding(.vertical, 8)
+                                            
+                                            VStack(spacing: 16) {
+                                                if let blockNumber = transaction.blockNumber {
+                                                    DetailRow(label: "Block Number", value: blockNumber)
+                                                }
+                                                
+                                                if let gasUsed = transaction.gasUsed {
+                                                    DetailRow(label: "Gas Used", value: gasUsed)
+                                                }
+                                                
+                                                if let gasPrice = transaction.gasPrice {
+                                                    DetailRow(label: "Gas Price", value: formatGasPrice(gasPrice))
+                                                }
+                                                
+                                                if let gasFeeUSD = transaction.formattedGasFeeUSD {
+                                                    DetailRow(label: "Gas Fee USD", value: gasFeeUSD)
+                                                }
+                                                
+                                                if let totalCostUSD = transaction.formattedTotalCostUSD {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        DetailRow(label: "Total Cost USD", value: totalCostUSD, valueColor: .orange)
+                                                        Text("Total cost includes the amount sent plus gas fees")
+                                                            .captionText()
+                                                            .foregroundColor(.secondaryText)
+                                                    }
+                                                }
+                                                
+                                                if let lastPolled = transaction.lastPolledAt {
+                                                    DetailRow(label: "Last Updated", value: formatDate(lastPolled))
+                                                }
+                                            }
+                                        }
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                    }
+                                }
+                            }
+                        }
+                        
                         Spacer(minLength: 40)
                     }
                     .padding()
@@ -345,35 +412,31 @@ struct TransactionDetailView: View {
         .preferredColorScheme(.dark)
     }
     
-    /// Get blockchain-specific details for display
-    private func blockchainDetailsItems() -> [(String, String, Color?)] {
-        var items: [(String, String, Color?)] = []
-        
-        if let blockNumber = transaction.blockNumber {
-            items.append(("Block Number", blockNumber, nil))
+    /// Check if there are more details to display
+    private func hasMoreDetails() -> Bool {
+        return transaction.blockNumber != nil ||
+               transaction.gasUsed != nil ||
+               transaction.gasPrice != nil ||
+               transaction.gasFeeUSD != nil ||
+               transaction.totalCostUSD != nil ||
+               transaction.lastPolledAt != nil
+    }
+    
+    /// Format date without seconds and timezone
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    /// Convert gas price from wei to gwei
+    private func formatGasPrice(_ weiString: String) -> String {
+        guard let weiValue = Double(weiString) else {
+            return "\(weiString) wei"
         }
-        
-        if let gasUsed = transaction.gasUsed {
-            items.append(("Gas Used", gasUsed, nil))
-        }
-        
-        if let gasPrice = transaction.gasPrice {
-            items.append(("Gas Price", "\(gasPrice) wei", nil))
-        }
-        
-        if let gasFeeUSD = transaction.formattedGasFeeUSD {
-            items.append(("Gas Fee USD", gasFeeUSD, nil))
-        }
-        
-        if let totalCostUSD = transaction.formattedTotalCostUSD {
-            items.append(("Total Cost USD", totalCostUSD, .orange))
-        }
-        
-        if let lastPolled = transaction.lastPolledAt {
-            items.append(("Last Updated", lastPolled.formatted(date: .abbreviated, time: .shortened), nil))
-        }
-        
-        return items
+        let gweiValue = weiValue / 1_000_000_000
+        return String(format: "%.2f gwei", gweiValue)
     }
     
     private func statusType(for status: TransactionStatus) -> StatusType {
@@ -384,6 +447,25 @@ struct TransactionDetailView: View {
             return .success
         case .failed, .cancelled:
             return .error
+        }
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    var valueColor: Color = .primaryText
+    
+    var body: some View {
+        HStack {
+            Text(label)
+                .secondaryText()
+            
+            Spacer()
+            
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(valueColor)
         }
     }
 }
