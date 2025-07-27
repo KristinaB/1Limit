@@ -80,11 +80,21 @@ class WidgetDataManager {
     }
     
     func loadChartData() -> [WidgetCandlestickData] {
-        guard let data = userDefaults?.data(forKey: chartDataKey),
-              let chartData = try? JSONDecoder().decode([WidgetCandlestickData].self, from: data) else {
-            return sampleChartData // Fallback to sample data
+        print("🔍 Widget loading chart data...")
+        
+        guard let data = userDefaults?.data(forKey: chartDataKey) else {
+            print("❌ No chart data found in UserDefaults, using sample data")
+            return sampleChartData
         }
-        return chartData
+        
+        do {
+            let chartData = try JSONDecoder().decode([WidgetCandlestickData].self, from: data)
+            print("✅ Successfully loaded \(chartData.count) chart data points")
+            return chartData
+        } catch {
+            print("❌ Failed to decode chart data: \(error), using sample data")
+            return sampleChartData
+        }
     }
     
     func calculateTotalPortfolioValue() -> Double {
@@ -252,6 +262,7 @@ extension WidgetDataManager {
         userDefaults?.removeObject(forKey: priceDataKey)
         userDefaults?.removeObject(forKey: portfolioValueKey)
         userDefaults?.removeObject(forKey: lastUpdateKey)
+        userDefaults?.removeObject(forKey: chartDataKey)
         reloadWidgets()
     }
     
@@ -290,4 +301,10 @@ let sampleChartData: [WidgetCandlestickData] = {
             volume: volume
         )
     }.reversed()
+}()
+
+// Force initialization to ensure sample data is always available
+private let sampleDataInitializer: Bool = {
+    print("🔧 Initializing widget sample chart data: \(sampleChartData.count) points")
+    return true
 }()

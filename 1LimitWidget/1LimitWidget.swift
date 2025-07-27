@@ -65,7 +65,37 @@ struct Provider: TimelineProvider {
     }
     
     private func loadChartData() -> [WidgetCandlestickData] {
-        return WidgetDataManager.shared.loadChartData()
+        let chartData = WidgetDataManager.shared.loadChartData()
+        print("📱 Widget Provider loaded \(chartData.count) chart data points")
+        
+        // Debug: Force some test data if empty
+        if chartData.isEmpty {
+            print("⚠️ Chart data is empty, creating test data")
+            return createTestChartData()
+        }
+        
+        return chartData
+    }
+    
+    private func createTestChartData() -> [WidgetCandlestickData] {
+        let now = Date()
+        return (0..<8).map { index in
+            let timestamp = now.addingTimeInterval(-Double(index) * 300)
+            let basePrice = 0.45
+            let open = basePrice + Double.random(in: -0.01...0.01)
+            let close = open + Double.random(in: -0.02...0.02)
+            let high = max(open, close) + Double.random(in: 0...0.005)
+            let low = min(open, close) - Double.random(in: 0...0.005)
+            
+            return WidgetCandlestickData(
+                timestamp: timestamp,
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                volume: 1000
+            )
+        }.reversed()
     }
 }
 
@@ -346,9 +376,14 @@ struct MiniOHLCChartView: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(Color.gray.opacity(0.3))
                     .overlay(
-                        Text("No Data")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
+                        VStack {
+                            Text("No Data")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                            Text("(\(chartData.count) points)")
+                                .font(.caption2)
+                                .foregroundColor(.gray)
+                        }
                     )
             } else {
                 let width = geometry.size.width
