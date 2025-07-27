@@ -315,12 +315,12 @@ class BundledUITests: XCTestCase {
         let filterTitle = app.staticTexts["Filter Transactions"]
         let allFilter = app.buttons["All"]
         let pendingFilter = app.buttons["Pending"]
-        let filledFilter = app.buttons["Filled"]
+        let filledFilter = app.buttons["Confirmed"]
         
         XCTAssertTrue(filterTitle.exists, "Filter Transactions title should be visible")
         XCTAssertTrue(allFilter.exists, "All filter button should be present")
         XCTAssertTrue(pendingFilter.exists, "Pending filter button should be present")
-        XCTAssertTrue(filledFilter.exists, "Filled filter button should be present")
+        XCTAssertTrue(filledFilter.exists, "Confirmed filter button should be present")
         
         // Test 4: Filter interaction
         print("🔄 Testing filter interaction...")
@@ -328,7 +328,7 @@ class BundledUITests: XCTestCase {
         XCTAssertTrue(pendingFilter.isSelected || pendingFilter.label.contains("Pending"), "Pending filter should be selected")
         
         filledFilter.tap()
-        XCTAssertTrue(filledFilter.isSelected || filledFilter.label.contains("Filled"), "Filled filter should be selected")
+        XCTAssertTrue(filledFilter.isSelected || filledFilter.label.contains("Confirmed"), "Confirmed filter should be selected")
         
         allFilter.tap()
         XCTAssertTrue(allFilter.isSelected || allFilter.label.contains("All"), "All filter should be selected")

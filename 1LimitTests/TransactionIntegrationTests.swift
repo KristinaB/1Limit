@@ -162,6 +162,9 @@ final class TransactionIntegrationTests: XCTestCase {
         // Simulate polling callback
         mockPolling.onTransactionUpdate?(confirmedTransaction)
         
+        // Give time for async update to propagate
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
         // Then: Transaction should be updated in manager
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
         XCTAssertEqual(transactionManager.transactions.first?.blockNumber, "12345678")
@@ -213,6 +216,9 @@ final class TransactionIntegrationTests: XCTestCase {
         
         // Simulate successful polling update
         mockPolling.onTransactionUpdate?(confirmedTransaction)
+        
+        // Give time for async update to propagate
+        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         
         // Then: Transaction should be updated
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
