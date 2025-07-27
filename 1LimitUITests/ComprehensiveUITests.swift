@@ -63,11 +63,11 @@ class ComprehensiveUITests: XCTestCase {
         XCTAssertTrue(backupPhraseTitle.waitForExistence(timeout: 3), "Backup phrase view should appear")
         
         // And: Important security notice should be visible
-        let securityNotice = app.staticTexts["Never share your recovery phrase"]
+        let securityNotice = app.staticTexts["Never share your recovery phrase with anyone"]
         XCTAssertTrue(securityNotice.exists, "Security notice should be visible")
         
         // And: Recovery phrase should be displayed
-        let recoveryPhrase = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'abandon'")).firstMatch
+        let recoveryPhrase = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'forest' OR label CONTAINS 'umbrella'")).firstMatch
         XCTAssertTrue(recoveryPhrase.exists, "Recovery phrase should be displayed")
         
         // When: Tapping "I've Saved My Phrase" button
@@ -75,26 +75,32 @@ class ComprehensiveUITests: XCTestCase {
         XCTAssertTrue(savedPhraseButton.exists, "I've Saved My Phrase button should exist")
         savedPhraseButton.tap()
         
+        // Then: Setup complete view should appear
+        let setupCompleteTitle = app.staticTexts["You're All Set!"]
+        XCTAssertTrue(setupCompleteTitle.waitForExistence(timeout: 3), "Setup complete view should appear")
+        
+        // When: Tapping "Load Funds" button
+        let loadFundsButton = app.buttons["Load Funds"]
+        XCTAssertTrue(loadFundsButton.exists, "Load Funds button should exist")
+        loadFundsButton.tap()
+        
         // Then: Load funds view should appear
         let loadFundsTitle = app.staticTexts["Receive Funds"]
         XCTAssertTrue(loadFundsTitle.waitForExistence(timeout: 3), "Load funds view should appear")
         
-        // And: QR code should be visible
-        let qrCode = app.images["QR Code"]
-        XCTAssertTrue(qrCode.exists, "QR code should be visible")
+        // And: QR code section should be visible
+        let qrCodeText = app.staticTexts["QR Code"]
+        XCTAssertTrue(qrCodeText.exists, "QR code section should be visible")
         
         // And: Wallet address should be displayed
         let walletAddress = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '0x'")).firstMatch
         XCTAssertTrue(walletAddress.exists, "Wallet address should be displayed")
         
-        // When: Tapping "Continue to Trade" button
-        let continueButton = app.buttons["Continue to Trade"]
-        XCTAssertTrue(continueButton.exists, "Continue to Trade button should exist")
-        continueButton.tap()
-        
-        // Then: Should navigate to Setup Complete view
-        let setupCompleteTitle = app.staticTexts["You're All Set!"]
-        XCTAssertTrue(setupCompleteTitle.waitForExistence(timeout: 3), "Setup complete view should appear")
+        // When: Navigate back to setup complete
+        let backButton = app.navigationBars.buttons.firstMatch
+        if backButton.exists {
+            backButton.tap()
+        }
         
         // When: Tapping "Start Trading" button
         let startTradingButton = app.buttons["Start Trading"]
