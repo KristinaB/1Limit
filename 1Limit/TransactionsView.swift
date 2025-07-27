@@ -223,7 +223,7 @@ struct TransactionDetailView: View {
                                 Text(transaction.type)
                                     .appTitle()
                                 
-                                Text("\\(transaction.fromAmount) \\(transaction.fromToken) → \\(transaction.toAmount) \\(transaction.toToken)")
+                                Text("\(transaction.fromAmount) \(transaction.fromToken) → \(transaction.toAmount) \(transaction.toToken)")
                                     .secondaryText()
                                     .multilineTextAlignment(.center)
                             }
@@ -233,8 +233,8 @@ struct TransactionDetailView: View {
                         InfoCard(
                             title: "Transaction Details",
                             items: [
-                                ("From Amount", "\\(transaction.fromAmount) \\(transaction.fromToken)", nil),
-                                ("To Amount", "\\(transaction.toAmount) \\(transaction.toToken)", nil),
+                                ("From Amount", "\(transaction.fromAmount) \(transaction.fromToken)", nil),
+                                ("To Amount", "\(transaction.toAmount) \(transaction.toToken)", nil),
                                 ("Limit Price", transaction.limitPrice, nil),
                                 ("Date", transaction.date.formatted(date: .abbreviated, time: .complete), nil),
                                 ("Status", transaction.status.rawValue, nil)
@@ -266,7 +266,7 @@ struct TransactionDetailView: View {
                                             )
                                         
                                         PrimaryButton("View on PolygonScan", icon: "safari") {
-                                            if let url = URL(string: "https://polygonscan.com/tx/\\(txHash)") {
+                                            if let url = URL(string: "https://polygonscan.com/tx/\(txHash)") {
                                                 UIApplication.shared.open(url)
                                             }
                                         }

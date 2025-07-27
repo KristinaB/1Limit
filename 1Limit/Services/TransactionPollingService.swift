@@ -21,10 +21,9 @@ class TransactionPollingService: TransactionPollingProtocol {
     
     // MARK: - Configuration
     
-    private let polygonApiKey: String
     private let maxPollingDuration: TimeInterval = 120 // 2 minutes
     private let pollInterval: TimeInterval = 5 // 5 seconds
-    private let baseURL = "https://api.polygonscan.io/api"
+    private let rpcURL = "https://polygon-bor-rpc.publicnode.com"
     
     // MARK: - Dependencies
     
@@ -39,11 +38,9 @@ class TransactionPollingService: TransactionPollingProtocol {
     // MARK: - Initialization
     
     init(
-        polygonApiKey: String = "YourPolygonAPIKey", // Replace with actual API key
         persistenceManager: TransactionPersistenceProtocol,
         urlSession: URLSession = .shared
     ) {
-        self.polygonApiKey = polygonApiKey
         self.persistenceManager = persistenceManager
         self.urlSession = urlSession
     }
@@ -104,15 +101,21 @@ class TransactionPollingService: TransactionPollingProtocol {
                 }
             }
             
-            // Poll Polygon API
+            // Poll RPC node
             do {
                 let receipt = try await fetchTransactionReceipt(txHash: txHash)
                 
-                // Update transaction based on receipt
-                let updatedTransaction = await updateTransactionFromReceipt(
-                    currentTransaction, 
-                    receipt: receipt
-                )
+                // Update transaction based on receipt (nil means still pending)
+                let updatedTransaction: Transaction
+                if let receipt = receipt {
+                    updatedTransaction = updateTransactionFromReceipt(currentTransaction, receipt: receipt)
+                } else {
+                    // Still pending, just update last polled time
+                    updatedTransaction = currentTransaction.withUpdatedStatus(
+                        status: .pending,
+                        lastPolledAt: Date()
+                    )
+                }
                 
                 // Save updated transaction
                 try await persistenceManager.updateTransaction(updatedTransaction)
@@ -150,24 +153,27 @@ class TransactionPollingService: TransactionPollingProtocol {
         }
     }
     
-    // MARK: - Polygon API Integration
+    // MARK: - RPC Integration
     
-    private func fetchTransactionReceipt(txHash: String) async throws -> PolygonTransactionReceipt {
-        // Build URL
-        var components = URLComponents(string: baseURL)!
-        components.queryItems = [
-            URLQueryItem(name: "module", value: "transaction"),
-            URLQueryItem(name: "action", value: "gettxreceiptstatus"),
-            URLQueryItem(name: "txhash", value: txHash),
-            URLQueryItem(name: "apikey", value: polygonApiKey)
-        ]
-        
-        guard let url = components.url else {
+    private func fetchTransactionReceipt(txHash: String) async throws -> RPCTransactionReceipt? {
+        guard let url = URL(string: rpcURL) else {
             throw PollingError.invalidURL
         }
         
+        // Create RPC request
+        let rpcRequest = RPCRequest(
+            method: "eth_getTransactionReceipt",
+            params: [txHash],
+            id: 1
+        )
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(rpcRequest)
+        
         // Make request
-        let (data, response) = try await urlSession.data(from: url)
+        let (data, response) = try await urlSession.data(for: request)
         
         // Check HTTP response
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -180,40 +186,54 @@ class TransactionPollingService: TransactionPollingProtocol {
         
         // Parse JSON
         let decoder = JSONDecoder()
-        let receipt = try decoder.decode(PolygonTransactionReceipt.self, from: data)
         
-        return receipt
+        // Parse RPC response - result can be null for pending transactions
+        let rpcResponse = try decoder.decode(RPCResponseOptional.self, from: data)
+        
+        if let error = rpcResponse.error {
+            throw PollingError.apiError(error.message)
+        }
+        
+        return rpcResponse.result
     }
     
     private func updateTransactionFromReceipt(
         _ transaction: Transaction, 
-        receipt: PolygonTransactionReceipt
-    ) async -> Transaction {
+        receipt: RPCTransactionReceipt
+    ) -> Transaction {
         let status: TransactionStatus
         
-        // Parse Polygon API status
-        if receipt.status == "1", let result = receipt.result {
-            // API success, check transaction status
-            if result.status == "1" {
+        // Parse RPC receipt status (0x0 = failed, 0x1 = success)
+        if let statusHex = receipt.status {
+            if statusHex == "0x1" {
                 status = .confirmed
             } else {
                 status = .failed
             }
-        } else if receipt.status == "0" {
-            // API returned error (transaction not found or pending)
-            status = .pending
         } else {
-            // Unknown status, keep as pending
+            // No status means transaction is still pending
             status = .pending
         }
         
+        // Convert hex values to decimal strings
+        let blockNumber = receipt.blockNumber.flatMap { hexToDecimal($0) }
+        let gasUsed = receipt.gasUsed.flatMap { hexToDecimal($0) }
+        let gasPrice = receipt.effectiveGasPrice.flatMap { hexToDecimal($0) }
+        
         return transaction.withUpdatedStatus(
             status: status,
-            blockNumber: receipt.result?.blockNumber,
-            gasUsed: receipt.result?.gasUsed,
-            gasPrice: receipt.result?.gasPrice,
+            blockNumber: blockNumber,
+            gasUsed: gasUsed,
+            gasPrice: gasPrice,
             lastPolledAt: Date()
         )
+    }
+    
+    /// Convert hex string to decimal string
+    private func hexToDecimal(_ hex: String) -> String? {
+        let cleanHex = hex.hasPrefix("0x") ? String(hex.dropFirst(2)) : hex
+        guard let decimal = UInt64(cleanHex, radix: 16) else { return nil }
+        return String(decimal)
     }
 }
 
@@ -240,6 +260,46 @@ enum PollingError: Error, LocalizedError {
             return "Failed to decode response: \(error.localizedDescription)"
         }
     }
+}
+
+// MARK: - RPC Data Structures
+
+struct RPCRequest: Codable {
+    let jsonrpc: String = "2.0"
+    let method: String
+    let params: [String]
+    let id: Int
+}
+
+struct RPCResponse<T: Codable>: Codable {
+    let jsonrpc: String
+    let id: Int
+    let result: T?
+    let error: RPCError?
+}
+
+struct RPCResponseOptional: Codable {
+    let jsonrpc: String
+    let id: Int
+    let result: RPCTransactionReceipt?
+    let error: RPCError?
+}
+
+struct RPCError: Codable {
+    let code: Int
+    let message: String
+}
+
+struct RPCTransactionReceipt: Codable {
+    let transactionHash: String
+    let blockNumber: String?
+    let gasUsed: String?
+    let effectiveGasPrice: String?
+    let status: String?
+    let blockHash: String?
+    let transactionIndex: String?
+    let from: String?
+    let to: String?
 }
 
 // MARK: - Mock Implementation for Testing

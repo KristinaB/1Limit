@@ -25,7 +25,6 @@ final class TransactionPollingTests: XCTestCase {
     @MainActor
     func setupRealPollingService() {
         realPollingService = TransactionPollingService(
-            polygonApiKey: "test-api-key",
             persistenceManager: mockPersistence,
             urlSession: .shared // Use shared session instead of custom mock
         )

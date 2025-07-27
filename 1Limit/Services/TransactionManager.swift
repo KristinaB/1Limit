@@ -62,14 +62,33 @@ class TransactionManager: ObservableObject {
         errorMessage = nil
         
         do {
-            let loadedTransactions = try await persistenceManager.loadTransactions()
-            transactions = loadedTransactions
+            // Check for mock data from environment (for UI tests)
+            if let mockJSON = ProcessInfo.processInfo.environment["MOCK_TRANSACTIONS_JSON"] {
+                print("🧪 Loading mock transactions from environment for UI tests")
+                let mockTransactions = try loadMockTransactions(from: mockJSON)
+                transactions = mockTransactions
+            } else {
+                let loadedTransactions = try await persistenceManager.loadTransactions()
+                transactions = loadedTransactions
+            }
         } catch {
             errorMessage = "Failed to load transactions: \(error.localizedDescription)"
             print("Error loading transactions: \(error)")
         }
         
         isLoading = false
+    }
+    
+    /// Load mock transactions from JSON string (for UI tests)
+    private func loadMockTransactions(from jsonString: String) throws -> [Transaction] {
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            throw NSError(domain: "TransactionManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid mock JSON string"])
+        }
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        return try decoder.decode([Transaction].self, from: jsonData)
     }
     
     /// Refresh transactions and restart polling

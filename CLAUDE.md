@@ -109,3 +109,7 @@ When creating commit messages, use lots of emojis including:
 - 🦄 Animals (🦄🐱🐶🐼🐨🐸🐧🦋🐝🦊🐺🐯🦁🐘🐙🦀🐬🐳🦈🦖🦕🐲)
 
 Example: "👩‍💻🦄 Fix wallet creation tests with sparkly new assertions! ✨🎯🐱"
+
+## Reminder Notes
+
+- ask me to run these
