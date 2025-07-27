@@ -43,8 +43,14 @@ class WalletLoader: ObservableObject {
     
     /// Load wallet based on current mode
     func loadWallet() async -> WalletData? {
-        isLoading = true
-        defer { isLoading = false }
+        await MainActor.run {
+            isLoading = true
+        }
+        defer { 
+            Task { @MainActor in
+                isLoading = false
+            }
+        }
         
         switch currentWalletMode {
         case .testWallet:
@@ -94,7 +100,9 @@ class WalletLoader: ObservableObject {
     /// Switch wallet mode and reload
     func switchWalletMode(to mode: WalletMode) async -> WalletData? {
         print("🔄 Switching wallet mode to: \(mode)")
-        currentWalletMode = mode
+        await MainActor.run {
+            currentWalletMode = mode
+        }
         return await loadWallet()
     }
     

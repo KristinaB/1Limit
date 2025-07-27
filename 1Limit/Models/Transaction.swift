@@ -182,7 +182,11 @@ struct Transaction: Identifiable, Codable {
         // Calculate to amount USD  
         let toPrice = priceService.getPrice(for: toToken)
         print("🔍 USD Calc - toToken: \(toToken), price: \(toPrice?.usdPrice ?? 0), amount: \(toAmount)")
-        if let toPrice = toPrice, let toDouble = Double(toAmount) {
+        
+        // Skip calculation if toAmount is invalid (e.g., "Calculating...")
+        if toAmount == "Calculating..." || toAmount.isEmpty {
+            print("⏭️ USD Calc - Skipping toAmount calculation (invalid value: \(toAmount))")
+        } else if let toPrice = toPrice, let toDouble = Double(toAmount) {
             toUSD = toDouble * toPrice.usdPrice
             print("✅ USD Calc - toUSD: \(toUSD ?? 0)")
         } else {
