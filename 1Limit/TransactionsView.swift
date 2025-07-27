@@ -24,11 +24,48 @@ struct TransactionsView: View {
                         Text("Filter Transactions")
                             .cardTitle()
                         
-                        HStack(spacing: 8) {
+                        HStack(spacing: 2) {
                             ForEach(filters, id: \.self) { filter in
-                                SmallButton(filter, style: selectedFilter == filter ? .primary : .secondary) {
+                                Button(action: {
                                     selectedFilter = filter
+                                }) {
+                                    Text(filter)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(selectedFilter == filter ? .primaryText : .secondaryText)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(selectedFilter == filter ? 
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.white.opacity(0.3),
+                                                            Color.white.opacity(0.15)
+                                                        ],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ) :
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.white.opacity(0.05),
+                                                            Color.clear
+                                                        ],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    )
+                                                )
+                                                .overlay(
+                                                    Capsule()
+                                                        .strokeBorder(
+                                                            Color.borderGray.opacity(0.3),
+                                                            lineWidth: 1
+                                                        )
+                                                )
+                                        )
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .frame(maxWidth: .infinity)
                             }
                         }
                     }
