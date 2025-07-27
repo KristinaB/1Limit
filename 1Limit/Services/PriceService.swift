@@ -61,9 +61,11 @@ class PriceService: ObservableObject {
     @Published var lastError: Error?
     
     private let baseURL = "https://api.1inch.dev/price/v1.1/137" // Polygon mainnet
-    private var apiKey: String? {
-        loadAPIKey()
-    }
+    private lazy var apiKey: String? = {
+        let key = loadAPIKey()
+        print("🔑 API Key loaded: \(key != nil ? "✅ Found" : "❌ Missing")")
+        return key
+    }()
     
     // Token addresses for Polygon 🌸
     private let tokenAddresses: [String: String] = [
@@ -139,20 +141,33 @@ class PriceService: ObservableObject {
     
     private func loadAPIKey() -> String? {
         // Try to load from app bundle first (for iOS app)
-        if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt"),
-           let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-           !content.isEmpty {
-            return content
+        if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt") {
+            print("🔍 Trying bundle path: \(path)")
+            if let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !content.isEmpty {
+                print("✅ Found API key in bundle")
+                return content
+            } else {
+                print("❌ Bundle file exists but content is empty or unreadable")
+            }
+        } else {
+            print("❌ api_keys.txt not found in app bundle")
         }
         
         // Try to load from config directory (fallback for development)
-        if let homeDir = NSHomeDirectory() as String?,
-           let configPath = URL(string: homeDir)?.appendingPathComponent("config/api_keys.txt").path,
-           let content = try? String(contentsOfFile: configPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-           !content.isEmpty {
-            return content
+        if let homeDir = NSHomeDirectory() as String? {
+            let configPath = "\(homeDir)/config/api_keys.txt"
+            print("🔍 Trying config path: \(configPath)")
+            if let content = try? String(contentsOfFile: configPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !content.isEmpty {
+                print("✅ Found API key in config directory")
+                return content
+            } else {
+                print("❌ Config file not found or empty")
+            }
         }
         
+        print("❌ No API key found in any location")
         return nil
     }
     
