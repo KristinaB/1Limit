@@ -17,7 +17,7 @@ struct LineChartWidget: Widget {
         }
         .configurationDisplayName("1Limit Line Chart")
         .description("Track WMATIC/USDC price with order execution history")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
 
@@ -27,8 +27,6 @@ struct LineChartEntryView: View {
 
     var body: some View {
         switch family {
-        case .systemSmall:
-            LineChartMediumWidgetView(entry: entry) // Use medium view since small was deleted
         case .systemMedium:
             LineChartMediumWidgetView(entry: entry)
         case .systemLarge:
@@ -39,7 +37,7 @@ struct LineChartEntryView: View {
     }
 }
 
-#Preview(as: .systemSmall) {
+#Preview(as: .systemMedium) {
     LineChartWidget()
 } timeline: {
     WidgetEntry(
