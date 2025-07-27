@@ -2,7 +2,7 @@
 //  OHLCWidget.swift
 //  1LimitWidget
 //
-//  OHLC candlestick chart widget 📊🦄
+//  OHLC widget implementation 📈✨
 //
 
 import WidgetKit
@@ -13,7 +13,7 @@ struct OHLCWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: OHLCProvider()) { entry in
-            OHLCWidgetEntryView(entry: entry)
+            OHLCEntryView(entry: entry)
         }
         .configurationDisplayName("1Limit Trading")
         .description("Monitor your limit orders and trading positions")
@@ -21,10 +21,10 @@ struct OHLCWidget: Widget {
     }
 }
 
-struct OHLCWidgetEntryView: View {
+struct OHLCEntryView: View {
     var entry: OHLCProvider.Entry
     @Environment(\.widgetFamily) var family
-    
+
     var body: some View {
         switch family {
         case .systemSmall:
@@ -34,7 +34,19 @@ struct OHLCWidgetEntryView: View {
         case .systemLarge:
             LargeOHLCWidgetView(entry: entry)
         default:
-            SmallOHLCWidgetView(entry: entry)
+            MediumOHLCWidgetView(entry: entry)
         }
     }
+}
+
+#Preview(as: .systemSmall) {
+    OHLCWidget()
+} timeline: {
+    WidgetEntry(
+        date: .now,
+        positions: samplePositions,
+        totalValue: 125.50,
+        priceData: samplePriceData,
+        chartData: sampleChartData
+    )
 }
