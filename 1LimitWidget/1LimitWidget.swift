@@ -106,14 +106,7 @@ struct SmallWidgetView: View {
     let entry: WidgetEntry
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("1Limit")
                         .font(.caption)
@@ -159,7 +152,13 @@ struct SmallWidgetView: View {
                 }
             }
             .padding(12)
-        }
+            .containerBackground(for: .widget) {
+                LinearGradient(
+                    colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
     }
 }
 
@@ -167,14 +166,7 @@ struct MediumWidgetView: View {
     let entry: WidgetEntry
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            
-            HStack(spacing: 16) {
+        HStack(spacing: 16) {
                 // Left side - Portfolio info
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -244,7 +236,13 @@ struct MediumWidgetView: View {
                 }
             }
             .padding(16)
-        }
+            .containerBackground(for: .widget) {
+                LinearGradient(
+                    colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
     }
 }
 
@@ -252,14 +250,7 @@ struct LargeWidgetView: View {
     let entry: WidgetEntry
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            
-            VStack(spacing: 16) {
+        VStack(spacing: 16) {
                 // Header
                 HStack {
                     VStack(alignment: .leading) {
@@ -326,7 +317,13 @@ struct LargeWidgetView: View {
                 Spacer()
             }
             .padding(16)
-        }
+            .containerBackground(for: .widget) {
+                LinearGradient(
+                    colors: [Color.black, Color(red: 0.1, green: 0.1, blue: 0.15)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
     }
 }
 
