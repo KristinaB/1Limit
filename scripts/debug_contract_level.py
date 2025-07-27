@@ -5,7 +5,7 @@ import json
 from web3 import Web3
 
 # Transaction details
-FAILED_TX_HASH = "0x14a0cda5e295672191e9538d00cb54de934c247b22cee5ab63f3b8775e284d5e"
+FAILED_TX_HASH = "0x5939651d78b17fd8d1a0cfca79c47cbe58c7d14f620cf76738fa5980526e8f16"
 RPC_URL = "https://polygon-bor-rpc.publicnode.com"
 ROUTER_V6 = "0x111111125421cA6dc452d289314280a0f8842A65"
 USDC_CONTRACT = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
