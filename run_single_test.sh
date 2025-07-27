@@ -43,18 +43,30 @@ else
         echo "$NAV_RESULT"
         echo "✅ Navigation Test completed"
     else
-        # Try unit tests
-        echo "🔬 Trying Unit Tests..."
-        UNIT_RESULT=$(xcodebuild test \
+        # Try TabBarIntegrationTests
+        echo "📱 Trying TabBarIntegrationTests..."
+        TAB_RESULT=$(xcodebuild test \
             -scheme 1Limit \
             -destination 'platform=iOS Simulator,name=iPhone 16' \
-            -only-testing:1LimitTests/TradeViewUnitTests/$TEST_NAME \
+            -only-testing:1LimitUITests/TabBarIntegrationTests/$TEST_NAME \
             2>&1 | xcpretty --test --color || true)
         
-        if echo "$UNIT_RESULT" | grep -q "Executed 1 test"; then
-            echo "$UNIT_RESULT"
-            echo "✅ Unit Test completed"
+        if echo "$TAB_RESULT" | grep -q "Executed 1 test"; then
+            echo "$TAB_RESULT"
+            echo "✅ TabBar Test completed"
         else
+            # Try unit tests
+            echo "🔬 Trying Unit Tests..."
+            UNIT_RESULT=$(xcodebuild test \
+                -scheme 1Limit \
+                -destination 'platform=iOS Simulator,name=iPhone 16' \
+                -only-testing:1LimitTests/TradeViewUnitTests/$TEST_NAME \
+                2>&1 | xcpretty --test --color || true)
+            
+            if echo "$UNIT_RESULT" | grep -q "Executed 1 test"; then
+                echo "$UNIT_RESULT"
+                echo "✅ Unit Test completed"
+            else
         echo "❌ Test '$TEST_NAME' not found in any test target"
     echo ""
     echo "Available ComprehensiveUITests:"
@@ -74,13 +86,18 @@ else
     echo "  - testChartModalNavigation"
     echo "  - testMemoryPressureDuringNavigation"
     echo ""
+    echo "Available TabBarIntegrationTests:"
+    echo "  - testTransactionsViewContentRendering"
+    echo "  - (check file for other tests)"
+    echo ""
     echo "Available Unit tests:"
     echo "  - testOrderCreationWithValidInputs"
     echo "  - testOrderPlacementValidInput"
     echo "  - testMockTransactionSubmitter"
     echo "  - testOrderEncoding"
     echo "  - testEIP712Signing"
-            exit 1
+                exit 1
+            fi
         fi
     fi
 fi
