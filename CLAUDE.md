@@ -22,6 +22,32 @@ xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simula
 xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build && xcrun simctl install booted build/Debug-iphonesimulator/1Limit.app
 ```
 
+## Fast Test Suite
+
+The project uses a bundled test approach for maximum speed (~60 seconds total):
+
+```bash
+# Run all bundled tests (FASTEST - recommended)
+./run_fast_tests.sh all
+
+# Run specific test bundles
+./run_fast_tests.sh navigation    # Tab navigation + content persistence
+./run_fast_tests.sh trade         # Trade form interactions + validation  
+./run_fast_tests.sh wallet        # Wallet creation flow testing
+./run_fast_tests.sh content       # UI content verification across all views
+./run_fast_tests.sh order         # Order creation + confirmation flows
+
+# Run individual bundled tests
+./run_single_test.sh testNavigationAndTabBarBundle BundledUITests
+./run_single_test.sh testTradeFormInteractionsBundle BundledUITests
+```
+
+**Test Architecture:**
+- Each bundle runs multiple related tests in a single app session
+- Avoids slow app startup/shutdown cycles between tests
+- Uses coordinate-based tapping to prevent accessibility errors
+- ~5x faster than individual test execution
+
 ## Project Architecture
 
 ### Core Architecture Pattern

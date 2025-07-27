@@ -23,7 +23,8 @@
       "Bash(./quick_test_docs.sh:*)",
       "Bash(true)",
       "Bash(timeout:*)",
-      "Bash(./run_single_test.sh:*)"
+      "Bash(./run_single_test.sh:*)",
+      "Bash(./run_fast_tests.sh:*)"
     ],
     "deny": []
   }

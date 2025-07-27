@@ -12,10 +12,7 @@ if [ $# -eq 0 ]; then
     echo "Example: $0 testAmountFieldInteraction TradeFormInteractionTests"
     echo ""
     echo "Available test suites:"
-    echo "  - ComprehensiveUITests"
-    echo "  - NavigationFlowTests"
-    echo "  - TabBarIntegrationTests"
-    echo "  - TradeFormInteractionTests"
+    echo "  - BundledUITests (FAST - recommended)"
     echo "  - TradeViewUnitTests"
     exit 1
 fi
@@ -36,25 +33,9 @@ run_test_in_suite() {
     local suite_name=""
 
     case $suite in
-        "ComprehensiveUITests")
-            target_path="1LimitUITests/ComprehensiveUITests"
-            suite_name="Comprehensive UI Tests"
-            ;;
-        "NavigationFlowTests")
-            target_path="1LimitUITests/NavigationFlowTests"
-            suite_name="Navigation Flow Tests"
-            ;;
-        "TabBarIntegrationTests")
-            target_path="1LimitUITests/TabBarIntegrationTests"
-            suite_name="TabBar Integration Tests"
-            ;;
-        "TradeFormInteractionTests")
-            target_path="1LimitUITests/TradeFormInteractionTests"
-            suite_name="Trade Form Interaction Tests"
-            ;;
-        "WalletFlowTests")
-            target_path="1LimitUITests/WalletFlowTests"
-            suite_name="Wallet Flow Tests"
+        "BundledUITests")
+            target_path="1LimitUITests/BundledUITests"
+            suite_name="Bundled UI Tests (Fast)"
             ;;
         "TradeViewUnitTests")
             target_path="1LimitTests/TradeViewUnitTests"
