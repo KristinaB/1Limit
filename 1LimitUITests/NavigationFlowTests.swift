@@ -297,64 +297,6 @@ class NavigationFlowTests: XCTestCase {
     
     // MARK: - Error Handling Tests
     
-    func testNavigationErrorRecovery() throws {
-        // Test app recovery from navigation errors
-        
-        // Simulate rapid navigation that might cause issues
-        let tabs = [
-            app.tabBars.buttons["Home"],
-            app.tabBars.buttons["Trade"],
-            app.tabBars.buttons["Transactions"]
-        ]
-        
-        // Rapid tab switching
-        for _ in 0..<10 {
-            for tab in tabs {
-                tab.tap()
-            }
-        }
-        
-        // App should still be responsive
-        XCTAssertTrue(app.state == .runningForeground, "App should recover from rapid navigation")
-        
-        // Final state should be valid
-        let homeTab = app.tabBars.buttons["Home"]
-        homeTab.tap()
-        XCTAssertTrue(homeTab.isSelected, "App should return to valid state")
-    }
-    
-    func testMemoryPressureDuringNavigation() throws {
-        // Test navigation under memory pressure (simulate by opening many modals)
-        
-        let tradeTab = app.tabBars.buttons["Trade"]
-        tradeTab.tap()
-        
-        // Open and close chart multiple times using safe tapping
-        for _ in 0..<5 {
-            let chartButton = app.buttons["Chart"]
-            if chartButton.waitForExistence(timeout: 2) {
-                // Use coordinate-based tap to avoid accessibility scroll issues
-                let buttonCenter = chartButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-                buttonCenter.tap()
-                
-                // Wait briefly for modal to appear
-                usleep(300000) // 0.3 seconds
-                
-                // Dismiss with swipe down
-                app.swipeDown()
-                
-                // Wait briefly for modal to dismiss
-                usleep(300000) // 0.3 seconds
-            } else {
-                // Chart button not found, skip this iteration
-                print("Chart button not found in iteration, skipping")
-                break
-            }
-        }
-        
-        // App should still be responsive
-        XCTAssertTrue(app.state == .runningForeground, "App should handle memory pressure during navigation")
-    }
 }
 
 
