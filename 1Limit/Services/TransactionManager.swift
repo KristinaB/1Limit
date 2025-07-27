@@ -75,14 +75,18 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 let loadedTransactions = try await persistenceManager.loadTransactions()
                 
                 // Fetch current prices for USD calculations
+                print("📊 Fetching prices for USD calculations...")
                 await priceService.fetchPrices()
+                print("📊 Price fetch completed. Available prices: \(await MainActor.run { priceService.prices.keys.joined(separator: ", ") })")
                 
                 // Calculate USD values for all transactions
                 var transactionsWithUSD: [Transaction] = []
+                print("💰 Starting USD calculations for \(loadedTransactions.count) transactions")
                 for transaction in loadedTransactions {
                     let updatedTransaction = await transaction.calculateUSDValues(using: priceService)
                     transactionsWithUSD.append(updatedTransaction)
                 }
+                print("💰 USD calculations completed")
                 
                 transactions = transactionsWithUSD
                 
