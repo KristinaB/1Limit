@@ -56,26 +56,66 @@ class QRCodeGenerator {
             cgContext.setFillColor(UIColor.white.cgColor)
             cgContext.fill(CGRect(origin: .zero, size: size))
             
-            // Draw the QR code in app blue color
-            cgContext.setFillColor(UIColor(red: 0.2, green: 0.4, blue: 0.9, alpha: 1).cgColor)
-            
-            // Convert QR code to mask and draw with app colors
+            // Draw the QR code directly
             guard let cgImage = qrImage.cgImage else { return }
             
-            // Create a mask from the QR code (black pixels become transparent)
-            cgContext.saveGState()
-            cgContext.translateBy(x: 0, y: size.height)
-            cgContext.scaleBy(x: 1, y: -1)
-            
-            // Draw the QR code as a mask
-            cgContext.clip(to: CGRect(origin: .zero, size: size), mask: cgImage)
-            cgContext.fill(CGRect(origin: .zero, size: size))
-            
-            cgContext.restoreGState()
+            // Create color filter to replace black with app blue
+            if let coloredImage = createColoredQRCode(from: cgImage, size: size) {
+                cgContext.draw(coloredImage, in: CGRect(origin: .zero, size: size))
+            }
             
             // Add app logo in center (optional)
             addCenterLogo(to: cgContext, size: size)
         }
+    }
+    
+    /// Create colored QR code by replacing black pixels with app blue
+    private func createColoredQRCode(from cgImage: CGImage, size: CGSize) -> CGImage? {
+        let width = Int(size.width)
+        let height = Int(size.height)
+        
+        // Create bitmap context
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        
+        // Draw original QR code
+        context.draw(cgImage, in: CGRect(origin: .zero, size: size))
+        
+        // Get pixel data
+        guard let data = context.data else { return nil }
+        let buffer = data.bindMemory(to: UInt8.self, capacity: width * height * 4)
+        
+        // Replace black pixels with app blue
+        let appBlueR: UInt8 = 51  // 0.2 * 255
+        let appBlueG: UInt8 = 102 // 0.4 * 255
+        let appBlueB: UInt8 = 229 // 0.9 * 255
+        
+        for y in 0..<height {
+            for x in 0..<width {
+                let pixelIndex = (y * width + x) * 4
+                
+                // Check if pixel is black (or dark)
+                let r = buffer[pixelIndex]
+                let g = buffer[pixelIndex + 1]
+                let b = buffer[pixelIndex + 2]
+                
+                if r < 128 && g < 128 && b < 128 { // Dark pixel
+                    buffer[pixelIndex] = appBlueR
+                    buffer[pixelIndex + 1] = appBlueG
+                    buffer[pixelIndex + 2] = appBlueB
+                    buffer[pixelIndex + 3] = 255 // Full alpha
+                }
+            }
+        }
+        
+        return context.makeImage()
     }
     
     /// Add a small logo in the center of the QR code
@@ -141,8 +181,14 @@ struct QRCodeView: View {
 #Preview {
     VStack(spacing: 20) {
         QRCodeView(text: "0x3f847d4390b5a2783ea4aed6887474de8ffffa95")
+            .frame(width: 200, height: 200)
         
         QRCodeView(text: "ethereum:0x3f847d4390b5a2783ea4aed6887474de8ffffa95?chainId=137")
+            .frame(width: 250, height: 250)
+        
+        Text("QR Code Test")
+            .font(.caption)
     }
     .padding()
+    .background(Color.gray.opacity(0.1))
 }
