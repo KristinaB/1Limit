@@ -10,6 +10,7 @@ import SwiftUI
 struct DebugView: View {
     @StateObject private var routerManager = RouterV6ManagerFactory.createProductionManager()
     @Environment(\.dismiss) private var dismiss
+    @State private var showingResetAlert = false
     
     var body: some View {
         NavigationView {
@@ -87,6 +88,11 @@ struct DebugView: View {
                                 executeTestTransaction()
                             }
                         }
+                        
+                        // Reset Application Button
+                        SecondaryButton("Reset Application", icon: "trash.circle.fill") {
+                            showingResetAlert = true
+                        }
                 
                         if !routerManager.executionLog.isEmpty {
                             AppCard {
@@ -134,12 +140,87 @@ struct DebugView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .alert("Reset Application", isPresented: $showingResetAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                resetApplication()
+            }
+        } message: {
+            Text("This will clear all app data including wallets, transactions, and settings. You will need to close and reopen the app to complete the reset.")
+        }
     }
     
     private func executeTestTransaction() {
         Task {
             await routerManager.executeTestTransaction()
         }
+    }
+    
+    private func resetApplication() {
+        Task {
+            await performReset()
+            
+            // Show alert asking user to restart app
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                let alert = UIAlertController(
+                    title: "Reset Complete",
+                    message: "All app data has been cleared. Please close and reopen the app to complete the reset.",
+                    preferredStyle: .alert
+                )
+                
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = windowScene.windows.first {
+                    window.rootViewController?.present(alert, animated: true)
+                }
+            }
+        }
+    }
+    
+    @MainActor
+    private func performReset() async {
+        print("🔄 Starting application reset...")
+        
+        // Clear stored wallet
+        do {
+            try await WalletGenerator.shared.clearStoredWallet()
+            print("✅ Cleared stored wallet")
+        } catch {
+            print("❌ Error clearing wallet: \(error)")
+        }
+        
+        // Clear all transactions
+        do {
+            let transactionManager = TransactionManagerFactory.createProduction()
+            await transactionManager.clearAllTransactions()
+            print("✅ Cleared all transactions")
+        } catch {
+            print("❌ Error clearing transactions: \(error)")
+        }
+        
+        // Clear UserDefaults
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            UserDefaults.standard.synchronize()
+            print("✅ Cleared UserDefaults")
+        }
+        
+        // Clear Documents directory files
+        let fileManager = FileManager.default
+        if let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            do {
+                let files = try fileManager.contentsOfDirectory(at: documentsPath, includingPropertiesForKeys: nil)
+                for file in files {
+                    try fileManager.removeItem(at: file)
+                }
+                print("✅ Cleared Documents directory")
+            } catch {
+                print("❌ Error clearing Documents directory: \(error)")
+            }
+        }
+        
+        print("🎉 Application reset complete!")
     }
     
     private func copyLogToClipboard() {
