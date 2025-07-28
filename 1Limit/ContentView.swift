@@ -68,14 +68,11 @@ struct ContentView: View {
     // MARK: - Private Methods
     
     private func checkWalletState() async {
-        // Check if any wallet exists (generated or test wallet is always available)
-        let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
+        // Check if a wallet is currently loaded/active (not just if one exists)
+        let currentWallet = await walletLoader.loadWallet()
+        hasWallet = currentWallet != nil
         
-        // Test wallet is always available as a fallback, so we always have a wallet option
-        // The "no wallet" state is when user hasn't selected any wallet mode yet
-        hasWallet = hasGeneratedWallet
-        
-        // Ensure we're on Home tab if no wallet exists
+        // Ensure we're on Home tab if no wallet is active
         if !hasWallet && selectedTab > 0 {
             selectedTab = 0
         }
