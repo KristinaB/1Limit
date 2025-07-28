@@ -80,35 +80,16 @@ struct ReceiveFundsView: View {
                   .font(.headline)
                   .foregroundColor(.primaryText)
                 
-                // QR Code placeholder (simple checkered pattern)
-                ZStack {
+                // QR Code with app design colors
+                QRCodeView(
+                  text: "ethereum:\(wallet.address)?chainId=137",
+                  size: CGSize(width: 200, height: 200)
+                )
+                .background(
                   RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white)
-                    .frame(width: 200, height: 200)
-                  
-                  // Simple QR-like pattern
-                  VStack(spacing: 4) {
-                    ForEach(0..<8, id: \.self) { row in
-                      HStack(spacing: 4) {
-                        ForEach(0..<8, id: \.self) { col in
-                          Rectangle()
-                            .fill((row + col) % 2 == 0 ? Color.black : Color.clear)
-                            .frame(width: 20, height: 20)
-                        }
-                      }
-                    }
-                  }
-                  
-                  // Overlay with wallet icon
-                  Circle()
-                    .fill(Color.primaryGradientStart)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                      Image(systemName: "wallet.pass.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                    )
-                }
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                )
                 
                 Text("Point your camera at this QR code")
                   .font(.caption)
