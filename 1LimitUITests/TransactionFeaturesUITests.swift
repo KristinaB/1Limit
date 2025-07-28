@@ -81,9 +81,23 @@ class TransactionFeaturesUITests: XCTestCase {
     // MARK: - Transaction List Tests
     
     private func testTransactionListDisplay() {
-        // Check if transactions view loads - transactions view intentionally has no title
+        // Load test wallet first to make Transactions tab available
+        let useTestWalletButton = app.buttons["Use Test Wallet"]
+        if useTestWalletButton.exists {
+            useTestWalletButton.tap()
+            usleep(1000000) // 1 second for wallet to load
+        }
+        
+        // Navigate to Transactions tab
         let transactionsTab = app.tabBars.buttons["Transactions"]
-        XCTAssertTrue(transactionsTab.isSelected, "Transactions tab should be selected")
+        if transactionsTab.exists {
+            transactionsTab.tap()
+            usleep(500000)
+            XCTAssertTrue(transactionsTab.isSelected, "Transactions tab should be selected")
+        } else {
+            XCTFail("Transactions tab should be available after wallet load")
+            return
+        }
         
         // Look for transaction-related elements
         let transactionElements = [

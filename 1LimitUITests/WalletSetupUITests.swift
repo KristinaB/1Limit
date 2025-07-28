@@ -90,9 +90,9 @@ class WalletSetupUITests: XCTestCase {
     // MARK: - Wallet Creation Flow Tests
     
     private func testWalletCreationInitiation() {
-        let createWalletButton = app.buttons["Create Wallet"]
-        XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
-        XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
+        let createWalletButton = app.buttons["Create New Wallet"]
+        XCTAssertTrue(createWalletButton.exists, "Create New Wallet button should exist")
+        XCTAssertTrue(createWalletButton.isHittable, "Create New Wallet button should be tappable")
         
         createWalletButton.tap()
         

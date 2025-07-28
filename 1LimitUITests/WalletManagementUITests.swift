@@ -65,15 +65,15 @@ class WalletManagementUITests: XCTestCase {
     private func testWalletButtonsExist() {
         // Test for wallet buttons in NO WALLET state
         let testWalletButton = app.buttons["Use Test Wallet"]
-        let createWalletButton = app.buttons["Create Wallet"]
-        let importWalletButton = app.buttons["Import Wallet"]
+        let createWalletButton = app.buttons["Create New Wallet"]
+        let importWalletButton = app.buttons["Import Existing Wallet"]
         
         XCTAssertTrue(testWalletButton.exists, "Use Test Wallet button should exist")
-        XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
-        XCTAssertTrue(importWalletButton.exists, "Import Wallet button should exist")
+        XCTAssertTrue(createWalletButton.exists, "Create New Wallet button should exist")
+        XCTAssertTrue(importWalletButton.exists, "Import Existing Wallet button should exist")
         XCTAssertTrue(testWalletButton.isHittable, "Use Test Wallet button should be tappable")
-        XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
-        XCTAssertTrue(importWalletButton.isHittable, "Import Wallet button should be tappable")
+        XCTAssertTrue(createWalletButton.isHittable, "Create New Wallet button should be tappable")
+        XCTAssertTrue(importWalletButton.isHittable, "Import Existing Wallet button should be tappable")
     }
     
     private func testLoadTestWallet() {
@@ -302,9 +302,9 @@ extension WalletManagementUITests {
     }
     
     private func testCreateWalletButton() {
-        let createWalletButton = app.buttons["Create Wallet"]
-        XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
-        XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
+        let createWalletButton = app.buttons["Create New Wallet"]
+        XCTAssertTrue(createWalletButton.exists, "Create New Wallet button should exist")
+        XCTAssertTrue(createWalletButton.isHittable, "Create New Wallet button should be tappable")
         
         createWalletButton.tap()
         
