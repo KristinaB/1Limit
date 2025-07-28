@@ -12,6 +12,7 @@ struct HomeView: View {
   @State private var showingWalletCreation = false
   @State private var showingDebug = false
   @State private var showingReceiveFunds = false
+  @State private var showingImportWallet = false
   
   // Wallet management state
   @StateObject private var walletLoader = WalletLoader.shared
@@ -112,7 +113,7 @@ struct HomeView: View {
 
           // Wallet management buttons
           VStack(spacing: 16) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
               SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
                 Task {
                   await cycleWalletMode()
@@ -121,6 +122,10 @@ struct HomeView: View {
               
               PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
                 showingWalletCreation = true
+              }
+              
+              SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
+                showingImportWallet = true
               }
             }
             
@@ -161,6 +166,13 @@ struct HomeView: View {
       if let wallet = currentWallet {
         ReceiveFundsView(wallet: wallet)
       }
+    }
+    .sheet(isPresented: $showingImportWallet) {
+      ImportWalletView(onComplete: {
+        Task {
+          await loadDefaultWallet()
+        }
+      })
     }
     .onAppear {
       Task {

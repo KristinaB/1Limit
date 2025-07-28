@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct BackupPhraseView: View {
   @Environment(\.dismiss) private var dismiss
@@ -24,6 +25,10 @@ struct BackupPhraseView: View {
   @State private var oldWalletAddress: String?
   @State private var showBalanceWarning = false
   @State private var oldWalletBalance: String = "$0.00"
+  
+  // Copy functionality state
+  @State private var mnemonicCopied = false
+  @State private var showCopyAlert = false
 
   private var recoveryWords: [String] {
     return generatedWallet?.mnemonic ?? []
@@ -133,6 +138,15 @@ struct BackupPhraseView: View {
                     }
                   }
                   
+                  // Copy mnemonic button
+                  SecondaryButton(
+                    "Copy Recovery Phrase",
+                    icon: mnemonicCopied ? "checkmark.circle.fill" : "doc.on.doc.fill"
+                  ) {
+                    copyMnemonicToClipboard()
+                  }
+                  .disabled(recoveryWords.isEmpty)
+                  
                   // New wallet address section
                   VStack(spacing: 12) {
                     HStack {
@@ -241,6 +255,11 @@ struct BackupPhraseView: View {
         Text("Creating a new wallet will replace your current wallet. Make sure you have backed up your current wallet or transferred your funds.")
       }
     }
+    .alert("Recovery Phrase Copied!", isPresented: $showCopyAlert) {
+      Button("OK") { }
+    } message: {
+      Text("Your 12-word recovery phrase has been copied to the clipboard. Store it safely!")
+    }
 
     if useStackNavigation {
       return AnyView(
@@ -339,6 +358,23 @@ struct BackupPhraseView: View {
 
       print("❌ Failed to save wallet: \(error)")
     }
+  }
+  
+  // MARK: - Copy Functionality
+  
+  private func copyMnemonicToClipboard() {
+    let mnemonicString = recoveryWords.joined(separator: " ")
+    UIPasteboard.general.string = mnemonicString
+    
+    mnemonicCopied = true
+    showCopyAlert = true
+    
+    // Reset the checkmark after 3 seconds
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+      mnemonicCopied = false
+    }
+    
+    print("📋 Mnemonic copied to clipboard: \(recoveryWords.count) words")
   }
 }
 

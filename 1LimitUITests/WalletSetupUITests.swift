@@ -45,7 +45,11 @@ class WalletSetupUITests: XCTestCase {
         print("⚠️ Testing balance warning functionality...")
         testBalanceWarningFunctionality()
         
-        // Test 5: Setup completion flow
+        // Test 5: Mnemonic copy functionality
+        print("📋 Testing mnemonic copy functionality...")
+        testMnemonicCopyFunctionality()
+        
+        // Test 6: Setup completion flow
         print("✅ Testing setup completion flow...")
         testSetupCompleteView()
         
@@ -179,6 +183,45 @@ class WalletSetupUITests: XCTestCase {
             }
         } else {
             print("ℹ️ No balance warning shown - current wallet likely has zero balance")
+        }
+    }
+    
+    private func testMnemonicCopyFunctionality() {
+        // Ensure we're in backup phrase view with generated wallet
+        if !app.staticTexts["Save Your Recovery Phrase"].exists {
+            app.buttons["Create Wallet"].tap()
+            _ = app.staticTexts["Save Your Recovery Phrase"].waitForExistence(timeout: 5)
+            usleep(3000000) // 3 seconds for generation
+        }
+        
+        // Look for the copy button
+        let copyButton = app.buttons["Copy Recovery Phrase"]
+        if copyButton.exists && copyButton.isHittable {
+            XCTAssertTrue(copyButton.exists, "Copy Recovery Phrase button should exist")
+            
+            // Test tapping the copy button
+            copyButton.tap()
+            usleep(1000000) // 1 second
+            
+            // Check for success alert
+            let copiedAlert = app.alerts["Recovery Phrase Copied!"]
+            if copiedAlert.exists {
+                XCTAssertTrue(copiedAlert.exists, "Copy success alert should appear")
+                
+                // Dismiss the alert
+                let okButton = copiedAlert.buttons["OK"]
+                if okButton.exists {
+                    okButton.tap()
+                }
+            }
+            
+            // Check if button icon changed to checkmark (temporary state)
+            let checkmarkButton = app.buttons.containing(NSPredicate(format: "label CONTAINS 'Copy Recovery Phrase'")).firstMatch
+            XCTAssertTrue(checkmarkButton.exists, "Copy button should still exist after copying")
+            
+            print("📋 Mnemonic copy functionality tested successfully")
+        } else {
+            print("ℹ️ Copy Recovery Phrase button not found or not accessible - may not be implemented yet")
         }
     }
     

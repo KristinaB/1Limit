@@ -124,6 +124,64 @@ class WalletGenerator: ObservableObject {
         }
     }
     
+    /// Import wallet from existing BIP39 mnemonic phrase
+    func importWalletFromMnemonic(_ mnemonicWords: [String]) async throws -> GeneratedWallet {
+        isGenerating = true
+        lastError = nil
+        
+        defer { isGenerating = false }
+        
+        do {
+            print("📥 Importing wallet from mnemonic...")
+            
+            // Validate mnemonic
+            guard mnemonicWords.count == 12 else {
+                throw WalletGenerationError.invalidMnemonic
+            }
+            
+            let mnemonicString = mnemonicWords.joined(separator: " ")
+            
+            // Validate BIP39 mnemonic
+            guard BIP39.mnemonicsToEntropy(mnemonicString) != nil else {
+                throw WalletGenerationError.invalidMnemonic
+            }
+            
+            print("✅ Valid 12-word BIP39 mnemonic")
+            
+            // Derive wallet from mnemonic
+            guard let keystore = try? BIP32Keystore(mnemonics: mnemonicString, password: "", mnemonicsPassword: ""),
+                  let ethereumAddress = keystore.addresses?.first,
+                  let privateKeyData = try? keystore.UNSAFE_getPrivateKeyData(password: "", account: ethereumAddress) else {
+                throw WalletGenerationError.keyDerivationFailed
+            }
+            
+            let address = ethereumAddress.address
+            let privateKey = "0x" + privateKeyData.toHexString()
+            let publicKey = try derivePublicKey(from: privateKeyData)
+            
+            print("🔑 Imported wallet address: \(maskAddress(address))")
+            
+            let importedWallet = GeneratedWallet(
+                mnemonic: mnemonicWords,
+                address: address,
+                privateKey: privateKey,
+                publicKey: publicKey,
+                createdAt: Date()
+            )
+            
+            return importedWallet
+            
+        } catch let error as WalletGenerationError {
+            lastError = error
+            throw error
+        } catch {
+            print("❌ Wallet import failed: \(error)")
+            let walletError = WalletGenerationError.invalidMnemonic
+            lastError = walletError
+            throw walletError
+        }
+    }
+    
     /// Securely store wallet in iOS keychain
     func storeWalletSecurely(_ wallet: GeneratedWallet, requireBiometric: Bool = true) async throws {
         print("🔒 Storing wallet securely in keychain...")

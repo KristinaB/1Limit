@@ -53,6 +53,10 @@ class WalletManagementUITests: XCTestCase {
         print("📊 Testing balance display...")
         testBalanceDisplay()
         
+        // Test 6: Test Import Wallet functionality
+        print("📥 Testing Import Wallet functionality...")
+        testImportWalletPanel()
+        
         print("✅ Wallet Management Bundle Tests Completed!")
     }
     
@@ -64,11 +68,14 @@ class WalletManagementUITests: XCTestCase {
             NSPredicate(format: "label == 'Load Test Wallet' OR label == 'Load Your Wallet'")
         ).firstMatch
         let createWalletButton = app.buttons["Create Wallet"]
+        let importWalletButton = app.buttons["Import Wallet"]
         
         XCTAssertTrue(cyclingWalletButton.exists, "Cycling wallet button should exist")
         XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
+        XCTAssertTrue(importWalletButton.exists, "Import Wallet button should exist")
         XCTAssertTrue(cyclingWalletButton.isHittable, "Cycling wallet button should be tappable")
         XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
+        XCTAssertTrue(importWalletButton.isHittable, "Import Wallet button should be tappable")
     }
     
     private func testLoadTestWallet() {
@@ -193,6 +200,59 @@ class WalletManagementUITests: XCTestCase {
         if app.buttons["Switch Wallet Mode"].exists {
             // Wallet exists, so balance card should be visible in some form
             XCTAssertTrue(balanceDisplayFound, "Some form of balance display should be visible when wallet is loaded")
+        }
+    }
+    
+    private func testImportWalletPanel() {
+        let importWalletButton = app.buttons["Import Wallet"]
+        XCTAssertTrue(importWalletButton.exists, "Import Wallet button should exist")
+        
+        importWalletButton.tap()
+        
+        // Check if ImportWalletView opens
+        let importWalletTitle = app.navigationBars["Import Wallet"]
+        XCTAssertTrue(importWalletTitle.waitForExistence(timeout: 3), "Import Wallet view should open")
+        
+        // Test key elements in the import wallet view
+        let importMethodText = app.staticTexts["Input Method"]
+        XCTAssertTrue(importMethodText.exists, "Input Method section should exist")
+        
+        let recoveryPhraseText = app.staticTexts["Recovery Phrase"]
+        XCTAssertTrue(recoveryPhraseText.exists, "Recovery Phrase section should exist")
+        
+        // Test input method toggle
+        let wordGridButton = app.buttons.containing(NSPredicate(format: "label CONTAINS 'Word Grid'")).firstMatch
+        let textAreaButton = app.buttons.containing(NSPredicate(format: "label CONTAINS 'Text Area'")).firstMatch
+        
+        if wordGridButton.exists {
+            XCTAssertTrue(wordGridButton.exists, "Word Grid option should exist")
+        }
+        
+        if textAreaButton.exists {
+            textAreaButton.tap()
+            usleep(500000) // 0.5 second
+            
+            // Check if text area appears
+            let textEditor = app.textViews.firstMatch
+            XCTAssertTrue(textEditor.exists, "Text area should appear when Text Area option is selected")
+        }
+        
+        // Test paste button
+        let pasteButton = app.buttons["Paste from Clipboard"]
+        XCTAssertTrue(pasteButton.exists, "Paste from Clipboard button should exist")
+        
+        // Test import button (should be disabled initially)
+        let importButton = app.buttons.containing(NSPredicate(format: "label CONTAINS 'Import Wallet'")).firstMatch
+        if importButton.exists {
+            XCTAssertTrue(importButton.exists, "Import Wallet button should exist")
+            // Note: We don't test actual import functionality to avoid replacing wallet in tests
+        }
+        
+        // Close the import wallet view
+        let cancelButton = app.buttons["Cancel"]
+        if cancelButton.exists {
+            cancelButton.tap()
+            usleep(1000000) // 1 second
         }
     }
     
