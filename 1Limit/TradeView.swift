@@ -66,8 +66,6 @@ struct TradeView: View {
             orderPreviewView
 
             createOrderButton
-
-            orderDetailsView
           }
           .padding()
         }
@@ -329,17 +327,6 @@ struct TradeView: View {
     }
   }
 
-  private var orderDetailsView: some View {
-    InfoCard(
-      title: "Order Details",
-      items: [
-        ("Order Type", "Limit Order", nil),
-        ("Router Version", "V6", nil),
-        ("Network", "Polygon", nil),
-        ("Expiry", "30 minutes", nil),
-      ]
-    )
-  }
 
   private var createOrderButton: some View {
     PrimaryButton("Create Limit Order", icon: "plus.circle") {

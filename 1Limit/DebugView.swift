@@ -185,7 +185,9 @@ struct DebugView: View {
         do {
             let transactionManager = TransactionManagerFactory.createProduction()
             await transactionManager.clearAllTransactions()
-            print("✅ Cleared all transactions")
+            // Reset the shared instance so views get fresh data
+            TransactionManagerFactory.resetSharedInstance()
+            print("✅ Cleared all transactions and reset shared instance")
         } catch {
             print("❌ Error clearing transactions: \(error)")
         }

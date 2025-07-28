@@ -256,7 +256,14 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
 /// Factory for creating TransactionManager instances
 class TransactionManagerFactory {
     
+    // Shared singleton instance for production use
+    @MainActor private static var _sharedInstance: TransactionManager?
+    
     @MainActor static func createProduction() -> TransactionManager {
+        if let existing = _sharedInstance {
+            return existing
+        }
+        
         let persistenceManager = TransactionPersistenceManager()
         let priceService = PriceService.shared
         let pollingService = TransactionPollingService(
@@ -264,11 +271,19 @@ class TransactionManagerFactory {
             priceService: priceService
         )
         
-        return TransactionManager(
+        let manager = TransactionManager(
             persistenceManager: persistenceManager,
             pollingService: pollingService,
             priceService: priceService
         )
+        
+        _sharedInstance = manager
+        return manager
+    }
+    
+    /// Reset the shared instance (for testing/debug purposes)
+    @MainActor static func resetSharedInstance() {
+        _sharedInstance = nil
     }
     
     @MainActor static func createTest() -> TransactionManager {

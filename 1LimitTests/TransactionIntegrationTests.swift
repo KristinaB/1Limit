@@ -316,6 +316,61 @@ final class TransactionIntegrationTests: XCTestCase {
         XCTAssertNotNil(testManager)
     }
     
+    @MainActor
+    func testTransactionManagerSingletonBehavior() {
+        // Reset shared instance to start fresh
+        TransactionManagerFactory.resetSharedInstance()
+        
+        // Test: Multiple calls to createProduction should return the same instance
+        let manager1 = TransactionManagerFactory.createProduction()
+        let manager2 = TransactionManagerFactory.createProduction()
+        let manager3 = TransactionManagerFactory.createProduction()
+        
+        // Verify all references point to the same object
+        XCTAssertTrue(manager1 === manager2, "createProduction() should return the same singleton instance")
+        XCTAssertTrue(manager2 === manager3, "createProduction() should return the same singleton instance")
+        XCTAssertTrue(manager1 === manager3, "createProduction() should return the same singleton instance")
+        
+        // Test: After reset, should get a new instance
+        TransactionManagerFactory.resetSharedInstance()
+        let manager4 = TransactionManagerFactory.createProduction()
+        
+        // Should be a different instance after reset
+        XCTAssertFalse(manager1 === manager4, "After reset, should create a new singleton instance")
+        
+        // But subsequent calls should still return the same new instance
+        let manager5 = TransactionManagerFactory.createProduction()
+        XCTAssertTrue(manager4 === manager5, "After reset, subsequent calls should return the same new instance")
+    }
+    
+    @MainActor
+    func testTransactionSharingBetweenComponents() {
+        // Reset to start fresh
+        TransactionManagerFactory.resetSharedInstance()
+        
+        // Simulate what RouterV6Manager and TransactionsView do
+        let routerManager = TransactionManagerFactory.createProduction()
+        let transactionsViewManager = TransactionManagerFactory.createProduction()
+        
+        // Should be the same instance
+        XCTAssertTrue(routerManager === transactionsViewManager, 
+                     "RouterV6Manager and TransactionsView should share the same TransactionManager instance")
+        
+        // Test: Adding transaction to one should be visible in the other
+        let testTransaction = createTestTransaction(fromAmount: "50.0")
+        
+        // Add transaction via "RouterV6Manager" instance
+        routerManager.addTransaction(testTransaction)
+        
+        // Should be immediately visible in "TransactionsView" instance
+        XCTAssertEqual(transactionsViewManager.transactions.count, 1, 
+                      "Transaction added via RouterV6Manager should be immediately visible in TransactionsView")
+        XCTAssertEqual(transactionsViewManager.transactions.first?.fromAmount, "50.0",
+                      "Transaction data should match what was added")
+        XCTAssertTrue(transactionsViewManager.transactions.first?.id == testTransaction.id,
+                     "Should be the exact same transaction object")
+    }
+    
     // MARK: - Helper Methods
     
     private func createTestTransaction(
