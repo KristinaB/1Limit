@@ -101,42 +101,47 @@ struct HomeView: View {
           }
           .padding(.top, 20)
 
-          // Wallet balance display
-          if let currentWallet = currentWallet {
+          // Show different content based on wallet state
+          if currentWallet == nil {
+            // No wallet state
+            NoWalletView(
+              showingWalletCreation: $showingWalletCreation,
+              showingImportWallet: $showingImportWallet,
+              onTestWalletSelected: {
+                await loadTestWallet()
+              }
+            )
+          } else {
+            // Wallet exists - show balance and management options
             WalletBalanceCard(
-              wallet: currentWallet,
+              wallet: currentWallet!,
               balanceSummary: balanceService.currentBalance,
               isLoading: balanceService.isLoading
             )
-          }
+            
+            // Wallet management buttons
+            VStack(spacing: 16) {
+              HStack(spacing: 8) {
+                PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
+                  showingWalletCreation = true
+                }
 
-          // Wallet management buttons
-          VStack(spacing: 16) {
+                SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
+                  showingImportWallet = true
+                }
 
-            HStack(spacing: 8) {
-
-              PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
-                showingWalletCreation = true
-              }
-
-              SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
-                showingImportWallet = true
-              }
-
-              SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
-                Task {
-                  await cycleWalletMode()
+                SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
+                  Task {
+                    await cycleWalletMode()
+                  }
                 }
               }
-
-            }
-            HStack(spacing: 8) {
-              if currentWallet != nil {
+              
+              HStack(spacing: 8) {
                 PrimaryButton("Add", icon: "plus.circle") {
                   showingReceiveFunds = true
                 }
-              }
-              if currentWallet != nil {
+                
                 PrimaryButton("Send", icon: "minus.circle") {
                   showingReceiveFunds = true
                 }
@@ -166,6 +171,11 @@ struct HomeView: View {
     .toolbarBackground(Color.appBackground, for: .navigationBar)
     .sheet(isPresented: $showingWalletCreation) {
       WalletSetupFlow(selectedTab: $selectedTab)
+        .onDisappear {
+          Task {
+            await loadDefaultWallet()
+          }
+        }
     }
     .sheet(isPresented: $showingDebug) {
       DebugView()
@@ -194,18 +204,33 @@ struct HomeView: View {
   private func loadDefaultWallet() async {
     isLoadingWallet = true
 
-    // Check if generated wallet exists, otherwise load test wallet
+    // Check if generated wallet exists
     if await walletLoader.hasGeneratedWallet() {
       currentWallet = await walletLoader.switchWalletMode(to: .generatedWallet)
+      
+      if let wallet = currentWallet {
+        await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
+        balanceService.startAutoRefresh(for: wallet.address)
+      }
     } else {
-      currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
+      // No wallet - start with nil
+      currentWallet = nil
     }
 
+    isLoadingWallet = false
+  }
+  
+  private func loadTestWallet() async {
+    isLoadingWallet = true
+    balanceService.stopAutoRefresh()
+    
+    currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
+    
     if let wallet = currentWallet {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
-
+    
     isLoadingWallet = false
   }
 

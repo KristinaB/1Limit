@@ -15,25 +15,62 @@ struct TradeView: View {
   @State private var showingChart = false
   @State private var showOrderConfirmation = false
   @StateObject private var priceService = PriceService.shared
+  @StateObject private var walletLoader = WalletLoader.shared
+  @State private var currentWallet: WalletData?
 
   var body: some View {
     ZStack {
       Color.appBackground
         .ignoresSafeArea()
 
-      ScrollView {
+      if currentWallet == nil {
+        // No wallet state
         VStack(spacing: 24) {
-          headerView
-
-          orderFormView
-
-          orderPreviewView
-
-          createOrderButton
-
-          orderDetailsView
+          Spacer()
+          
+          AppCard {
+            VStack(spacing: 20) {
+              Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 50))
+                .foregroundColor(.warningOrange)
+              
+              Text("Wallet Required")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.primaryText)
+              
+              Text("You need to create, import, or use a test wallet before you can start trading.")
+                .secondaryText()
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+              
+              Text("Please go to the Home tab to set up your wallet.")
+                .captionText()
+                .foregroundColor(.tertiaryText)
+                .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 8)
+          }
+          
+          Spacer()
         }
         .padding()
+      } else {
+        // Normal trading interface
+        ScrollView {
+          VStack(spacing: 24) {
+            headerView
+
+            orderFormView
+
+            orderPreviewView
+
+            createOrderButton
+
+            orderDetailsView
+          }
+          .padding()
+        }
       }
     }
     .navigationTitle("Trade")
@@ -53,8 +90,20 @@ struct TradeView: View {
     }
     .onAppear {
       Task {
-        await priceService.fetchPrices()
-        updateLimitPriceToMarket()
+        // Load wallet state
+        currentWallet = await walletLoader.loadWallet()
+        
+        // Only fetch prices if wallet exists
+        if currentWallet != nil {
+          await priceService.fetchPrices()
+          updateLimitPriceToMarket()
+        }
+      }
+    }
+    .onChange(of: walletLoader.currentWalletMode) {
+      Task {
+        // Update wallet when mode changes
+        currentWallet = await walletLoader.loadWallet()
       }
     }
   }
