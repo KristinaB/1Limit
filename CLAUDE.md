@@ -81,6 +81,34 @@ The app uses a dependency injection pattern with protocol-based architecture for
 - **EIP712SignerWeb3**: EIP-712 signing implementation for Router V6 orders
 - **RouterV6Protocols**: Protocol definitions for all services
 
+### Wallet Management & Tab Visibility Features
+
+#### No-Wallet Initialization State
+The app implements a progressive disclosure pattern for wallet functionality:
+
+- **Initial State**: App starts with no active wallet, showing only the Home tab
+- **Wallet Selection**: Users must explicitly choose to create, import, or use test wallet
+- **Tab Activation**: Trade and Transactions tabs only appear after wallet activation
+- **Reset Behavior**: Debug reset returns to no-wallet state, hiding additional tabs
+
+#### Wallet State Management
+- **ContentView.swift**: Manages dynamic tab visibility based on `hasWallet` state
+- **HomeView.swift**: Handles wallet loading/switching with callback notifications
+- **NoWalletView.swift**: Provides wallet selection interface (Create/Import/Test)
+- **DebugView.swift**: Reset functionality that clears wallet state and returns to Home
+
+#### Wallet Options
+1. **Create New Wallet**: Generate new wallet with recovery phrase backup
+2. **Import Existing Wallet**: Import from recovery phrase (12-word mnemonic)
+3. **Use Test Wallet**: Load pre-configured test wallet for development/demo
+4. **Wallet Reset**: Clear active wallet and return to selection state
+
+#### Transaction Management Integration
+- Transactions appear immediately in pending state after creation
+- Polling service updates transaction status (1-second intervals for 1 minute)
+- Transaction history only accessible when wallet is active
+- Reset clears transaction state along with wallet data
+
 ### Dependencies (Swift Package Manager)
 - **web3swift** (3.3.0): Ethereum blockchain interaction and smart contract calls
 - **BigInt** (5.4.1): Large number arithmetic for blockchain values and gas calculations
@@ -144,6 +172,32 @@ python3 scripts/check_wallet_balances.py
 ls -la logs/ | tail -5
 tail -50 logs/1limit_debug_$(date +%Y-%m-%d)*.log
 ```
+
+## Testing Strategy
+
+### Wallet State Testing
+Tests must account for the progressive wallet activation model:
+
+- **Initial State**: Tests expect only Home tab visible, no wallet buttons active
+- **After Wallet Load**: Tests expect all tabs visible, wallet-specific buttons available
+- **After Reset**: Tests expect return to initial no-wallet state
+
+### Common Test Patterns
+```swift
+// Check if wallet is already active before testing wallet creation buttons
+let activeWalletText = app.staticTexts["Active Wallet"]
+if !activeWalletText.exists {
+    // Test wallet creation buttons
+} else {
+    // Skip wallet creation tests, wallet already active
+}
+```
+
+### Test Environment Considerations
+- Tests may run in environments where wallets persist between runs
+- Use conditional logic to handle both fresh and wallet-active states
+- Bundled tests are more reliable than individual test execution
+- Reset functionality should be tested to ensure proper state cleanup
 
 ## Reminder Notes
 

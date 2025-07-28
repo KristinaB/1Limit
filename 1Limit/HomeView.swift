@@ -194,9 +194,9 @@ struct HomeView: View {
       })
     }
     .onAppear {
-      Task {
-        await loadDefaultWallet()
-      }
+      // Don't automatically load wallet on appear
+      // Let user explicitly choose which wallet to use
+      // This ensures proper "no wallet" initial state
     }
   }
 

@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @StateObject private var walletLoader = WalletLoader.shared
     @State private var hasWallet = false
+    @State private var hasCheckedInitialState = false
     
     var body: some View {
         NavigationView {
@@ -68,12 +69,15 @@ struct ContentView: View {
     // MARK: - Private Methods
     
     private func checkWalletState() async {
-        // Check if a wallet is currently loaded/active (not just if one exists)
-        let currentWallet = await walletLoader.loadWallet()
-        hasWallet = currentWallet != nil
+        guard !hasCheckedInitialState else { return }
+        hasCheckedInitialState = true
         
-        // Ensure we're on Home tab if no wallet is active
-        if !hasWallet && selectedTab > 0 {
+        // Start with no wallet - tabs should only appear after user explicitly loads one
+        // This ensures proper "no wallet" state on app launch
+        hasWallet = false
+        
+        // Ensure we start on Home tab
+        if selectedTab > 0 {
             selectedTab = 0
         }
     }
