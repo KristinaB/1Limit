@@ -146,7 +146,7 @@ struct DebugView: View {
                 resetApplication()
             }
         } message: {
-            Text("This will clear all app data including wallets, transactions, and settings. You will need to close and reopen the app to complete the reset.")
+            Text("This will clear all app data including wallets, transactions, and settings. The app will automatically close after the reset.")
         }
     }
     
@@ -160,20 +160,33 @@ struct DebugView: View {
         Task {
             await performReset()
             
-            // Show alert asking user to restart app
+            // Show brief completion message and close app
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 let alert = UIAlertController(
                     title: "Reset Complete",
-                    message: "All app data has been cleared. Please close and reopen the app to complete the reset.",
+                    message: "All app data has been cleared. The app will now close. Please reopen it to continue.",
                     preferredStyle: .alert
                 )
                 
-                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+                    // Close the app
+                    self.closeApp()
+                })
                 
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                    let window = windowScene.windows.first {
                     window.rootViewController?.present(alert, animated: true)
                 }
+            }
+        }
+    }
+    
+    private func closeApp() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Gracefully terminate the app
+            UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                exit(0)
             }
         }
     }
