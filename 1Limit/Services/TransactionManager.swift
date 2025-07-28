@@ -88,10 +88,8 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 }
                 print("💰 USD calculations completed")
                 
-                // Update the @Published property on main actor to trigger UI refresh
-                await MainActor.run {
-                    self.transactions = transactionsWithUSD
-                }
+                // Update the @Published property
+                self.transactions = transactionsWithUSD
                 
                 // Update persistence with USD values
                 for transaction in transactionsWithUSD {
@@ -224,7 +222,7 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
     // MARK: - Private Methods
     
     /// Handle transaction updates from polling service
-    private func handleTransactionUpdate(_ updatedTransaction: Transaction) {
+    func handleTransactionUpdate(_ updatedTransaction: Transaction) {
         // Find and update the transaction in our array
         if let index = transactions.firstIndex(where: { $0.id == updatedTransaction.id }) {
             transactions[index] = updatedTransaction
@@ -276,10 +274,12 @@ class TransactionManagerFactory {
     @MainActor static func createTest() -> TransactionManager {
         let mockPersistence = MockTransactionPersistenceManager()
         let mockPolling = MockTransactionPollingService()
+        let mockPriceService = MockPriceService()
         
         return TransactionManager(
             persistenceManager: mockPersistence,
-            pollingService: mockPolling
+            pollingService: mockPolling,
+            priceService: mockPriceService
         )
     }
 }

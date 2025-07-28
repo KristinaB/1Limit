@@ -269,3 +269,26 @@ enum PriceServiceError: LocalizedError {
 extension PriceService {
     static let shared = PriceService()
 }
+
+// MARK: - Mock Implementation for Testing
+
+/// Mock price service for unit tests
+class MockPriceService: PriceService {
+    override init() {
+        super.init()
+        // Set default mock prices
+        self.prices = [
+            "WMATIC": TokenPrice(symbol: "WMATIC", usdPrice: 0.5, lastUpdated: Date()),
+            "USDC": TokenPrice(symbol: "USDC", usdPrice: 1.0, lastUpdated: Date())
+        ]
+    }
+    
+    override func fetchPrices() async {
+        // Do nothing - use preset prices
+        isLoading = false
+    }
+    
+    override func getPrice(for symbol: String) -> TokenPrice? {
+        return prices[symbol]
+    }
+}

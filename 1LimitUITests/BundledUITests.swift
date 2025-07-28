@@ -321,12 +321,12 @@ class BundledUITests: XCTestCase {
     }
 
     let createLimitOrderText = app.staticTexts["Create Limit Order"]
-    let spendingSection = app.staticTexts["Spending"]
-    let buyingSection = app.staticTexts["Buying"]
+    let fromSection = app.staticTexts["From"]
+    let toSection = app.staticTexts["To"]
 
     XCTAssertTrue(createLimitOrderText.exists, "Create Limit Order title should be visible")
-    XCTAssertTrue(spendingSection.exists, "Spending section should be visible")
-    XCTAssertTrue(buyingSection.exists, "Buying section should be visible")
+    XCTAssertTrue(fromSection.exists, "From section should be visible")
+    XCTAssertTrue(toSection.exists, "To section should be visible")
 
     // Test 3: Transactions view content
     print("📋 Testing transactions view content...")
@@ -338,12 +338,12 @@ class BundledUITests: XCTestCase {
       usleep(500000)
     }
 
-    let filterTitle = app.staticTexts["Filter Transactions"]
+    let filterTitle = app.staticTexts["Transaction History"]
     let allFilter = app.buttons["All"]
     let pendingFilter = app.buttons["Pending"]
     let filledFilter = app.buttons["Confirmed"]
 
-    XCTAssertTrue(filterTitle.exists, "Filter Transactions title should be visible")
+    XCTAssertTrue(filterTitle.exists, "Transaction History title should be visible")
     XCTAssertTrue(allFilter.exists, "All filter button should be present")
     XCTAssertTrue(pendingFilter.exists, "Pending filter button should be present")
     XCTAssertTrue(filledFilter.exists, "Confirmed filter button should be present")

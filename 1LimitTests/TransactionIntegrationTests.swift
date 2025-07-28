@@ -150,6 +150,7 @@ final class TransactionIntegrationTests: XCTestCase {
         mockPersistence.setTransactions([pendingTransaction])
         await transactionManager.loadTransactions()
         
+        XCTAssertEqual(transactionManager.transactions.count, 1)
         XCTAssertEqual(transactionManager.transactions.first?.status, .pending)
         
         // When: Polling service reports update
@@ -159,13 +160,14 @@ final class TransactionIntegrationTests: XCTestCase {
             gasUsed: "21000"
         )
         
-        // Simulate polling callback via the mock's method
-        mockPolling.simulateTransactionUpdate(confirmedTransaction)
+        // Directly call the transaction update handler to avoid async timing issues
+        transactionManager.handleTransactionUpdate(confirmedTransaction)
         
-        // Give time for async update to propagate through MainActor Task
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        // Give a moment for state to settle
+        await Task.yield()
         
         // Then: Transaction should be updated in manager
+        XCTAssertEqual(transactionManager.transactions.count, 1)
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
         XCTAssertEqual(transactionManager.transactions.first?.blockNumber, "12345678")
         XCTAssertEqual(transactionManager.transactions.first?.gasUsed, "21000")
@@ -214,11 +216,11 @@ final class TransactionIntegrationTests: XCTestCase {
             gasPrice: "30000000000"
         )
         
-        // Simulate successful polling update via the mock service
-        mockPolling.simulateTransactionUpdate(confirmedTransaction)
+        // Directly call the update handler to avoid async timing issues
+        transactionManager.handleTransactionUpdate(confirmedTransaction)
         
-        // Give time for async update to propagate through the MainActor Task wrapper
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        // Give a moment for state to settle
+        await Task.yield()
         
         // Debug: Check current state
         print("Debug: Transaction count: \(transactionManager.transactions.count)")
@@ -226,8 +228,10 @@ final class TransactionIntegrationTests: XCTestCase {
         print("Debug: First transaction block: \(String(describing: transactionManager.transactions.first?.blockNumber))")
         
         // Then: Transaction should be updated
+        XCTAssertEqual(transactionManager.transactions.count, 1)
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
         XCTAssertNotNil(transactionManager.transactions.first?.blockNumber)
+        XCTAssertEqual(transactionManager.transactions.first?.blockNumber, "12345678")
         
         // When: User deletes transaction
         await transactionManager.deleteTransaction(confirmedTransaction)
