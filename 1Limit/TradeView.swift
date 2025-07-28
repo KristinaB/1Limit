@@ -158,7 +158,7 @@ struct TradeView: View {
       // Currency selection with swap button
       VStack(spacing: 12) {
         // Spending currency
-        InputCard(title: "Spending") {
+        InputCard(title: "From") {
           VStack(spacing: 12) {
             HStack(spacing: 12) {
               AppPicker(
@@ -169,15 +169,16 @@ struct TradeView: View {
                 ]
               )
             }
+          }
+        }
 
-            // USD price display
-            if let fromPrice = priceService.getPrice(for: fromToken) {
-              HStack {
-                Text("\(fromToken): \(fromPrice.formattedPrice)")
-                  .captionText()
-                Spacer()
+        // Amount input
+        InputCard(title: "Amount") {
+          VStack(spacing: 12) {
+            AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
+              .onChange(of: fromAmount) {
+                updatePreview()
               }
-            }
           }
         }
 
@@ -219,7 +220,7 @@ struct TradeView: View {
         .padding(.vertical, 8)
 
         // Buying currency
-        InputCard(title: "Buying") {
+        InputCard(title: "To") {
           VStack(spacing: 12) {
             HStack(spacing: 12) {
               AppPicker(
@@ -229,36 +230,6 @@ struct TradeView: View {
                   ("USDC", "USDC"),
                 ]
               )
-            }
-
-            // USD price display
-            if let toPrice = priceService.getPrice(for: toToken) {
-              HStack {
-                Text("\(toToken): \(toPrice.formattedPrice)")
-                  .captionText()
-                Spacer()
-              }
-            }
-          }
-        }
-      }
-
-      // Amount input
-      InputCard(title: "Amount") {
-        VStack(spacing: 12) {
-          AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
-            .onChange(of: fromAmount) {
-              updatePreview()
-            }
-
-          // USD value display
-          if let fromPrice = priceService.getPrice(for: fromToken),
-            let amount = Double(fromAmount), amount > 0
-          {
-            HStack {
-              Text("~\(String(format: "%.2f", fromPrice.usdPrice * amount)) USD")
-                .priceText(color: .secondaryText)
-              Spacer()
             }
           }
         }
@@ -334,7 +305,7 @@ struct TradeView: View {
       let tempToken = fromToken
       fromToken = toToken
       toToken = tempToken
-      
+
       // Clear limit price so it gets updated to new market rate
       limitPrice = ""
       updateLimitPriceToMarket()
@@ -345,17 +316,18 @@ struct TradeView: View {
     // This method is called when amount or limit price changes
     // The calculated receive amount is automatically updated via the computed property
   }
-  
+
   private func updateLimitPriceToMarket() {
     // Only set if limit price is empty to avoid overriding user input
     guard limitPrice.isEmpty else { return }
-    
+
     if let fromPrice = priceService.getPrice(for: fromToken),
-       let toPrice = priceService.getPrice(for: toToken) {
-      
+      let toPrice = priceService.getPrice(for: toToken)
+    {
+
       // Calculate market rate (fromToken per toToken)
       let marketRate = fromPrice.usdPrice / toPrice.usdPrice
-      
+
       // Round to 3 decimal places for USDC pairs
       if toToken == "USDC" || fromToken == "USDC" {
         limitPrice = String(format: "%.3f", marketRate)
@@ -374,7 +346,7 @@ struct OrderConfirmationView: View {
   @State private var validationResult: PriceValidationResult?
   @State private var isValidatingPrice = true
   @State private var showingValidationWarning = false
-  
+
   let fromAmount: String
   let fromToken: String
   let toToken: String
@@ -456,11 +428,11 @@ struct OrderConfirmationView: View {
                       .foregroundColor(.orange)
                     Spacer()
                   }
-                  
+
                   Text(warning)
                     .secondaryText()
                     .multilineTextAlignment(.leading)
-                  
+
                   VStack(spacing: 8) {
                     HStack {
                       Text("Market Price:")
@@ -470,7 +442,7 @@ struct OrderConfirmationView: View {
                         .captionText()
                         .fontWeight(.medium)
                     }
-                    
+
                     HStack {
                       Text("Your Price:")
                         .captionText()
@@ -479,21 +451,25 @@ struct OrderConfirmationView: View {
                         .captionText()
                         .fontWeight(.medium)
                     }
-                    
+
                     HStack {
                       Text("Recommended Range:")
                         .captionText()
                       Spacer()
-                      Text(String(format: "%.6f - %.6f", result.recommendedRange.lowerBound, result.recommendedRange.upperBound))
-                        .captionText()
-                        .fontWeight(.medium)
+                      Text(
+                        String(
+                          format: "%.6f - %.6f", result.recommendedRange.lowerBound,
+                          result.recommendedRange.upperBound)
+                      )
+                      .captionText()
+                      .fontWeight(.medium)
                     }
                   }
                   .padding(.top, 8)
                 }
               }
             }
-            
+
             // Order summary
             InfoCard(
               title: "Order Summary",
@@ -528,7 +504,7 @@ struct OrderConfirmationView: View {
                     }
                   }
                   .foregroundColor(.orange)
-                  
+
                   PrimaryButton("Adjust Price") {
                     // Dismiss to go back and adjust price
                     dismiss()
@@ -570,7 +546,7 @@ struct OrderConfirmationView: View {
       }
     }
   }
-  
+
   private func validatePrice() async {
     guard let price = Double(limitPrice), price > 0 else {
       isValidatingPrice = false
@@ -584,19 +560,19 @@ struct OrderConfirmationView: View {
       )
       return
     }
-    
+
     isValidatingPrice = true
-    
+
     let result = await priceValidation.validateLimitPrice(
       fromToken: fromToken,
       toToken: toToken,
       userPrice: price
     )
-    
+
     validationResult = result
     isValidatingPrice = false
   }
-  
+
   private func placeOrder() async {
     do {
       let result = try await orderService.placeOrder(
@@ -605,11 +581,11 @@ struct OrderConfirmationView: View {
         toToken: toToken,
         limitPrice: limitPrice
       )
-      
+
       if result.success {
         // Sync with widget after successful order placement
         widgetSyncService.syncAfterTransactionUpdate()
-        
+
         // Order placed successfully - dismiss and redirect to transactions
         dismiss()
         // TODO: Navigate to transactions tab with pending filter
@@ -627,18 +603,18 @@ struct OrderConfirmationView: View {
 class OrderPlacementService: ObservableObject {
   @Published var isExecuting = false
   @Published var lastResult: OrderPlacementResult?
-  
+
   private let routerManager = RouterV6ManagerFactory.createProductionManager()
-  
+
   func placeOrder(
     fromAmount: String,
-    fromToken: String, 
+    fromToken: String,
     toToken: String,
     limitPrice: String
   ) async throws -> OrderPlacementResult {
     isExecuting = true
     defer { isExecuting = false }
-    
+
     // Execute dynamic order with real form values
     let success = await routerManager.executeDynamicOrder(
       fromAmount: fromAmount,
@@ -646,13 +622,17 @@ class OrderPlacementService: ObservableObject {
       toToken: toToken,
       limitPrice: limitPrice
     )
-    
+
     let result = OrderPlacementResult(
       success: success,
       transactionHash: success ? "0x1234...abcd" : nil,
-      error: success ? nil : NSError(domain: "OrderPlacement", code: 1, userInfo: [NSLocalizedDescriptionKey: "Order placement failed"])
+      error: success
+        ? nil
+        : NSError(
+          domain: "OrderPlacement", code: 1,
+          userInfo: [NSLocalizedDescriptionKey: "Order placement failed"])
     )
-    
+
     lastResult = result
     return result
   }

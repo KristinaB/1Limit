@@ -13,34 +13,34 @@ struct HomeView: View {
   @State private var showingDebug = false
   @State private var showingReceiveFunds = false
   @State private var showingImportWallet = false
-  
+
   // Wallet management state
   @StateObject private var walletLoader = WalletLoader.shared
   @StateObject private var balanceService = WalletBalanceService.shared
   @State private var currentWallet: WalletData?
   @State private var isLoadingWallet = false
-  
+
   // Computed properties for dynamic button
   private var walletButtonTitle: String {
     if currentWallet == nil {
-      return "Load Test Wallet"
+      return "Test Wallet"
     }
-    
+
     switch walletLoader.currentWalletMode {
     case .testWallet:
-      return "Load Your Wallet"
+      return "App Wallet"
     case .generatedWallet:
-      return "Load Test Wallet"
+      return "Test Wallet"
     case .mockWallet:
-      return "Load Test Wallet"
+      return "Test Wallet"
     }
   }
-  
+
   private var walletButtonIcon: String {
     if currentWallet == nil {
       return "doc.fill"
     }
-    
+
     switch walletLoader.currentWalletMode {
     case .testWallet:
       return "person.crop.circle.fill"
@@ -67,7 +67,7 @@ struct HomeView: View {
                     colors: [
                       Color.white.opacity(0.25),
                       Color.white.opacity(0.15),
-                      Color.white.opacity(0.1)
+                      Color.white.opacity(0.1),
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -101,7 +101,6 @@ struct HomeView: View {
           }
           .padding(.top, 20)
 
-
           // Wallet balance display
           if let currentWallet = currentWallet {
             WalletBalanceCard(
@@ -113,25 +112,34 @@ struct HomeView: View {
 
           // Wallet management buttons
           VStack(spacing: 16) {
+
             HStack(spacing: 8) {
+
+              PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
+                showingWalletCreation = true
+              }
+
+              SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
+                showingImportWallet = true
+              }
+
               SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
                 Task {
                   await cycleWalletMode()
                 }
               }
-              
-              PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
-                showingWalletCreation = true
-              }
-              
-              SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
-                showingImportWallet = true
-              }
+
             }
-            
-            if currentWallet != nil {
-              PrimaryButton("Load Funds", icon: "plus.circle") {
-                showingReceiveFunds = true
+            HStack(spacing: 8) {
+              if currentWallet != nil {
+                PrimaryButton("Add", icon: "plus.circle") {
+                  showingReceiveFunds = true
+                }
+              }
+              if currentWallet != nil {
+                PrimaryButton("Send", icon: "minus.circle") {
+                  showingReceiveFunds = true
+                }
               }
             }
           }
@@ -180,47 +188,48 @@ struct HomeView: View {
       }
     }
   }
-  
+
   // MARK: - Wallet Management Methods
-  
+
   private func loadDefaultWallet() async {
     isLoadingWallet = true
-    
+
     // Check if generated wallet exists, otherwise load test wallet
     if await walletLoader.hasGeneratedWallet() {
       currentWallet = await walletLoader.switchWalletMode(to: .generatedWallet)
     } else {
       currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
     }
-    
+
     if let wallet = currentWallet {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
-    
+
     isLoadingWallet = false
   }
-  
+
   private func cycleWalletMode() async {
     isLoadingWallet = true
     balanceService.stopAutoRefresh()
-    
+
     // If no wallet is loaded, load test wallet first
     if currentWallet == nil {
       currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
-      
+
       if let wallet = currentWallet {
         await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
         balanceService.startAutoRefresh(for: wallet.address)
       }
-      
+
       isLoadingWallet = false
       return
     }
-    
+
     // Cycle between test wallet and generated wallet
-    let newMode: WalletMode = walletLoader.currentWalletMode == .testWallet ? .generatedWallet : .testWallet
-    
+    let newMode: WalletMode =
+      walletLoader.currentWalletMode == .testWallet ? .generatedWallet : .testWallet
+
     // Check if we're trying to switch to generated wallet but it doesn't exist
     let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
     if newMode == .generatedWallet && !hasGeneratedWallet {
@@ -228,14 +237,14 @@ struct HomeView: View {
       isLoadingWallet = false
       return
     }
-    
+
     currentWallet = await walletLoader.switchWalletMode(to: newMode)
-    
+
     if let wallet = currentWallet {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
-    
+
     isLoadingWallet = false
   }
 }
@@ -246,14 +255,14 @@ struct WalletBalanceCard: View {
   let wallet: WalletData
   let balanceSummary: WalletBalanceSummary?
   let isLoading: Bool
-  
+
   private var maskedAddress: String {
     guard wallet.address.count >= 10 else { return wallet.address }
     let start = String(wallet.address.prefix(6))
     let end = String(wallet.address.suffix(4))
     return "\(start)...\(end)"
   }
-  
+
   var body: some View {
     AppCard {
       VStack(spacing: 16) {
@@ -263,14 +272,14 @@ struct WalletBalanceCard: View {
             Text("Active Wallet")
               .font(.caption)
               .foregroundColor(.tertiaryText)
-            
+
             Text(maskedAddress)
               .font(.system(.subheadline, design: .monospaced))
               .foregroundColor(.primaryText)
           }
-          
+
           Spacer()
-          
+
           // Wallet type indicator
           Text(WalletLoader.shared.currentWalletMode == .testWallet ? "TEST" : "YOURS")
             .font(.caption2)
@@ -279,16 +288,18 @@ struct WalletBalanceCard: View {
             .padding(.vertical, 4)
             .background(
               RoundedRectangle(cornerRadius: 4)
-                .fill(WalletLoader.shared.currentWalletMode == .testWallet ? 
-                      Color.warningOrange.opacity(0.2) : Color.successGreen.opacity(0.2))
+                .fill(
+                  WalletLoader.shared.currentWalletMode == .testWallet
+                    ? Color.warningOrange.opacity(0.2) : Color.successGreen.opacity(0.2))
             )
-            .foregroundColor(WalletLoader.shared.currentWalletMode == .testWallet ? 
-                            Color.warningOrange : Color.successGreen)
+            .foregroundColor(
+              WalletLoader.shared.currentWalletMode == .testWallet
+                ? Color.warningOrange : Color.successGreen)
         }
-        
+
         Divider()
           .background(Color.borderGray.opacity(0.3))
-        
+
         // Balance display
         if isLoading {
           HStack {
@@ -304,13 +315,13 @@ struct WalletBalanceCard: View {
               Text("Total Balance")
                 .font(.caption)
                 .foregroundColor(.tertiaryText)
-              
+
               Text(summary.formattedTotalValue)
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.primaryText)
             }
-            
+
             // Token balances
             if !summary.tokenBalances.isEmpty {
               VStack(spacing: 8) {
@@ -319,11 +330,13 @@ struct WalletBalanceCard: View {
                     // Token symbol
                     HStack(spacing: 6) {
                       Circle()
-                        .fill(LinearGradient(
-                          colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
-                          startPoint: .topLeading,
-                          endPoint: .bottomTrailing
-                        ))
+                        .fill(
+                          LinearGradient(
+                            colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                          )
+                        )
                         .frame(width: 20, height: 20)
                         .overlay(
                           Text(String(tokenBalance.symbol.prefix(1)))
@@ -331,22 +344,22 @@ struct WalletBalanceCard: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                         )
-                      
+
                       Text(tokenBalance.symbol)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primaryText)
                     }
-                    
+
                     Spacer()
-                    
+
                     // Balance and USD value
                     VStack(alignment: .trailing, spacing: 2) {
                       Text(tokenBalance.formattedBalance)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primaryText)
-                      
+
                       Text(tokenBalance.formattedUsdValue)
                         .font(.caption)
                         .foregroundColor(.tertiaryText)
