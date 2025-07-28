@@ -353,6 +353,11 @@ class MockTransactionPollingService: TransactionPollingProtocol {
         pollingTransactions.removeAll()
     }
     
+    /// Manually trigger a transaction update (for testing)
+    func simulateTransactionUpdate(_ transaction: Transaction) {
+        onTransactionUpdate?(transaction)
+    }
+    
     // Test helpers
     func isPolling(for transactionId: UUID) -> Bool {
         return pollingTransactions.contains(transactionId)

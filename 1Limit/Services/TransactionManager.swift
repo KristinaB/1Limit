@@ -231,6 +231,15 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
             
             // Sort by creation date (newest first)
             transactions.sort { $0.createdAt > $1.createdAt }
+            
+            // Persist the updated transaction
+            Task {
+                do {
+                    try await persistenceManager.updateTransaction(updatedTransaction)
+                } catch {
+                    print("❌ Failed to persist transaction update: \(error)")
+                }
+            }
         }
     }
     

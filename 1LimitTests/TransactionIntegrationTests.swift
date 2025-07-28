@@ -159,11 +159,11 @@ final class TransactionIntegrationTests: XCTestCase {
             gasUsed: "21000"
         )
         
-        // Simulate polling callback
-        mockPolling.onTransactionUpdate?(confirmedTransaction)
+        // Simulate polling callback via the mock's method
+        mockPolling.simulateTransactionUpdate(confirmedTransaction)
         
-        // Give time for async update to propagate
-        try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        // Give time for async update to propagate through MainActor Task
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
         
         // Then: Transaction should be updated in manager
         XCTAssertEqual(transactionManager.transactions.first?.status, .confirmed)
@@ -215,10 +215,10 @@ final class TransactionIntegrationTests: XCTestCase {
         )
         
         // Simulate successful polling update via the mock service
-        mockPolling.onTransactionUpdate?(confirmedTransaction)
+        mockPolling.simulateTransactionUpdate(confirmedTransaction)
         
-        // Give time for async update to propagate through the Task wrapper
-        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+        // Give time for async update to propagate through the MainActor Task wrapper
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
         
         // Debug: Check current state
         print("Debug: Transaction count: \(transactionManager.transactions.count)")

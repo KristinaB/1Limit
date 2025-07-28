@@ -20,12 +20,7 @@ struct BackupPhraseView: View {
     @State private var generationError: String?
     
     private var recoveryWords: [String] {
-        return generatedWallet?.mnemonic ?? [
-            "Loading", "wallet", "generation",
-            "please", "wait", "while", 
-            "creating", "secure", "mnemonic",
-            "phrase", "for", "you"
-        ]
+        return generatedWallet?.mnemonic ?? []
     }
     
     var body: some View {
@@ -82,15 +77,49 @@ struct BackupPhraseView: View {
                         }
                         .padding(.top, 20)
                         
-                        // 12-word grid
+                        // 12-word grid or loading spinner
                         AppCard {
                             VStack(spacing: 16) {
                                 Text("Recovery Phrase")
                                     .cardTitle()
                                 
-                                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-                                    ForEach(Array(recoveryWords.enumerated()), id: \.offset) { index, word in
-                                        WordCard(number: index + 1, word: word)
+                                if isGeneratingWallet {
+                                    VStack(spacing: 20) {
+                                        ProgressView()
+                                            .scaleEffect(1.2)
+                                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                        
+                                        Text("Generating secure wallet...")
+                                            .secondaryText()
+                                            .font(.subheadline)
+                                    }
+                                    .frame(minHeight: 200)
+                                    .frame(maxWidth: .infinity)
+                                } else if generationError != nil {
+                                    VStack(spacing: 16) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.system(size: 32))
+                                            .foregroundColor(.warningOrange)
+                                        
+                                        Text("Wallet generation failed")
+                                            .foregroundColor(.warningOrange)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                        
+                                        if let error = generationError {
+                                            Text(error)
+                                                .secondaryText()
+                                                .font(.caption)
+                                                .multilineTextAlignment(.center)
+                                        }
+                                    }
+                                    .frame(minHeight: 200)
+                                    .frame(maxWidth: .infinity)
+                                } else if generatedWallet != nil {
+                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
+                                        ForEach(Array(recoveryWords.enumerated()), id: \.offset) { index, word in
+                                            WordCard(number: index + 1, word: word)
+                                        }
                                     }
                                 }
                             }
@@ -104,22 +133,10 @@ struct BackupPhraseView: View {
                                 }
                             }
                             .padding(.top, 20)
-                        } else if isGeneratingWallet {
-                            PrimaryButton("Generating Wallet...", icon: "hourglass") {
-                                // Disabled during generation
-                            }
-                            .disabled(true)
-                            .padding(.top, 20)
                         } else if generationError != nil {
-                            VStack(spacing: 12) {
-                                Text("⚠️ Wallet generation failed")
-                                    .foregroundColor(.warningOrange)
-                                    .font(.subheadline)
-                                
-                                SecondaryButton("Try Again") {
-                                    Task {
-                                        await generateWallet()
-                                    }
+                            SecondaryButton("Try Again") {
+                                Task {
+                                    await generateWallet()
                                 }
                             }
                             .padding(.top, 20)
