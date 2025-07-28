@@ -16,6 +16,8 @@ if [ $# -eq 0 ]; then
     echo "  order       - Order creation and confirmation flows"
     echo "  walletmgmt  - Wallet management, switching, and Load Funds"
     echo "  transactions- Transaction list features and detail views"
+    echo "  debug       - Debug view and Chart view functionality"
+    echo "  setup       - Complete wallet setup flow and SetupCompleteView"
     echo "  all         - Run all bundled tests (recommended)"
     echo ""
     echo "💡 Each bundle runs multiple related tests in a single app session"
@@ -85,6 +87,22 @@ case $BUNDLE_NAME in
             -only-testing:1LimitUITests/TransactionFeaturesUITests \
             2>&1 | xcpretty --test --color
         ;;
+    "debug")
+        echo "🐛 Running Debug and Chart Features Tests..."
+        xcodebuild test \
+            -scheme 1Limit \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -only-testing:1LimitUITests/DebugAndChartUITests \
+            2>&1 | xcpretty --test --color
+        ;;
+    "setup")
+        echo "🎯 Running Wallet Setup Flow Tests..."
+        xcodebuild test \
+            -scheme 1Limit \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -only-testing:1LimitUITests/WalletSetupUITests \
+            2>&1 | xcpretty --test --color
+        ;;
     "all")
         echo "🌟 Running ALL Bundled Tests..."
         xcodebuild test \
@@ -93,11 +111,13 @@ case $BUNDLE_NAME in
             -only-testing:1LimitUITests/BundledUITests \
             -only-testing:1LimitUITests/WalletManagementUITests \
             -only-testing:1LimitUITests/TransactionFeaturesUITests \
+            -only-testing:1LimitUITests/DebugAndChartUITests \
+            -only-testing:1LimitUITests/WalletSetupUITests \
             2>&1 | xcpretty --test --color
         ;;
     *)
         echo "❌ Unknown bundle: $BUNDLE_NAME"
-        echo "Available bundles: navigation, trade, wallet, content, order, walletmgmt, transactions, all"
+        echo "Available bundles: navigation, trade, wallet, content, order, walletmgmt, transactions, debug, setup, all"
         exit 1
         ;;
 esac
