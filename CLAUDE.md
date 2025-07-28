@@ -127,8 +127,14 @@ Example: "👩‍💻🦄 Fix wallet creation tests with sparkly new assertions!
 ## Debugging Commands
 
 ```bash
-# Check for build warnings and errors
+# Check if build succeeds (RECOMMENDED - use this for build testing)
+python3 scripts/check_build.py
+
+# Manual build check with error/warning filtering
 xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | grep -E "(warning|error):"
+
+# Check if build succeeded (quick test)
+xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | grep -E "(BUILD SUCCEEDED|BUILD FAILED)"
 
 # Run Python debugging scripts
 python3 scripts/check_wallet_transactions.py

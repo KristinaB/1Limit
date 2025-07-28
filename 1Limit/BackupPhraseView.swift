@@ -18,6 +18,12 @@ struct BackupPhraseView: View {
   @State private var generatedWallet: GeneratedWallet?
   @State private var isGeneratingWallet = false
   @State private var generationError: String?
+  
+  // Balance checking state
+  @StateObject private var balanceService = WalletBalanceService()
+  @State private var oldWalletAddress: String?
+  @State private var showBalanceWarning = false
+  @State private var oldWalletBalance: String = "$0.00"
 
   private var recoveryWords: [String] {
     return generatedWallet?.mnemonic ?? []
@@ -116,12 +122,44 @@ struct BackupPhraseView: View {
                 .frame(minHeight: 200)
                 .frame(maxWidth: .infinity)
               } else if generatedWallet != nil {
-                LazyVGrid(
-                  columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
-                  spacing: 12
-                ) {
-                  ForEach(Array(recoveryWords.enumerated()), id: \.offset) { index, word in
-                    WordCard(number: index + 1, word: word)
+                VStack(spacing: 20) {
+                  // Recovery words grid
+                  LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
+                    spacing: 12
+                  ) {
+                    ForEach(Array(recoveryWords.enumerated()), id: \.offset) { index, word in
+                      WordCard(number: index + 1, word: word)
+                    }
+                  }
+                  
+                  // New wallet address section
+                  VStack(spacing: 12) {
+                    HStack {
+                      Text("New Wallet Address:")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondaryText)
+                      Spacer()
+                    }
+                    
+                    HStack {
+                      Text(generatedWallet?.walletData.address ?? "")
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundColor(.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                      Spacer()
+                    }
+                    .padding(12)
+                    .background(
+                      RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.inputBackground)
+                        .overlay(
+                          RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.primaryGradientStart.opacity(0.3), lineWidth: 1)
+                        )
+                    )
                   }
                 }
               }
@@ -185,7 +223,22 @@ struct BackupPhraseView: View {
     }
     .onAppear {
       Task {
+        await loadCurrentWalletAndCheckBalance()
         await generateWallet()
+      }
+    }
+    .alert("Wallet Balance Warning", isPresented: $showBalanceWarning) {
+      Button("Continue Anyway", role: .destructive) {
+        // User chooses to proceed despite non-zero balance
+      }
+      Button("Cancel") {
+        dismiss()
+      }
+    } message: {
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Your current wallet has a balance of \(oldWalletBalance).")
+        Text("")
+        Text("Creating a new wallet will replace your current wallet. Make sure you have backed up your current wallet or transferred your funds.")
       }
     }
 
@@ -202,6 +255,35 @@ struct BackupPhraseView: View {
         .fullScreenCover(isPresented: $proceedToSetup) {
           SetupCompleteView(onComplete: onComplete)
         })
+    }
+  }
+
+  // MARK: - Wallet Loading and Balance Check Methods
+  
+  private func loadCurrentWalletAndCheckBalance() async {
+    // Load the current wallet to get its address
+    if let currentWallet = await WalletLoader.shared.loadWallet() {
+      oldWalletAddress = currentWallet.address
+      print("🔍 Current wallet address: \(currentWallet.address)")
+      
+      // Check the balance of the current wallet
+      await balanceService.fetchWalletBalance(for: currentWallet.address)
+      
+      // Check if balance is non-zero
+      if let balance = balanceService.currentBalance {
+        await MainActor.run {
+          oldWalletBalance = balance.formattedTotalValue
+          
+          // Show warning if balance is greater than $0.10 (to account for dust)
+          if balance.totalUsdValue > 0.10 {
+            showBalanceWarning = true
+          }
+        }
+        
+        print("💰 Current wallet balance: \(balance.formattedTotalValue)")
+      }
+    } else {
+      print("ℹ️ No current wallet found")
     }
   }
 

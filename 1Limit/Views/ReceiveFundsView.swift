@@ -12,13 +12,6 @@ struct ReceiveFundsView: View {
   @Environment(\.dismiss) private var dismiss
   @State private var showingCopiedAlert = false
   
-  private var maskedAddress: String {
-    guard wallet.address.count >= 10 else { return wallet.address }
-    let start = String(wallet.address.prefix(6))
-    let end = String(wallet.address.suffix(4))
-    return "\(start)...\(end)"
-  }
-  
   var body: some View {
     NavigationView {
       ZStack {
@@ -26,175 +19,13 @@ struct ReceiveFundsView: View {
           .ignoresSafeArea()
         
         ScrollView {
-          VStack(spacing: 32) {
-            // Header
-            VStack(spacing: 16) {
-              ZStack {
-                Circle()
-                  .fill(
-                    LinearGradient(
-                      colors: [
-                        Color.white.opacity(0.25),
-                        Color.white.opacity(0.15),
-                        Color.white.opacity(0.1)
-                      ],
-                      startPoint: .top,
-                      endPoint: .bottom
-                    )
-                  )
-                  .frame(width: 80, height: 80)
-                  .overlay(
-                    Circle()
-                      .strokeBorder(
-                        LinearGradient(
-                          colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
-                          startPoint: .topLeading,
-                          endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2
-                      )
-                  )
-                  .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
-                
-                Image(systemName: "arrow.down.circle.fill")
-                  .font(.system(size: 36, weight: .medium))
-                  .foregroundColor(.white)
-              }
-              
-              Text("Receive Funds")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primaryText)
-              
-              Text("Send tokens to this address on Polygon")
-                .font(.subheadline)
-                .foregroundColor(.secondaryText)
-                .multilineTextAlignment(.center)
-            }
-            .padding(.top, 20)
-            
-            // QR Code Section
-            AppCard {
-              VStack(spacing: 20) {
-                Text("Scan QR Code")
-                  .font(.headline)
-                  .foregroundColor(.primaryText)
-                
-                // QR Code with app design colors
-                QRCodeView(
-                  text: "ethereum:\(wallet.address)?chainId=137",
-                  size: CGSize(width: 200, height: 200)
-                )
-                .background(
-                  RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
-                
-                Text("Point your camera at this QR code")
-                  .font(.caption)
-                  .foregroundColor(.tertiaryText)
-              }
-              .padding(20)
-            }
-            
-            // Address Section
-            AppCard {
-              VStack(spacing: 16) {
-                HStack {
-                  Text("Wallet Address")
-                    .font(.headline)
-                    .foregroundColor(.primaryText)
-                  
-                  Spacer()
-                  
-                  // Network badge
-                  Text("Polygon")
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                      RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.purple.opacity(0.2))
-                    )
-                    .foregroundColor(.purple)
-                }
-                
-                // Address display
-                VStack(spacing: 12) {
-                  // Full address
-                  HStack {
-                    Text(wallet.address)
-                      .font(.system(.footnote, design: .monospaced))
-                      .foregroundColor(.secondaryText)
-                      .lineLimit(1)
-                      .truncationMode(.middle)
-                    
-                    Spacer()
-                  }
-                  .padding(12)
-                  .background(
-                    RoundedRectangle(cornerRadius: 8)
-                      .fill(Color.cardBackground.opacity(0.5))
-                  )
-                  
-                  // Copy button
-                  Button(action: copyAddress) {
-                    HStack {
-                      Image(systemName: "doc.on.doc.fill")
-                        .font(.system(size: 16))
-                      Text("Copy Address")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                      LinearGradient(
-                        colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                      )
-                    )
-                    .cornerRadius(8)
-                  }
-                }
-              }
-              .padding(20)
-            }
-            
-            // Warning Section
-            AppCard {
-              VStack(spacing: 12) {
-                HStack {
-                  Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.warningOrange)
-                  
-                  Text("Important")
-                    .font(.headline)
-                    .foregroundColor(.primaryText)
-                  
-                  Spacer()
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                  Text("• Only send Polygon tokens to this address")
-                  Text("• Supported tokens: MATIC, WMATIC, USDC")
-                  Text("• Sending tokens from other networks will result in permanent loss")
-                  Text("• Always verify the address before sending")
-                }
-                .font(.subheadline)
-                .foregroundColor(.secondaryText)
-              }
-              .padding(20)
-            }
-            
-            Spacer(minLength: 20)
-          }
-          .padding()
+          FundsContentView(
+            title: "Receive Funds",
+            walletAddress: wallet.address,
+            buttonTitle: "Done",
+            buttonAction: { dismiss() },
+            onCopyAddress: copyAddress
+          )
         }
       }
       .navigationTitle("Receive Funds")
