@@ -39,7 +39,69 @@ struct BackupPhraseView: View {
       Color.appBackground
         .ignoresSafeArea()
 
-      ScrollView {
+      if isGeneratingWallet && generatedWallet == nil {
+        // Full-screen loader while generating wallet
+        VStack(spacing: 32) {
+          Spacer()
+          
+          VStack(spacing: 24) {
+            // Animated icon
+            ZStack {
+              Circle()
+                .fill(
+                  LinearGradient(
+                    colors: [
+                      Color.white.opacity(0.25),
+                      Color.white.opacity(0.15),
+                      Color.white.opacity(0.1),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                  )
+                )
+                .frame(width: 100, height: 100)
+                .overlay(
+                  Circle()
+                    .strokeBorder(
+                      LinearGradient(
+                        colors: [Color.primaryGradientStart, Color.primaryGradientEnd],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                      ),
+                      lineWidth: 3
+                    )
+                )
+                .shadow(color: Color.blue.opacity(0.3), radius: 12, x: 0, y: 6)
+                .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 2)
+              
+              Image(systemName: "key.fill")
+                .font(.system(size: 48, weight: .medium))
+                .foregroundColor(.white)
+            }
+            
+            VStack(spacing: 16) {
+              ProgressView()
+                .scaleEffect(1.5)
+                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+              
+              Text("Generating Your Secure Wallet")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.primaryText)
+              
+              Text("Creating a cryptographically secure 12-word recovery phrase...")
+                .secondaryText()
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
+            }
+          }
+          
+          Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      } else {
+        // Normal content after wallet is generated
+        ScrollView {
         VStack(spacing: 24) {
           // Header section
           VStack(spacing: 16) {
@@ -88,25 +150,13 @@ struct BackupPhraseView: View {
           }
           .padding(.top, 20)
 
-          // 12-word grid or loading spinner
+          // 12-word grid or error state
           AppCard {
             VStack(spacing: 16) {
               Text("Recovery Phrase")
                 .cardTitle()
 
-              if isGeneratingWallet {
-                VStack(spacing: 20) {
-                  ProgressView()
-                    .scaleEffect(1.2)
-                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-
-                  Text("Generating secure wallet...")
-                    .secondaryText()
-                    .font(.subheadline)
-                }
-                .frame(minHeight: 200)
-                .frame(maxWidth: .infinity)
-              } else if generationError != nil {
+              if generationError != nil {
                 VStack(spacing: 16) {
                   Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 32))
@@ -221,14 +271,18 @@ struct BackupPhraseView: View {
         }
         .padding()
       }
+      } // End of else block for normal content
     }
+    .animation(.easeInOut(duration: 0.3), value: isGeneratingWallet)
     .navigationTitle("")
     .navigationBarTitleDisplayMode(.inline)
     .toolbarBackground(Color.appBackground, for: .navigationBar)
     .toolbar {
       ToolbarItem(placement: .navigationBarLeading) {
-        SmallButton("Cancel", style: .secondary) {
-          dismiss()
+        if !(isGeneratingWallet && generatedWallet == nil) {
+          SmallButton("Cancel", style: .secondary) {
+            dismiss()
+          }
         }
       }
     }
