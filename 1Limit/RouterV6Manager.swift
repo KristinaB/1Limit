@@ -29,6 +29,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
   private let debugLogger: DebugLoggerProtocol
   private let transactionPersistence: TransactionPersistenceProtocol
   private let transactionPolling: TransactionPollingProtocol
+  private let transactionManager: TransactionManagerProtocol?
 
   // MARK: - Configuration
 
@@ -50,6 +51,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     debugLogger: DebugLoggerProtocol,
     transactionPersistence: TransactionPersistenceProtocol,
     transactionPolling: TransactionPollingProtocol,
+    transactionManager: TransactionManagerProtocol? = nil,
     networkConfig: NetworkConfig
   ) {
     self.orderFactory = orderFactory
@@ -61,6 +63,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     self.debugLogger = debugLogger
     self.transactionPersistence = transactionPersistence
     self.transactionPolling = transactionPolling
+    self.transactionManager = transactionManager
     self.networkConfig = networkConfig
 
     // Set up debug logging
@@ -480,6 +483,12 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       try await transactionPersistence.saveTransaction(transaction)
       await addLog("💾 Transaction saved with ID: \(transaction.id)")
       
+      // Notify TransactionManager immediately for UI update
+      await MainActor.run {
+        transactionManager?.addTransaction(transaction)
+      }
+      await addLog("📱 Transaction added to UI")
+      
       // Start polling if we have a transaction hash
       if result.hash != nil {
         await transactionPolling.startPolling(for: transaction)
@@ -509,6 +518,12 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       // Save transaction
       try await transactionPersistence.saveTransaction(transaction)
       await addLog("💾 Transaction saved with ID: \(transaction.id)")
+      
+      // Notify TransactionManager immediately for UI update
+      await MainActor.run {
+        transactionManager?.addTransaction(transaction)
+      }
+      await addLog("📱 Transaction added to UI")
       
       // Start polling if we have a transaction hash
       if result.hash != nil {
@@ -608,6 +623,7 @@ class RouterV6ManagerFactory {
     let transactionPolling = TransactionPollingService(
       persistenceManager: transactionPersistence
     )
+    let transactionManager = TransactionManagerFactory.createProduction()
 
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createProductionFactory(logger: nil),
@@ -620,6 +636,7 @@ class RouterV6ManagerFactory {
       debugLogger: debugLogger,
       transactionPersistence: transactionPersistence,
       transactionPolling: transactionPolling,
+      transactionManager: transactionManager,
       networkConfig: networkConfig
     )
 
@@ -641,6 +658,7 @@ class RouterV6ManagerFactory {
 
     let mockTransactionPersistence = MockTransactionPersistenceManager()
     let mockTransactionPolling = MockTransactionPollingService()
+    let mockTransactionManager = TransactionManagerFactory.createTest()
 
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createTestFactory(),
@@ -653,6 +671,7 @@ class RouterV6ManagerFactory {
       debugLogger: MockDebugLogger(),
       transactionPersistence: mockTransactionPersistence,
       transactionPolling: mockTransactionPolling,
+      transactionManager: mockTransactionManager,
       networkConfig: networkConfig
     )
 

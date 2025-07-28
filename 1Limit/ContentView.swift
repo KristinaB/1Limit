@@ -24,7 +24,9 @@ struct ContentView: View {
                         hasWallet = walletExists
                         // If wallet was removed and we're on Trade/Transactions tab, switch to Home
                         if !walletExists && selectedTab > 0 {
-                            selectedTab = 0
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                selectedTab = 0
+                            }
                         }
                     })
                         .tabItem {

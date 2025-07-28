@@ -11,6 +11,7 @@ struct DebugView: View {
     @StateObject private var routerManager = RouterV6ManagerFactory.createProductionManager()
     @Environment(\.dismiss) private var dismiss
     @State private var showingResetAlert = false
+    var onResetComplete: (() -> Void)? = nil
     
     var body: some View {
         NavigationView {
@@ -146,7 +147,7 @@ struct DebugView: View {
                 resetApplication()
             }
         } message: {
-            Text("This will clear all app data including wallets, transactions, and settings. The app will automatically close after the reset.")
+            Text("This will clear all app data including wallets, transactions, and settings. You will be returned to the Home screen.")
         }
     }
     
@@ -160,33 +161,10 @@ struct DebugView: View {
         Task {
             await performReset()
             
-            // Show brief completion message and close app
+            // Dismiss debug view and call reset completion callback
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                let alert = UIAlertController(
-                    title: "Reset Complete",
-                    message: "All app data has been cleared. The app will now close. Please reopen it to continue.",
-                    preferredStyle: .alert
-                )
-                
-                alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
-                    // Close the app
-                    self.closeApp()
-                })
-                
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = windowScene.windows.first {
-                    window.rootViewController?.present(alert, animated: true)
-                }
-            }
-        }
-    }
-    
-    private func closeApp() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            // Gracefully terminate the app
-            UIApplication.shared.perform(#selector(NSXPCConnection.suspend))
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                exit(0)
+                dismiss()
+                onResetComplete?()
             }
         }
     }

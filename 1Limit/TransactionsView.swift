@@ -119,6 +119,7 @@ struct TransactionsView: View {
             widgetSyncService.syncToWidget()
           }
         }
+        .disabled(transactionManager.isLoading)
       }
     }
   }

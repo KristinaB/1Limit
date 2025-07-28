@@ -119,30 +119,14 @@ struct HomeView: View {
               balanceSummary: balanceService.currentBalance,
               isLoading: balanceService.isLoading
             )
-            
+
             // Wallet management buttons
             VStack(spacing: 16) {
-              HStack(spacing: 8) {
-                PrimaryButton("Create Wallet", icon: "plus.circle.fill") {
-                  showingWalletCreation = true
-                }
-
-                SecondaryButton("Import Wallet", icon: "square.and.arrow.down.fill") {
-                  showingImportWallet = true
-                }
-
-                SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
-                  Task {
-                    await cycleWalletMode()
-                  }
-                }
-              }
-              
               HStack(spacing: 8) {
                 PrimaryButton("Add", icon: "plus.circle") {
                   showingReceiveFunds = true
                 }
-                
+
                 PrimaryButton("Send", icon: "minus.circle") {
                   showingReceiveFunds = true
                 }
@@ -186,7 +170,16 @@ struct HomeView: View {
         }
     }
     .sheet(isPresented: $showingDebug) {
-      DebugView()
+      DebugView(onResetComplete: {
+        Task {
+          // Reset wallet state to nil and notify parent
+          currentWallet = nil
+          onWalletStateChanged?(false)
+          
+          // Reload wallet state
+          await loadDefaultWallet()
+        }
+      })
     }
     .sheet(isPresented: $showingReceiveFunds) {
       if let wallet = currentWallet {
@@ -215,7 +208,7 @@ struct HomeView: View {
     // Check if generated wallet exists
     if await walletLoader.hasGeneratedWallet() {
       currentWallet = await walletLoader.switchWalletMode(to: .generatedWallet)
-      
+
       if let wallet = currentWallet {
         await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
         balanceService.startAutoRefresh(for: wallet.address)
@@ -227,60 +220,15 @@ struct HomeView: View {
 
     // Notify parent about wallet state change
     onWalletStateChanged?(currentWallet != nil)
-    
+
     isLoadingWallet = false
   }
-  
+
   private func loadTestWallet() async {
     isLoadingWallet = true
     balanceService.stopAutoRefresh()
-    
+
     currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
-    
-    if let wallet = currentWallet {
-      await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
-      balanceService.startAutoRefresh(for: wallet.address)
-    }
-    
-    // Notify parent about wallet state change
-    onWalletStateChanged?(currentWallet != nil)
-    
-    isLoadingWallet = false
-  }
-
-  private func cycleWalletMode() async {
-    isLoadingWallet = true
-    balanceService.stopAutoRefresh()
-
-    // If no wallet is loaded, load test wallet first
-    if currentWallet == nil {
-      currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
-
-      if let wallet = currentWallet {
-        await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
-        balanceService.startAutoRefresh(for: wallet.address)
-      }
-
-      // Notify parent about wallet state change
-      onWalletStateChanged?(currentWallet != nil)
-      
-      isLoadingWallet = false
-      return
-    }
-
-    // Cycle between test wallet and generated wallet
-    let newMode: WalletMode =
-      walletLoader.currentWalletMode == .testWallet ? .generatedWallet : .testWallet
-
-    // Check if we're trying to switch to generated wallet but it doesn't exist
-    let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
-    if newMode == .generatedWallet && !hasGeneratedWallet {
-      print("⚠️ No generated wallet found, staying with test wallet")
-      isLoadingWallet = false
-      return
-    }
-
-    currentWallet = await walletLoader.switchWalletMode(to: newMode)
 
     if let wallet = currentWallet {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
@@ -289,7 +237,7 @@ struct HomeView: View {
 
     // Notify parent about wallet state change
     onWalletStateChanged?(currentWallet != nil)
-    
+
     isLoadingWallet = false
   }
 }

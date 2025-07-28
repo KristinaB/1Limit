@@ -21,8 +21,8 @@ class TransactionPollingService: TransactionPollingProtocol {
     
     // MARK: - Configuration
     
-    private let maxPollingDuration: TimeInterval = 120 // 2 minutes
-    private let pollInterval: TimeInterval = 5 // 5 seconds
+    private let maxPollingDuration: TimeInterval = 60 // 1 minute
+    private let pollInterval: TimeInterval = 1 // 1 second
     private let rpcURL = "https://polygon-bor-rpc.publicnode.com"
     
     // MARK: - Dependencies
