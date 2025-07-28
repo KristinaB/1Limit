@@ -63,83 +63,85 @@ class WalletManagementUITests: XCTestCase {
     // MARK: - Individual Test Methods
     
     private func testWalletButtonsExist() {
-        // Test for the new cycling button (starts as "Load Test Wallet")
-        let cyclingWalletButton = app.buttons.matching(
-            NSPredicate(format: "label == 'Load Test Wallet' OR label == 'Load Your Wallet'")
-        ).firstMatch
+        // Test for wallet buttons in NO WALLET state
+        let testWalletButton = app.buttons["Use Test Wallet"]
         let createWalletButton = app.buttons["Create Wallet"]
         let importWalletButton = app.buttons["Import Wallet"]
         
-        XCTAssertTrue(cyclingWalletButton.exists, "Cycling wallet button should exist")
+        XCTAssertTrue(testWalletButton.exists, "Use Test Wallet button should exist")
         XCTAssertTrue(createWalletButton.exists, "Create Wallet button should exist")
         XCTAssertTrue(importWalletButton.exists, "Import Wallet button should exist")
-        XCTAssertTrue(cyclingWalletButton.isHittable, "Cycling wallet button should be tappable")
+        XCTAssertTrue(testWalletButton.isHittable, "Use Test Wallet button should be tappable")
         XCTAssertTrue(createWalletButton.isHittable, "Create Wallet button should be tappable")
         XCTAssertTrue(importWalletButton.isHittable, "Import Wallet button should be tappable")
     }
     
     private func testLoadTestWallet() {
-        let loadTestWalletButton = app.buttons["Load Test Wallet"]
-        if loadTestWalletButton.exists {
-            loadTestWalletButton.tap()
+        let useTestWalletButton = app.buttons["Use Test Wallet"]
+        if useTestWalletButton.exists {
+            useTestWalletButton.tap()
             
             // Wait for wallet to load
             usleep(1000000) // 1 second
             
-            // Check if cycling button changes to "Load Your Wallet" (indicates test wallet loaded)
-            let loadYourWalletButton = app.buttons["Load Your Wallet"]
-            XCTAssertTrue(loadYourWalletButton.waitForExistence(timeout: 3), "Button should change to 'Load Your Wallet' after loading test wallet")
+            // Check if wallet state changes (wallet balance card should appear)
+            let walletCard = app.staticTexts["Active Wallet"]
+            XCTAssertTrue(walletCard.waitForExistence(timeout: 3), "Wallet balance card should appear after loading test wallet")
             
-            // Check if Load Funds button appears
-            let loadFundsButton = app.buttons["Load Funds"]
-            XCTAssertTrue(loadFundsButton.exists, "Load Funds button should appear when wallet is loaded")
+            // Check if Add/Send buttons appear
+            let addButton = app.buttons["Add"]
+            XCTAssertTrue(addButton.exists, "Add button should appear when wallet is loaded")
         }
     }
     
     private func testWalletModeSwitching() {
-        // Ensure we have a wallet loaded first by looking for the cycling button
-        let loadYourWalletButton = app.buttons["Load Your Wallet"]
-        let loadTestWalletButton = app.buttons["Load Test Wallet"]
-        
-        // If no wallet loaded, load test wallet first
-        if !loadYourWalletButton.exists && loadTestWalletButton.exists {
-            loadTestWalletButton.tap()
+        // First load test wallet if no wallet is active
+        let useTestWalletButton = app.buttons["Use Test Wallet"]
+        if useTestWalletButton.exists {
+            useTestWalletButton.tap()
             usleep(1000000)
         }
         
-        // Test cycling between wallet modes
-        if loadYourWalletButton.exists {
-            let initialButtonText = loadYourWalletButton.label
+        // Test switching between wallet modes after wallet is loaded
+        let appWalletButton = app.buttons["App Wallet"]
+        let testWalletButton = app.buttons["Test Wallet"]
+        
+        if appWalletButton.exists {
+            let initialButtonText = appWalletButton.label
             print("🔄 Initial button text: \(initialButtonText)")
             
             // Tap the cycling button
-            loadYourWalletButton.tap()
+            appWalletButton.tap()
             usleep(2000000) // 2 seconds for switch to complete
             
-            // Check if button text changed or if we have a different cycling state
-            let cyclingButton = app.buttons.matching(
-                NSPredicate(format: "label == 'Load Test Wallet' OR label == 'Load Your Wallet'")
+            // Check if button text changed
+            let finalButton = app.buttons.matching(
+                NSPredicate(format: "label == 'Test Wallet' OR label == 'App Wallet'")
             ).firstMatch
             
-            XCTAssertTrue(cyclingButton.exists, "Cycling button should still exist after switching")
+            XCTAssertTrue(finalButton.exists, "Wallet switching button should still exist after switching")
             
-            // If we have a generated wallet, button should have switched
-            // If not, it may show the same thing - both are valid behaviors
-            let finalButtonText = cyclingButton.label
+            let finalButtonText = finalButton.label
             print("🔄 Final button text: \(finalButtonText)")
+        } else if testWalletButton.exists {
+            // If we start with test wallet button, that's also valid
+            print("🔄 Starting with Test Wallet button")
         }
     }
     
     private func testLoadFundsPanel() {
         // Ensure we have a wallet loaded
-        let loadFundsButton = app.buttons["Load Funds"]
-        if !loadFundsButton.exists {
-            app.buttons["Load Test Wallet"].tap()
-            usleep(1000000)
+        let addButton = app.buttons["Add"]
+        if !addButton.exists {
+            let useTestWalletButton = app.buttons["Use Test Wallet"]
+            if useTestWalletButton.exists {
+                useTestWalletButton.tap()
+                usleep(1000000)
+            }
         }
         
-        if loadFundsButton.exists {
-            loadFundsButton.tap()
+        if addButton.exists {
+            addButton.tap()
             
             // Check if ReceiveFundsView opens
             let receiveFundsTitle = app.navigationBars["Receive Funds"]
@@ -197,7 +199,7 @@ class WalletManagementUITests: XCTestCase {
         
         // Note: Balance might be loading or unavailable, so we just check structure exists
         // The important thing is that the balance card structure is present when wallet exists
-        if app.buttons["Switch Wallet Mode"].exists {
+        if app.staticTexts["Active Wallet"].exists {
             // Wallet exists, so balance card should be visible in some form
             XCTAssertTrue(balanceDisplayFound, "Some form of balance display should be visible when wallet is loaded")
         }
