@@ -81,10 +81,11 @@ The app uses a dependency injection pattern with protocol-based architecture for
 - **EIP712SignerWeb3**: EIP-712 signing implementation for Router V6 orders
 - **RouterV6Protocols**: Protocol definitions for all services
 
-### Dependencies
-- **web3swift**: Ethereum blockchain interaction
-- **BigInt**: Large number arithmetic for blockchain values
-- **CryptoSwift**: Cryptographic operations
+### Dependencies (Swift Package Manager)
+- **web3swift** (3.3.0): Ethereum blockchain interaction and smart contract calls
+- **BigInt** (5.4.1): Large number arithmetic for blockchain values and gas calculations
+- **CryptoSwift** (1.9.0): Cryptographic operations and hashing
+- **secp256k1.swift** (0.10.0): Elliptic curve operations for wallet key management
 
 ### Network Configuration
 - **Polygon Mainnet**: Production environment (Chain ID: 137)
@@ -93,9 +94,13 @@ The app uses a dependency injection pattern with protocol-based architecture for
 - **USDC Token**: `0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359`
 
 ### Debug and Testing
-- Debug logging writes to `/Users/makevoid/apps/1Limit/logs/` directory
-- Python script `scripts/check_wallet_transactions.py` for wallet verification on Polygon Mainnet
+- Debug logging writes to `/Users/makevoid/apps/1Limit/logs/` directory with timestamped files
+- Python debug scripts in `scripts/`:
+  - `check_wallet_transactions.py`: Verify wallet transactions on Polygon Mainnet
+  - `check_wallet_balances.py`: Check token balances for debugging
+  - `analyze_failed_tx.py`: Analyze failed transaction details
 - Factory pattern supports both production and test configurations
+- Widget extension (`1LimitWidget`) provides iOS home screen widgets with price/chart data
 
 ## Development Notes
 
@@ -103,6 +108,12 @@ The app uses a dependency injection pattern with protocol-based architecture for
 - **Wallet Security**: Wallet data loads from `wallet_0x3f847d.json` in bundle or documents directory
 - **Logging**: Debug transactions create timestamped log files for debugging Router V6 flows
 - **Architecture**: Follow the existing protocol-based dependency injection pattern when adding new services
+- **Code Organization**: 
+  - Models: Transaction data structures
+  - Services: Business logic with protocol-based dependency injection
+  - Views: SwiftUI views for each tab (Home, Trade, Transactions)
+  - DesignSystem: Reusable UI components (Buttons, Cards, Colors, Typography)
+  - Protocols: Interface definitions for testability and modularity
 
 ## Git Commit Style
 
@@ -113,6 +124,31 @@ When creating commit messages, use lots of emojis including:
 
 Example: "👩‍💻🦄 Fix wallet creation tests with sparkly new assertions! ✨🎯🐱"
 
+## Debugging Commands
+
+```bash
+# Check for build warnings and errors
+xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build 2>&1 | grep -E "(warning|error):"
+
+# Run Python debugging scripts
+python3 scripts/check_wallet_transactions.py
+python3 scripts/check_wallet_balances.py
+
+# Check recent debug logs
+ls -la logs/ | tail -5
+tail -50 logs/1limit_debug_$(date +%Y-%m-%d)*.log
+```
+
 ## Reminder Notes
 
 - ask me to run these
+- **NEVER commit without explicit user confirmation** - Always ask the user to confirm before creating any git commits
+
+## Git Commit Policy
+
+**IMPORTANT**: Claude must NEVER create git commits automatically. Always follow this process:
+
+1. Stage changes with `git add`
+2. Show the user what will be committed with `git status` and `git diff --cached`
+3. Ask the user: "Ready to commit these changes?"
+4. Only proceed with `git commit` after explicit user confirmation
