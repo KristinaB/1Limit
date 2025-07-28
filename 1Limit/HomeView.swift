@@ -18,6 +18,37 @@ struct HomeView: View {
   @StateObject private var balanceService = WalletBalanceService.shared
   @State private var currentWallet: WalletData?
   @State private var isLoadingWallet = false
+  
+  // Computed properties for dynamic button
+  private var walletButtonTitle: String {
+    if currentWallet == nil {
+      return "Load Test Wallet"
+    }
+    
+    switch walletLoader.currentWalletMode {
+    case .testWallet:
+      return "Load Your Wallet"
+    case .generatedWallet:
+      return "Load Test Wallet"
+    case .mockWallet:
+      return "Load Test Wallet"
+    }
+  }
+  
+  private var walletButtonIcon: String {
+    if currentWallet == nil {
+      return "doc.fill"
+    }
+    
+    switch walletLoader.currentWalletMode {
+    case .testWallet:
+      return "person.crop.circle.fill"
+    case .generatedWallet:
+      return "doc.fill"
+    case .mockWallet:
+      return "doc.fill"
+    }
+  }
 
   var body: some View {
     ZStack {
@@ -82,9 +113,9 @@ struct HomeView: View {
           // Wallet management buttons
           VStack(spacing: 16) {
             HStack(spacing: 12) {
-              SecondaryButton("Load Test Wallet", icon: "doc.fill") {
+              SecondaryButton(walletButtonTitle, icon: walletButtonIcon) {
                 Task {
-                  await loadTestWallet()
+                  await cycleWalletMode()
                 }
               }
               
@@ -94,16 +125,8 @@ struct HomeView: View {
             }
             
             if currentWallet != nil {
-              HStack(spacing: 12) {
-                SecondaryButton("Switch Wallet Mode", icon: "arrow.triangle.2.circlepath") {
-                  Task {
-                    await switchWalletMode()
-                  }
-                }
-                
-                PrimaryButton("Load Funds", icon: "plus.circle") {
-                  showingReceiveFunds = true
-                }
+              PrimaryButton("Load Funds", icon: "plus.circle") {
+                showingReceiveFunds = true
               }
             }
           }
@@ -166,26 +189,27 @@ struct HomeView: View {
     isLoadingWallet = false
   }
   
-  private func loadTestWallet() async {
-    isLoadingWallet = true
-    currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
-    
-    if let wallet = currentWallet {
-      await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
-      balanceService.startAutoRefresh(for: wallet.address)
-    }
-    
-    isLoadingWallet = false
-  }
-  
-  private func switchWalletMode() async {
-    guard let currentWallet = currentWallet else { return }
-    
+  private func cycleWalletMode() async {
     isLoadingWallet = true
     balanceService.stopAutoRefresh()
     
+    // If no wallet is loaded, load test wallet first
+    if currentWallet == nil {
+      currentWallet = await walletLoader.switchWalletMode(to: .testWallet)
+      
+      if let wallet = currentWallet {
+        await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
+        balanceService.startAutoRefresh(for: wallet.address)
+      }
+      
+      isLoadingWallet = false
+      return
+    }
+    
+    // Cycle between test wallet and generated wallet
     let newMode: WalletMode = walletLoader.currentWalletMode == .testWallet ? .generatedWallet : .testWallet
     
+    // Check if we're trying to switch to generated wallet but it doesn't exist
     let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
     if newMode == .generatedWallet && !hasGeneratedWallet {
       print("⚠️ No generated wallet found, staying with test wallet")
@@ -193,9 +217,9 @@ struct HomeView: View {
       return
     }
     
-    self.currentWallet = await walletLoader.switchWalletMode(to: newMode)
+    currentWallet = await walletLoader.switchWalletMode(to: newMode)
     
-    if let wallet = self.currentWallet {
+    if let wallet = currentWallet {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
