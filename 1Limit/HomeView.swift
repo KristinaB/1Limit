@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
   @Binding var selectedTab: Int
+  var onWalletStateChanged: ((Bool) -> Void)? = nil
   @State private var showingWalletCreation = false
   @State private var showingDebug = false
   @State private var showingReceiveFunds = false
@@ -150,10 +151,17 @@ struct HomeView: View {
           }
 
           // Help text
-          Text("Use the Trade tab to create limit orders 🚀")
-            .captionText()
-            .multilineTextAlignment(.center)
-            .padding(.top, 20)
+          if currentWallet != nil {
+            Text("Use the Trade tab to create limit orders 🚀")
+              .captionText()
+              .multilineTextAlignment(.center)
+              .padding(.top, 20)
+          } else {
+            Text("Create or load a wallet to access trading features 🚀")
+              .captionText()
+              .multilineTextAlignment(.center)
+              .padding(.top, 20)
+          }
 
           Spacer(minLength: 40)
 
@@ -217,6 +225,9 @@ struct HomeView: View {
       currentWallet = nil
     }
 
+    // Notify parent about wallet state change
+    onWalletStateChanged?(currentWallet != nil)
+    
     isLoadingWallet = false
   }
   
@@ -230,6 +241,9 @@ struct HomeView: View {
       await balanceService.fetchWalletBalance(for: wallet.address, forceRefresh: true)
       balanceService.startAutoRefresh(for: wallet.address)
     }
+    
+    // Notify parent about wallet state change
+    onWalletStateChanged?(currentWallet != nil)
     
     isLoadingWallet = false
   }
@@ -247,6 +261,9 @@ struct HomeView: View {
         balanceService.startAutoRefresh(for: wallet.address)
       }
 
+      // Notify parent about wallet state change
+      onWalletStateChanged?(currentWallet != nil)
+      
       isLoadingWallet = false
       return
     }
@@ -270,6 +287,9 @@ struct HomeView: View {
       balanceService.startAutoRefresh(for: wallet.address)
     }
 
+    // Notify parent about wallet state change
+    onWalletStateChanged?(currentWallet != nil)
+    
     isLoadingWallet = false
   }
 }

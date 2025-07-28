@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab = 0
+    @StateObject private var walletLoader = WalletLoader.shared
+    @State private var hasWallet = false
     
     var body: some View {
         NavigationView {
@@ -18,26 +20,35 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 
                 TabView(selection: $selectedTab) {
-                    HomeView(selectedTab: $selectedTab)
+                    HomeView(selectedTab: $selectedTab, onWalletStateChanged: { walletExists in
+                        hasWallet = walletExists
+                        // If wallet was removed and we're on Trade/Transactions tab, switch to Home
+                        if !walletExists && selectedTab > 0 {
+                            selectedTab = 0
+                        }
+                    })
                         .tabItem {
                             Image(systemName: "house.fill")
                             Text("Home")
                         }
                         .tag(0)
                     
-                    TradeView()
-                        .tabItem {
-                            Image(systemName: "arrow.left.arrow.right")
-                            Text("Trade")
-                        }
-                        .tag(1)
-                    
-                    TransactionsView()
-                        .tabItem {
-                            Image(systemName: "list.bullet")
-                            Text("Transactions")
-                        }
-                        .tag(2)
+                    // Only show Trade tab when wallet exists
+                    if hasWallet {
+                        TradeView()
+                            .tabItem {
+                                Image(systemName: "arrow.left.arrow.right")
+                                Text("Trade")
+                            }
+                            .tag(1)
+                        
+                        TransactionsView()
+                            .tabItem {
+                                Image(systemName: "list.bullet")
+                                Text("Transactions")
+                            }
+                            .tag(2)
+                    }
                 }
                 .background(Color.appBackground)
             }
@@ -45,6 +56,27 @@ struct ContentView: View {
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            Task {
+                await checkWalletState()
+            }
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func checkWalletState() async {
+        // Check if any wallet exists (generated or test wallet is always available)
+        let hasGeneratedWallet = await walletLoader.hasGeneratedWallet()
+        
+        // Test wallet is always available as a fallback, so we always have a wallet option
+        // The "no wallet" state is when user hasn't selected any wallet mode yet
+        hasWallet = hasGeneratedWallet
+        
+        // Ensure we're on Home tab if no wallet exists
+        if !hasWallet && selectedTab > 0 {
+            selectedTab = 0
+        }
     }
 }
 
