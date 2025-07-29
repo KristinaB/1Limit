@@ -204,6 +204,9 @@ final class TransactionIntegrationTests: XCTestCase {
     
     @MainActor
     func testCompleteTransactionLifecycle() async {
+        // Wait for initial load to complete
+        await Task.yield()
+        
         // Given: Empty transaction manager
         XCTAssertEqual(transactionManager.transactions.count, 0)
         
@@ -216,15 +219,27 @@ final class TransactionIntegrationTests: XCTestCase {
         XCTAssertEqual(transactionManager.transactions.count, 1)
         XCTAssertEqual(transactionManager.transactions.first?.status, .pending)
         
+        // Verify the transaction ID matches before updating
+        let loadedTransaction = transactionManager.transactions.first!
+        XCTAssertEqual(loadedTransaction.id, pendingTransaction.id)
+        
         // When: Polling updates transaction to confirmed
-        let confirmedTransaction = pendingTransaction.withUpdatedStatus(
+        let confirmedTransaction = loadedTransaction.withUpdatedStatus(
             status: .confirmed,
             blockNumber: "12345678",
             gasUsed: "21000",
             gasPrice: "30000000000"
         )
         
-        // Directly call the update handler to avoid async timing issues
+        // Update the transaction in mock persistence
+        try? await mockPersistence.updateTransaction(confirmedTransaction)
+        
+        // Simulate polling callback by calling onTransactionUpdate directly
+        if let onUpdate = mockPolling.onTransactionUpdate {
+            onUpdate(confirmedTransaction)
+        }
+        
+        // Alternative: call handleTransactionUpdate directly if the callback doesn't work
         transactionManager.handleTransactionUpdate(confirmedTransaction)
         
         // Give a moment for state to settle
@@ -234,6 +249,10 @@ final class TransactionIntegrationTests: XCTestCase {
         print("Debug: Transaction count: \(transactionManager.transactions.count)")
         print("Debug: First transaction status: \(String(describing: transactionManager.transactions.first?.status))")
         print("Debug: First transaction block: \(String(describing: transactionManager.transactions.first?.blockNumber))")
+        print("Debug: Original transaction ID: \(pendingTransaction.id)")
+        print("Debug: Loaded transaction ID: \(loadedTransaction.id)")
+        print("Debug: Confirmed transaction ID: \(confirmedTransaction.id)")
+        print("Debug: All transaction IDs in manager: \(transactionManager.transactions.map { $0.id })")
         
         // Then: Transaction should be updated
         XCTAssertEqual(transactionManager.transactions.count, 1)
