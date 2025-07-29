@@ -7,6 +7,7 @@
 
 import Foundation
 
+@MainActor
 protocol TransactionManagerProtocol {
     var isLoading: Bool { get }
     var errorMessage: String? { get }

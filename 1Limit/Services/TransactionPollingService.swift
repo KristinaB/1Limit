@@ -8,6 +8,7 @@
 import Foundation
 
 /// Protocol for transaction polling operations
+@MainActor
 protocol TransactionPollingProtocol {
     func startPolling(for transaction: Transaction) async
     func stopPolling(for transactionId: UUID)
@@ -21,8 +22,8 @@ class TransactionPollingService: TransactionPollingProtocol {
     
     // MARK: - Configuration
     
-    private let maxPollingDuration: TimeInterval = 60 // 1 minute
-    private let pollInterval: TimeInterval = 1 // 1 second
+    private let maxPollingDuration: TimeInterval = 300 // 5 minutes (increased for longer confirmation times)
+    private let pollInterval: TimeInterval = 10 // 10 seconds (reduced frequency to avoid API spam)
     private let rpcURL = "https://polygon-bor-rpc.publicnode.com"
     
     // MARK: - Dependencies
@@ -41,11 +42,11 @@ class TransactionPollingService: TransactionPollingProtocol {
     init(
         persistenceManager: TransactionPersistenceProtocol,
         urlSession: URLSession = .shared,
-        priceService: PriceService = .shared
+        priceService: PriceService? = nil
     ) {
         self.persistenceManager = persistenceManager
         self.urlSession = urlSession
-        self.priceService = priceService
+        self.priceService = priceService ?? PriceService.shared
     }
     
     // MARK: - Polling Operations

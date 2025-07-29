@@ -103,10 +103,10 @@ class WidgetSyncService: ObservableObject {
     private let priceService: PriceService
     private let chartService: ChartDataService
     
-    init(transactionManager: TransactionManagerProtocol, priceService: PriceService = .shared, chartService: ChartDataService = .shared) {
+    init(transactionManager: TransactionManagerProtocol, priceService: PriceService? = nil, chartService: ChartDataService? = nil) {
         self.transactionManager = transactionManager
-        self.priceService = priceService
-        self.chartService = chartService
+        self.priceService = priceService ?? PriceService.shared
+        self.chartService = chartService ?? ChartDataService.shared
         
         // Set up automatic syncing
         setupPeriodicSync()

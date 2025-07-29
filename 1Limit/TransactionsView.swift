@@ -11,6 +11,7 @@ struct TransactionsView: View {
   @StateObject private var transactionManager = TransactionManagerFactory.createProduction()
   @EnvironmentObject private var widgetSyncService: WidgetSyncService
   @State private var selectedFilter = "All"
+  @State private var refreshTimer: Timer?
   private let filters = ["All", "Pending", "Confirmed", "Failed"]
 
   var body: some View {
@@ -122,6 +123,47 @@ struct TransactionsView: View {
         .disabled(transactionManager.isLoading)
       }
     }
+    .onAppear {
+      startAutoRefreshIfNeeded()
+    }
+    .onDisappear {
+      stopAutoRefresh()
+    }
+    .onChange(of: transactionManager.transactions.count) {
+      // Restart timer when transactions change (new pending ones might be added)
+      startAutoRefreshIfNeeded()
+    }
+  }
+
+  // MARK: - Auto Refresh Logic
+  
+  private func startAutoRefreshIfNeeded() {
+    // Stop existing timer
+    stopAutoRefresh()
+    
+    // Check if there are any pending transactions
+    let hasPendingTransactions = transactionManager.transactions.contains { $0.status == .pending }
+    
+    guard hasPendingTransactions else { return }
+    
+    // Start timer to refresh every 5 seconds when there are pending transactions
+    refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+      Task { @MainActor in
+        await transactionManager.refreshTransactions()
+        widgetSyncService.syncToWidget()
+        
+        // Check if we still have pending transactions, if not, stop the timer
+        let stillHasPending = transactionManager.transactions.contains { $0.status == .pending }
+        if !stillHasPending {
+          stopAutoRefresh()
+        }
+      }
+    }
+  }
+  
+  private func stopAutoRefresh() {
+    refreshTimer?.invalidate()
+    refreshTimer = nil
   }
 
   private var filteredTransactions: [Transaction] {

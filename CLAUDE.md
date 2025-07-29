@@ -105,7 +105,9 @@ The app implements a progressive disclosure pattern for wallet functionality:
 
 #### Transaction Management Integration
 - Transactions appear immediately in pending state after creation
-- Polling service updates transaction status (1-second intervals for 1 minute)
+- Polling service updates transaction status (10-second intervals for 5 minutes)
+- UI auto-refreshes every 5 seconds when pending transactions exist
+- Transactions sorted by creation date (newest first)
 - Transaction history only accessible when wallet is active
 - Reset clears transaction state along with wallet data
 

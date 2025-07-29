@@ -30,11 +30,14 @@ enum WalletMode {
 // MARK: - Enhanced WalletLoader
 class WalletLoader: ObservableObject {
     static let shared = WalletLoader()
-    private init() {}
     
     // MARK: - Properties
     private let walletFileName = "wallet_0x3f847d.json"
-    private let walletGenerator = WalletGenerator.shared
+    private let walletGenerator: WalletGenerator
+    
+    private init() {
+        self.walletGenerator = WalletGenerator.shared
+    }
     
     @Published var currentWalletMode: WalletMode = .testWallet
     @Published var isLoading = false

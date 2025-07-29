@@ -13,6 +13,7 @@ struct HomeView: View {
   @State private var showingWalletCreation = false
   @State private var showingDebug = false
   @State private var showingReceiveFunds = false
+  @State private var showingSendFunds = false
   @State private var showingImportWallet = false
 
   // Wallet management state
@@ -127,8 +128,8 @@ struct HomeView: View {
                   showingReceiveFunds = true
                 }
 
-                PrimaryButton("Send", icon: "minus.circle") {
-                  showingReceiveFunds = true
+                PrimaryButton("Send", icon: "arrow.up.circle") {
+                  showingSendFunds = true
                 }
               }
             }
@@ -184,6 +185,11 @@ struct HomeView: View {
     .sheet(isPresented: $showingReceiveFunds) {
       if let wallet = currentWallet {
         ReceiveFundsView(wallet: wallet)
+      }
+    }
+    .sheet(isPresented: $showingSendFunds) {
+      if let wallet = currentWallet {
+        SendView(wallet: wallet)
       }
     }
     .sheet(isPresented: $showingImportWallet) {

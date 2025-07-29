@@ -29,10 +29,10 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
     init(
         persistenceManager: TransactionPersistenceProtocol = TransactionPersistenceManager(),
         pollingService: TransactionPollingProtocol? = nil,
-        priceService: PriceService = .shared
+        priceService: PriceService? = nil
     ) {
         self.persistenceManager = persistenceManager
-        self.priceService = priceService
+        self.priceService = priceService ?? PriceService.shared
         
         // Create polling service with persistence manager if not provided
         if let pollingService = pollingService {
@@ -40,7 +40,7 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
         } else {
             self.pollingService = TransactionPollingService(
                 persistenceManager: persistenceManager,
-                priceService: priceService
+                priceService: self.priceService
             )
         }
         
@@ -88,7 +88,8 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
                 }
                 print("💰 USD calculations completed")
                 
-                // Update the @Published property
+                // Sort by creation date (newest first) and update the @Published property
+                transactionsWithUSD.sort { $0.createdAt > $1.createdAt }
                 self.transactions = transactionsWithUSD
                 
                 // Update persistence with USD values
@@ -172,6 +173,9 @@ class TransactionManager: ObservableObject, TransactionManagerProtocol {
     func addTransaction(_ transaction: Transaction) {
         // Add to local array
         transactions.append(transaction)
+        
+        // Sort by creation date (newest first)
+        transactions.sort { $0.createdAt > $1.createdAt }
         
         // Persist asynchronously
         Task {

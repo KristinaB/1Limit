@@ -19,6 +19,14 @@ struct TokenBalanceInfo {
   let usdValue: Double
   let lastUpdated: Date
 
+  /// Raw decimal balance as string (for transfers)
+  var decimalBalance: String {
+    let divisor = pow(10.0, Double(decimals))
+    let tokenAmount = Double(balance.description) ?? 0.0
+    let readableAmount = tokenAmount / divisor
+    return String(readableAmount)
+  }
+  
   var formattedBalance: String {
     let divisor = pow(10.0, Double(decimals))
     let tokenAmount = Double(balance.description) ?? 0.0
