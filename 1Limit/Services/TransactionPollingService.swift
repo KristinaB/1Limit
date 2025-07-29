@@ -89,10 +89,25 @@ class TransactionPollingService: TransactionPollingProtocol {
         var currentTransaction = transaction
         
         while !Task.isCancelled {
-            // Check timeout (2 minutes)
+            // Check timeout (5 minutes) - mark as failed if still pending
             let elapsed = Date().timeIntervalSince(startTime)
             if elapsed >= maxPollingDuration {
-                print("⏰ Polling timeout reached for transaction: \(txHash)")
+                print("⏰ Polling timeout reached for transaction: \(txHash) - marking as failed after 5 minutes")
+                
+                // Mark transaction as failed due to timeout
+                let failedTransaction = currentTransaction.withUpdatedStatus(
+                    status: .failed,
+                    lastPolledAt: Date()
+                )
+                
+                // Calculate USD values and persist
+                await priceService.fetchPrices()
+                let transactionWithUSD = await failedTransaction.calculateUSDValues(using: priceService)
+                try? await persistenceManager.updateTransaction(transactionWithUSD)
+                
+                // Notify observers
+                onTransactionUpdate?(transactionWithUSD)
+                print("❌ Transaction \(txHash) marked as failed due to 5-minute timeout")
                 break
             }
             

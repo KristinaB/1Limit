@@ -14,9 +14,6 @@ import Web3Core
 
 struct OneInchSwapResponse: Codable {
     let dstAmount: String
-    let srcAmount: String
-    let gas: String
-    let gasPrice: String
     let tx: SwapTransactionData
 }
 
@@ -90,15 +87,18 @@ class OneInchSwapService: OneInchSwapProtocol {
     
     // MARK: - Properties
     
-    private let apiKey: String
     private let nodeURL: String
     private let chainID: Int
     private let urlSession: URLSession
+    private lazy var apiKey: String? = {
+        let key = loadAPIKey()
+        print("🔑 1inch Swap API Key loaded: \(key != nil ? "✅ Found" : "❌ Missing")")
+        return key
+    }()
     
     // MARK: - Initialization
     
-    init(apiKey: String, nodeURL: String, chainID: Int, urlSession: URLSession = .shared) {
-        self.apiKey = apiKey
+    init(nodeURL: String, chainID: Int, urlSession: URLSession = .shared) {
         self.nodeURL = nodeURL
         self.chainID = chainID
         self.urlSession = urlSession
@@ -112,6 +112,11 @@ class OneInchSwapService: OneInchSwapProtocol {
         amount: String,
         fromAddress: String
     ) async throws -> OneInchSwapResponse {
+        guard let apiKey = apiKey else {
+            print("❌ No API key found for 1inch swap service")
+            throw SwapError.apiError(401, "API key required for 1inch swap endpoint")
+        }
+        
         let baseURL = "https://api.1inch.dev/swap/v6.0/\(chainID)/swap"
         
         var components = URLComponents(string: baseURL)!
@@ -150,8 +155,14 @@ class OneInchSwapService: OneInchSwapProtocol {
         
         do {
             let swapResponse = try JSONDecoder().decode(OneInchSwapResponse.self, from: data)
+            print("✅ Successfully decoded 1inch swap response")
+            print("📊 Destination amount: \(swapResponse.dstAmount)")
+            print("⛽ Gas from response: \(swapResponse.tx.gas.bigIntValue)")
             return swapResponse
         } catch {
+            print("❌ Failed to decode 1inch response")
+            print("🔍 Decoding error: \(error)")
+            print("📝 Raw response: \(responseString)")
             throw SwapError.decodingError(error, responseString)
         }
     }
@@ -162,6 +173,9 @@ class OneInchSwapService: OneInchSwapProtocol {
         config: NetworkConfig
     ) async throws -> String {
         print("🔄 Executing 1inch swap transaction...")
+        print("📋 Swap data - dstAmount: \(swapData.dstAmount)")
+        print("📋 Swap data - to: \(swapData.tx.to)")
+        print("📋 Swap data - data length: \(swapData.tx.data.count)")
         
         // Create web3 instance
         guard let url = URL(string: nodeURL) else {
@@ -238,6 +252,25 @@ class OneInchSwapService: OneInchSwapProtocol {
     }
     
     // MARK: - Helper Methods
+    
+    private func loadAPIKey() -> String? {
+        // Try to load from app bundle first (for iOS app)
+        if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt"),
+           let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+           !content.isEmpty {
+            return content
+        }
+        
+        // Try to load from config directory (fallback for development)
+        if let homeDir = NSHomeDirectory() as String?,
+           let configPath = URL(string: homeDir)?.appendingPathComponent("config/api_keys.txt").path,
+           let content = try? String(contentsOfFile: configPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+           !content.isEmpty {
+            return content
+        }
+        
+        return nil
+    }
     
     private func createKeystore(from wallet: WalletData) throws -> KeystoreManager {
         var privateKey = wallet.privateKey
@@ -319,9 +352,6 @@ class MockOneInchSwapService: OneInchSwapProtocol {
         
         return OneInchSwapResponse(
             dstAmount: "10000000000000000", // 0.01 WMATIC
-            srcAmount: amount,
-            gas: "300000",
-            gasPrice: "30000000000",
             tx: SwapTransactionData(
                 from: fromAddress,
                 to: "0x111111125421cA6dc452d289314280a0f8842A65", // 1inch Router V6
@@ -354,12 +384,10 @@ class OneInchSwapServiceFactory {
     
     /// Create production swap service
     static func createProduction(
-        apiKey: String,
         nodeURL: String,
         chainID: Int
     ) -> OneInchSwapProtocol {
         return OneInchSwapService(
-            apiKey: apiKey,
             nodeURL: nodeURL,
             chainID: chainID
         )

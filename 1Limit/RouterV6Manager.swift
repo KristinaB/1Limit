@@ -256,7 +256,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     let dstAmountDouble = Double(swapQuote.dstAmount) ?? 0
     let dstAmountFormatted = dstAmountDouble / 1e18 // Convert from wei to WMATIC
     await addLog("   ≈ \(String(format: "%.6f", dstAmountFormatted)) WMATIC")
-    await addLog("   Estimated gas: \(swapQuote.gas)")
+    await addLog("   Estimated gas: \(swapQuote.tx.gas.bigIntValue)")
     
     await addLog("🚀 Step 4: Submitting swap transaction...")
     
@@ -735,9 +735,12 @@ class RouterV6ManagerFactory {
     )
     let transactionManager = TransactionManagerFactory.createProduction()
     
-    // Create 1inch swap service with production API key
-    // TODO: Load API key from secure storage or environment
-    let oneInchSwapService = OneInchSwapServiceFactory.createMock() // Use mock for now
+    // Create 1inch swap service with production configuration
+    // API key loaded from bundle automatically
+    let oneInchSwapService = OneInchSwapServiceFactory.createProduction(
+      nodeURL: networkConfig.nodeURL,
+      chainID: networkConfig.chainID
+    )
 
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createProductionFactory(logger: nil),
