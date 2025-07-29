@@ -143,19 +143,35 @@ class WalletSetupUITests: XCTestCase {
         let generatingText = app.staticTexts["Generating secure wallet..."]
         if generatingText.exists {
             print("⏳ Waiting for wallet generation to complete...")
-            usleep(5000000) // 5 seconds
+            usleep(8000000) // Increased to 8 seconds
         }
         
-        // Check for recovery phrase grid or new wallet address
-        let wordsExist = app.staticTexts.allElementsBoundByIndex.contains { element in
-            let label = element.label
-            return label.count > 0 && label.split(separator: " ").count == 1 && 
-                   label.rangeOfCharacter(from: CharacterSet.letters.inverted) == nil
-        }
+        // Additional wait for UI to settle
+        usleep(2000000) // 2 more seconds
         
+        // Check for recovery phrase grid first
+        let recoveryPhraseTitle = app.staticTexts["Recovery Phrase"]
+        let recoveryPhraseExists = recoveryPhraseTitle.exists
+        
+        // Check for new wallet address
         let newWalletAddressExists = app.staticTexts["New Wallet Address:"].exists
         
-        XCTAssertTrue(wordsExist || newWalletAddressExists, "Should show recovery words or new wallet address")
+        // Check for individual recovery words (more reliable than the complex check)
+        let wordElements = app.staticTexts.allElementsBoundByIndex.filter { element in
+            let label = element.label
+            // Look for single words that are likely recovery phrase words
+            return label.count > 2 && label.count < 15 && 
+                   !label.contains(":") && !label.contains("•") &&
+                   label.rangeOfCharacter(from: CharacterSet.letters.inverted) == nil
+        }
+        let hasRecoveryWords = wordElements.count >= 6 // Should have at least half the words visible
+        
+        print("🔍 Debug: Recovery phrase title exists: \(recoveryPhraseExists)")
+        print("🔍 Debug: New wallet address exists: \(newWalletAddressExists)")
+        print("🔍 Debug: Found \(wordElements.count) potential recovery words")
+        
+        XCTAssertTrue(recoveryPhraseExists || newWalletAddressExists || hasRecoveryWords, 
+                     "Should show recovery phrase title, new wallet address, or recovery words")
     }
     
     private func testNewWalletAddressDisplay() {

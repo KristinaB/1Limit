@@ -30,6 +30,9 @@ class TransactionLoadingUITests: XCTestCase {
     func testTransactionAppearsInUI() throws {
         print("🧪 Testing transaction appears in UI with exact JSON data...")
         
+        // First load a wallet to make tabs visible
+        loadTestWalletIfNeeded()
+        
         // Navigate to Transactions tab
         let transactionsTab = app.tabBars.buttons["Transactions"]
         XCTAssertTrue(transactionsTab.exists, "Transactions tab should exist")
