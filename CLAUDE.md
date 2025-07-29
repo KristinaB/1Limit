@@ -201,6 +201,22 @@ if !activeWalletText.exists {
 - Bundled tests are more reliable than individual test execution
 - Reset functionality should be tested to ensure proper state cleanup
 
+## Current Implementation Notes
+
+### Send Screen Transaction Status
+The send screen now implements **real blockchain transactions** for both MATIC and ERC-20 transfers:
+- ✅ Native MATIC transfers use the coldWalletABI fallback pattern
+- ✅ ERC-20 transfers use the standard transfer method on token contracts
+- ✅ Gas estimation and pricing from actual network
+- ✅ Transactions are submitted to Polygon mainnet
+- ✅ Transaction hashes are real and can be verified on PolygonScan
+
+**Implementation Details:**
+- Native transfers: Uses `Web3.Utils.coldWalletABI` with fallback operation
+- ERC-20 transfers: Uses `Web3.Utils.erc20ABI` with transfer operation
+- Gas policies: Uses `.latest` nonce policy and manual gas limits
+- Keystore: Created from wallet private key with empty password
+
 ## Reminder Notes
 
 - ask me to run these

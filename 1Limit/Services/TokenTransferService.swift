@@ -8,6 +8,7 @@
 import Foundation
 import web3swift
 import BigInt
+import Web3Core
 
 /// Gas estimation result
 struct GasEstimationResult {
@@ -112,19 +113,87 @@ class TokenTransferService: ObservableObject, TokenTransferProtocol {
             throw TransferError.noWallet
         }
         
-        // This is a simplified implementation
-        // In production, you would use web3swift to create and send the transaction
-        
         print("🚀 Executing native MATIC transfer:")
         print("   From: \(transaction.fromAddress)")
         print("   To: \(transaction.toAddress)")
         print("   Amount: \(transaction.amount) MATIC")
         print("   Amount Wei: \(transaction.amountWei)")
         
-        // Simulate successful transfer for demo
-        try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+        // Create web3 instance
+        guard let url = URL(string: nodeURL) else {
+            throw TransferError.networkError("Invalid node URL")
+        }
         
-        return true
+        let web3 = try await Web3.new(url)
+        
+        // Create addresses
+        guard let fromAddress = EthereumAddress(transaction.fromAddress),
+              let toAddress = EthereumAddress(transaction.toAddress),
+              let amountWei = BigUInt(transaction.amountWei) else {
+            throw TransferError.invalidAmount
+        }
+        
+        // Create keystore
+        let keystore = try createKeystore(from: wallet)
+        web3.addKeystoreManager(keystore)
+        
+        // Create transaction for native token
+        var tx: CodableTransaction = .emptyTransaction
+        tx.from = fromAddress
+        tx.to = toAddress
+        tx.value = amountWei
+        tx.chainID = BigUInt(networkConfig.chainID) // Set Polygon chain ID (137)
+        
+        // Get gas price and nonce
+        tx.gasPrice = try await web3.eth.gasPrice()
+        tx.nonce = try await web3.eth.getTransactionCount(for: fromAddress, onBlock: .latest)
+        
+        // Create fallback operation for native token
+        let contract = web3.contract(Web3.Utils.coldWalletABI, at: toAddress, abiVersion: 2)
+        contract?.transaction = tx
+        
+        guard let writeOperation = contract?.createWriteOperation("fallback", parameters: []) else {
+            throw TransferError.transactionFailed("Failed to create write operation")
+        }
+        
+        // Estimate gas
+        tx.gasLimit = try await web3.eth.estimateGas(for: writeOperation.transaction)
+        
+        // Update transaction in write operation with all parameters
+        writeOperation.transaction = tx
+        writeOperation.transaction.chainID = BigUInt(networkConfig.chainID)
+        writeOperation.transaction.nonce = tx.nonce
+        writeOperation.transaction.gasPrice = tx.gasPrice
+        writeOperation.transaction.gasLimit = tx.gasLimit
+        
+        // Set policies
+        let policies = Policies(
+            noncePolicy: .latest,
+            gasLimitPolicy: .manual(tx.gasLimit),
+            gasPricePolicy: .manual(tx.gasPrice ?? BigUInt(30) * BigUInt(10).power(9))
+        )
+        
+        do {
+            // Submit transaction
+            let result = try await writeOperation.writeToChain(
+                password: "",
+                policies: policies
+            )
+            
+            print("✅ Transaction submitted: \(result.hash)")
+            
+            // Add to TransactionManager
+            await addTransactionToManager(
+                hash: result.hash,
+                transaction: transaction,
+                type: "Native Transfer"
+            )
+            
+            return true
+        } catch {
+            print("❌ Transaction failed: \(error)")
+            throw TransferError.transactionFailed(error.localizedDescription)
+        }
     }
     
     // MARK: - ERC-20 Token Transfer
@@ -170,9 +239,6 @@ class TokenTransferService: ObservableObject, TokenTransferProtocol {
             throw TransferError.missingContractAddress
         }
         
-        // This is a simplified implementation
-        // In production, you would use web3swift to interact with the ERC-20 contract
-        
         print("🚀 Executing ERC-20 token transfer:")
         print("   Token: \(transaction.token.symbol)")
         print("   Contract: \(contractAddress)")
@@ -181,18 +247,191 @@ class TokenTransferService: ObservableObject, TokenTransferProtocol {
         print("   Amount: \(transaction.amount) \(transaction.token.symbol)")
         print("   Amount Units: \(transaction.amountWei)")
         
-        // Simulate successful transfer for demo
-        try await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+        // Create web3 instance
+        guard let url = URL(string: nodeURL) else {
+            throw TransferError.networkError("Invalid node URL")
+        }
         
-        return true
+        let web3 = try await Web3.new(url)
+        
+        // Create addresses
+        guard let fromAddress = EthereumAddress(transaction.fromAddress),
+              let toAddress = EthereumAddress(transaction.toAddress),
+              let tokenContractAddress = EthereumAddress(contractAddress),
+              let amountUnits = BigUInt(transaction.amountWei) else {
+            throw TransferError.invalidAmount
+        }
+        
+        // Create keystore
+        let keystore = try createKeystore(from: wallet)
+        web3.addKeystoreManager(keystore)
+        
+        // Create transaction for ERC-20 token
+        var tx: CodableTransaction = .emptyTransaction
+        tx.from = fromAddress
+        tx.to = tokenContractAddress // Token contract address
+        tx.value = 0 // No native token value for ERC-20 transfers
+        tx.chainID = BigUInt(networkConfig.chainID) // Set Polygon chain ID (137)
+        
+        // Get gas price and nonce
+        tx.gasPrice = try await web3.eth.gasPrice()
+        tx.nonce = try await web3.eth.getTransactionCount(for: fromAddress, onBlock: .latest)
+        
+        // Create ERC-20 contract
+        let contract = web3.contract(Web3.Utils.erc20ABI, at: tokenContractAddress, abiVersion: 2)
+        contract?.transaction = tx
+        
+        // Create transfer operation with target address and amount
+        guard let writeOperation = contract?.createWriteOperation(
+            "transfer",
+            parameters: [toAddress as AnyObject, amountUnits as AnyObject]
+        ) else {
+            throw TransferError.transactionFailed("Failed to create transfer operation")
+        }
+        
+        // Estimate gas
+        tx.gasLimit = try await web3.eth.estimateGas(for: writeOperation.transaction)
+        
+        // Update transaction in write operation with all parameters
+        writeOperation.transaction = tx
+        writeOperation.transaction.chainID = BigUInt(networkConfig.chainID)
+        writeOperation.transaction.nonce = tx.nonce
+        writeOperation.transaction.gasPrice = tx.gasPrice
+        writeOperation.transaction.gasLimit = tx.gasLimit
+        
+        // Set policies
+        let policies = Policies(
+            noncePolicy: .latest,
+            gasLimitPolicy: .manual(tx.gasLimit),
+            gasPricePolicy: .manual(tx.gasPrice ?? BigUInt(30) * BigUInt(10).power(9))
+        )
+        
+        do {
+            // Submit transaction
+            let result = try await writeOperation.writeToChain(
+                password: "",
+                policies: policies
+            )
+            
+            print("✅ ERC-20 transfer submitted: \(result.hash)")
+            
+            // Add to TransactionManager
+            await addTransactionToManager(
+                hash: result.hash,
+                transaction: transaction,
+                type: "Token Transfer"
+            )
+            
+            return true
+        } catch {
+            print("❌ ERC-20 transfer failed: \(error)")
+            throw TransferError.transactionFailed(error.localizedDescription)
+        }
     }
     
     // MARK: - Helper Methods
     
     private func getCurrentGasPrice() async throws -> BigUInt {
-        // In production, you would query the actual network for gas price
-        // For demo, return a reasonable gas price for Polygon (30 gwei)
-        return BigUInt(30) * BigUInt(10).power(9) // 30 gwei in wei
+        // Query actual network for gas price
+        guard let url = URL(string: nodeURL) else {
+            // Fallback to reasonable gas price for Polygon (30 gwei)
+            return BigUInt(30) * BigUInt(10).power(9)
+        }
+        
+        let web3 = try await Web3.new(url)
+        
+        do {
+            let gasPrice = try await web3.eth.gasPrice()
+            print("💰 Current gas price: \(gasPrice) wei (\(Double(gasPrice) / 1e9) gwei)")
+            return gasPrice
+        } catch {
+            print("⚠️ Failed to get gas price, using default: \(error)")
+            return BigUInt(30) * BigUInt(10).power(9) // 30 gwei fallback
+        }
+    }
+    
+    private func createKeystore(from wallet: WalletData) throws -> KeystoreManager {
+        // Create keystore from wallet private key
+        var privateKey = wallet.privateKey
+        
+        // Remove 0x prefix if present
+        if privateKey.hasPrefix("0x") {
+            privateKey = String(privateKey.dropFirst(2))
+        }
+        
+        guard let privateKeyData = Data(fromHex: privateKey) else {
+            throw TransferError.noWallet
+        }
+        
+        guard let keystore = try? EthereumKeystoreV3(privateKey: privateKeyData, password: "") else {
+            throw TransferError.noWallet
+        }
+        
+        let keystoreManager = KeystoreManager([keystore])
+        
+        // Log for debugging
+        if let addresses = keystore.addresses {
+            print("🔑 Keystore addresses: \(addresses.map { $0.address })")
+            print("🔑 Expected address: \(wallet.address)")
+        }
+        
+        return keystoreManager
+    }
+    
+    private func addTransactionToManager(
+        hash: String,
+        transaction: SendTransaction,
+        type: String
+    ) async {
+        // Get TransactionManager and add the transaction
+        let transactionManager = TransactionManagerFactory.createProduction()
+        
+        let newTransaction = Transaction(
+            type: type,
+            fromAmount: transaction.amount,
+            fromToken: transaction.token.symbol,
+            toAmount: transaction.amount, // For simple transfers, amounts are the same
+            toToken: transaction.token.symbol,
+            limitPrice: "0", // Not a limit order
+            txHash: hash,
+            fromAmountUSD: Double(transaction.amount) ?? 0 * (Double(transaction.gasCostUSD?.dropFirst() ?? "0") ?? 0),
+            toAmountUSD: Double(transaction.amount) ?? 0 * (Double(transaction.gasCostUSD?.dropFirst() ?? "0") ?? 0),
+            gasFeeUSD: Double(transaction.gasCostUSD?.dropFirst() ?? "0")
+        )
+        
+        await transactionManager.addTransaction(newTransaction)
+    }
+}
+
+// MARK: - Extensions
+
+extension Data {
+    init?(fromHex hex: String) {
+        var data = Data()
+        var hex = hex
+        
+        // Remove 0x prefix if present
+        if hex.hasPrefix("0x") {
+            hex = String(hex.dropFirst(2))
+        }
+        
+        // Ensure even number of characters
+        if hex.count % 2 != 0 {
+            hex = "0" + hex
+        }
+        
+        for i in stride(from: 0, to: hex.count, by: 2) {
+            let j = hex.index(hex.startIndex, offsetBy: i)
+            let k = hex.index(j, offsetBy: 2)
+            let bytes = hex[j..<k]
+            if var byte = UInt8(bytes, radix: 16) {
+                data.append(&byte, count: 1)
+            } else {
+                return nil
+            }
+        }
+        
+        self = data
     }
 }
 
