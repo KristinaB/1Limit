@@ -9,7 +9,7 @@ import Foundation
 
 /// Represents a token that can be transferred
 struct TransferableToken: Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     let symbol: String
     let name: String
     let contractAddress: String?  // nil for native MATIC
@@ -18,6 +18,19 @@ struct TransferableToken: Identifiable, Equatable {
     let balanceFormatted: String
     let usdValue: String?
     let isNative: Bool
+    
+    init(symbol: String, name: String, contractAddress: String?, decimals: Int, balance: String, 
+         balanceFormatted: String, usdValue: String?, isNative: Bool) {
+        self.id = UUID()
+        self.symbol = symbol
+        self.name = name
+        self.contractAddress = contractAddress
+        self.decimals = decimals
+        self.balance = balance
+        self.balanceFormatted = balanceFormatted
+        self.usdValue = usdValue
+        self.isNative = isNative
+    }
     
     /// Create native MATIC token
     static func matic(balance: String, balanceFormatted: String, usdValue: String?) -> TransferableToken {

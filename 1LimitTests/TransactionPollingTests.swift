@@ -17,9 +17,13 @@ final class TransactionPollingTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        mockPollingService = MockTransactionPollingService()
         mockPersistence = MockTransactionPersistenceManager()
         mockURLSession = MockURLSession()
+    }
+    
+    @MainActor
+    func setupMockPollingService() {
+        mockPollingService = MockTransactionPollingService()
     }
     
     @MainActor
@@ -42,6 +46,9 @@ final class TransactionPollingTests: XCTestCase {
     
     @MainActor
     func testMockPollingStartStop() async {
+        // Setup
+        setupMockPollingService()
+        
         // Given
         let transaction = createTestTransaction()
         var receivedUpdates: [Transaction] = []
@@ -61,6 +68,9 @@ final class TransactionPollingTests: XCTestCase {
     
     @MainActor
     func testMockPollingSuccess() async {
+        // Setup
+        setupMockPollingService()
+        
         // Given
         let transaction = createTestTransaction(status: .pending)
         var receivedTransaction: Transaction?
@@ -83,6 +93,9 @@ final class TransactionPollingTests: XCTestCase {
     
     @MainActor
     func testMockPollingError() async {
+        // Setup
+        setupMockPollingService()
+        
         // Given
         let transaction = createTestTransaction(status: .pending)
         var receivedTransaction: Transaction?
@@ -103,6 +116,9 @@ final class TransactionPollingTests: XCTestCase {
     
     @MainActor
     func testMockPollingStopAll() async {
+        // Setup
+        setupMockPollingService()
+        
         // Given
         let transaction1 = createTestTransaction()
         let transaction2 = createTestTransaction()

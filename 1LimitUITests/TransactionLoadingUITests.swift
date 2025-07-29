@@ -65,6 +65,9 @@ class TransactionLoadingUITests: XCTestCase {
     func testTransactionFilteringWithRealData() throws {
         print("🧪 Testing transaction filtering with real data...")
         
+        // First load a wallet to make tabs visible
+        loadTestWalletIfNeeded()
+        
         // Navigate to Transactions tab
         app.tabBars.buttons["Transactions"].tap()
         
@@ -100,6 +103,9 @@ class TransactionLoadingUITests: XCTestCase {
     
     func testTransactionDetailView() throws {
         print("🧪 Testing transaction detail view with real data...")
+        
+        // First load a wallet to make tabs visible
+        loadTestWalletIfNeeded()
         
         // Navigate to Transactions tab
         app.tabBars.buttons["Transactions"].tap()
@@ -137,15 +143,28 @@ class TransactionLoadingUITests: XCTestCase {
         }
     }
     
-    func testEmptyTransactionsState() throws {
-        print("🧪 Testing empty transactions state...")
+    // MARK: - Helper Methods
+    
+    private func loadTestWalletIfNeeded() {
+        // Check if tabs are already visible (wallet already loaded)
+        let transactionsTab = app.tabBars.buttons["Transactions"]
+        if transactionsTab.exists {
+            return // Wallet already loaded
+        }
         
-        // Load test wallet first to make Transactions tab available
+        // Load test wallet to make tabs visible
         let useTestWalletButton = app.buttons["Use Test Wallet"]
         if useTestWalletButton.exists {
             useTestWalletButton.tap()
             usleep(1000000) // 1 second for wallet to load
         }
+    }
+    
+    func testEmptyTransactionsState() throws {
+        print("🧪 Testing empty transactions state...")
+        
+        // Load test wallet first to make Transactions tab available
+        loadTestWalletIfNeeded()
         
         // Navigate to Transactions tab
         let transactionsTab = app.tabBars.buttons["Transactions"]

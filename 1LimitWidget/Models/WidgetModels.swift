@@ -24,11 +24,19 @@ struct WidgetEntry: TimelineEntry {
 // MARK: - Widget Position
 
 struct WidgetPosition: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     let symbol: String
     let amount: Double
     let value: Double
     let status: PositionStatus
+    
+    init(symbol: String, amount: Double, value: Double, status: PositionStatus) {
+        self.id = UUID()
+        self.symbol = symbol
+        self.amount = amount
+        self.value = value
+        self.status = status
+    }
 }
 
 enum PositionStatus: String, Codable, CaseIterable {
@@ -54,9 +62,15 @@ enum PositionStatus: String, Codable, CaseIterable {
 // MARK: - Price Point
 
 struct PricePoint: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     let timestamp: Date
     let price: Double
+    
+    init(timestamp: Date, price: Double) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.price = price
+    }
 }
 
 // MARK: - Widget Transaction
@@ -84,13 +98,23 @@ struct WidgetTransaction: Identifiable, Codable {
 // MARK: - Widget Candlestick Data
 
 struct WidgetCandlestickData: Codable, Identifiable {
-    let id = UUID()
+    let id: UUID
     let timestamp: Date
     let open: Double
     let high: Double
     let low: Double
     let close: Double
     let volume: Double
+    
+    init(timestamp: Date, open: Double, high: Double, low: Double, close: Double, volume: Double) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+        self.volume = volume
+    }
     
     var isBullish: Bool {
         return close >= open

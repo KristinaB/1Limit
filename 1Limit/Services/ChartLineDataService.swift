@@ -9,9 +9,15 @@ import Foundation
 
 /// Line chart data point
 struct LineChartData: Identifiable, Codable {
-    let id = UUID()
+    let id: UUID
     let timestamp: Date
     let price: Double
+    
+    init(timestamp: Date, price: Double) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.price = price
+    }
     
     /// Formatted price string
     var formattedPrice: String { 

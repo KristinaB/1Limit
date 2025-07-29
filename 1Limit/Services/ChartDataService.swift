@@ -9,13 +9,23 @@ import Foundation
 
 /// OHLC candlestick data point
 struct CandlestickData: Identifiable, Equatable {
-    let id = UUID()
+    let id: UUID
     let timestamp: Date
     let open: Double
     let high: Double
     let low: Double
     let close: Double
     let volume: Double
+    
+    init(timestamp: Date, open: Double, high: Double, low: Double, close: Double, volume: Double) {
+        self.id = UUID()
+        self.timestamp = timestamp
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+        self.volume = volume
+    }
     
     /// Price change from open to close
     var priceChange: Double {

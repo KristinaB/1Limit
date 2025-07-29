@@ -226,6 +226,8 @@ final class TokenTransferTests: XCTestCase {
             default:
                 XCTFail("Expected networkError, got \(error)")
             }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
         }
     }
     
@@ -310,6 +312,8 @@ final class TokenTransferTests: XCTestCase {
             default:
                 XCTFail("Expected transactionFailed, got \(error)")
             }
+        } catch {
+            XCTFail("Unexpected error type: \(error)")
         }
     }
     

@@ -23,6 +23,11 @@ final class TransactionIntegrationTests: XCTestCase {
             persistenceManager: mockPersistence,
             pollingService: mockPolling
         )
+        
+        // Let initial loading complete
+        Task {
+            await Task.yield()
+        }
     }
     
     override func tearDown() {
@@ -127,6 +132,9 @@ final class TransactionIntegrationTests: XCTestCase {
     
     @MainActor
     func testClearAllTransactions() async {
+        // Wait for initial load to complete
+        await Task.yield()
+        
         // Given: Transactions in manager
         let transaction1 = createTestTransaction(fromAmount: "100.0")
         let transaction2 = createTestTransaction(fromAmount: "200.0")
@@ -242,6 +250,9 @@ final class TransactionIntegrationTests: XCTestCase {
     
     @MainActor
     func testPollingStartsForPendingTransactions() async {
+        // Wait for initial load to complete
+        await Task.yield()
+        
         // Given: Mix of transactions, some that need polling
         let pendingTx = createTestTransaction(status: .pending, needsPolling: true)
         let confirmedTx = createTestTransaction(status: .confirmed, needsPolling: false)

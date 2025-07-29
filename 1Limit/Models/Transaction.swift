@@ -143,7 +143,7 @@ struct Transaction: Identifiable, Codable {
     /// Check if transaction needs polling (pending and within polling window)
     var needsPolling: Bool {
         guard status == .pending,
-              let txHash = txHash else { return false }
+              txHash != nil else { return false }
         
         // Poll for maximum 2 minutes from creation
         let maxPollingDuration: TimeInterval = 120 // 2 minutes
