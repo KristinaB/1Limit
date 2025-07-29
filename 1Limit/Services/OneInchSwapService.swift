@@ -182,49 +182,82 @@ class OneInchSwapService: OneInchSwapProtocol {
             throw SwapError.invalidURL
         }
         
+        print("🌐 Connecting to node: \(nodeURL)")
         let web3 = try await Web3.new(url)
+        print("✅ Web3 connection established")
         
         // Create addresses and parse data
-        guard let fromAddress = EthereumAddress(walletData.address),
-              let toAddress = EthereumAddress(swapData.tx.to),
-              let transactionData = Data(hex: swapData.tx.data) else {
+        print("📍 Parsing addresses...")
+        print("   From: \(walletData.address)")
+        print("   To: \(swapData.tx.to)")
+        
+        guard let fromAddress = EthereumAddress(walletData.address) else {
+            print("❌ Invalid fromAddress: \(walletData.address)")
             throw SwapError.invalidTransactionData
         }
+        
+        guard let toAddress = EthereumAddress(swapData.tx.to) else {
+            print("❌ Invalid toAddress: \(swapData.tx.to)")
+            throw SwapError.invalidTransactionData
+        }
+        
+        // Strip 0x prefix before converting hex data
+        let cleanHexData = swapData.tx.data.hasPrefix("0x") ? String(swapData.tx.data.dropFirst(2)) : swapData.tx.data
+        guard let transactionData = Data(hex: cleanHexData) else {
+            print("❌ Invalid transaction data: \(swapData.tx.data.prefix(20))...")
+            throw SwapError.invalidTransactionData
+        }
+        
+        print("✅ Addresses and data parsed successfully")
         
         let value = BigUInt(swapData.tx.value) ?? BigUInt(0)
         
         // Get transaction parameters
+        print("🔢 Getting transaction parameters...")
         let nonce = try await web3.eth.getTransactionCount(for: fromAddress, onBlock: .latest)
         let gasPrice = try await web3.eth.gasPrice()
+        print("   Nonce: \(nonce)")
+        print("   Gas price: \(gasPrice) wei")
         
-        // Parse gas limit from 1inch response
-        var gasLimit = swapData.tx.gas.bigIntValue
-        
-        // Ensure minimum gas limit for swaps
-        let minGasLimit = BigUInt(300_000)
-        if gasLimit < BigUInt(50_000) {
-            print("⚠️ Low gas limit detected (\(gasLimit)), using \(minGasLimit)")
-            gasLimit = minGasLimit
-        }
-        
-        // Create transaction
+        // Create transaction first (without gasLimit)
+        print("🔨 Creating transaction...")
         var tx: CodableTransaction = .emptyTransaction
         tx.from = fromAddress
         tx.to = toAddress
         tx.value = value
         tx.data = transactionData
         tx.nonce = nonce
-        tx.gasLimit = gasLimit
         tx.gasPrice = gasPrice
         tx.chainID = BigUInt(config.chainID)
         
+        // Estimate gas properly using web3 (like other transactions)
+        print("⛽ Estimating gas for swap transaction...")
+        do {
+            let estimatedGas = try await web3.eth.estimateGas(for: tx)
+            tx.gasLimit = estimatedGas
+            print("✅ Gas estimated: \(estimatedGas)")
+        } catch {
+            print("⚠️ Gas estimation failed (\(error)), using fallback: 300,000")
+            tx.gasLimit = BigUInt(300_000)
+        }
+        
+        print("📋 Transaction details:")
+        print("   From: \(fromAddress.address)")
+        print("   To: \(toAddress.address)")
+        print("   Value: \(value)")
+        print("   Gas limit: \(tx.gasLimit)")
+        print("   Chain ID: \(config.chainID)")
+        
         // Create keystore
+        print("🔐 Creating keystore...")
         let keystore = try createKeystore(from: walletData)
         web3.addKeystoreManager(keystore)
         
         // Sign transaction manually
+        print("✏️ Signing transaction...")
         let privateKeyHex = String(walletData.privateKey.dropFirst(2))
         guard let privateKeyData = Data(hex: privateKeyHex) else {
+            print("❌ Invalid private key format")
             throw SwapError.invalidPrivateKey
         }
         
@@ -234,12 +267,17 @@ class OneInchSwapService: OneInchSwapProtocol {
         print("🚀 Submitting swap to \(config.name)...")
         
         // Encode and send transaction
+        print("📦 Encoding transaction...")
         guard let rawTx = tx.encode() else {
+            print("❌ Failed to encode transaction")
             throw SwapError.transactionEncodingFailed
         }
         
+        print("📤 Sending transaction to network...")
         let result = try await web3.eth.send(raw: rawTx)
         let txHash = result.hash
+        
+        print("🎉 Transaction sent successfully!")
         
         print("✅ Swap transaction submitted successfully!")
         print("🔗 TX Hash: \(txHash)")
