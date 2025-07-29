@@ -35,13 +35,10 @@ class PriceValidationService: ObservableObject, PriceValidationProtocol {
     private let allowedPriceDeviation: Double = 0.30 // 30% deviation allowed
     private let urlSession: URLSession
     
-    // Token price mapping (CoinGecko IDs)
-    private let tokenPriceIds: [String: String] = [
-        "WMATIC": "wmatic",
-        "MATIC": "matic-network",
-        "USDC": "usd-coin",
-        "USDT": "tether",
-        "DAI": "dai"
+    // Token addresses for Polygon (matching PriceService)
+    private let tokenAddresses: [String: String] = [
+        "WMATIC": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+        "USDC": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359"
     ]
     
     // MARK: - Initialization
@@ -110,24 +107,26 @@ class PriceValidationService: ObservableObject, PriceValidationProtocol {
     // MARK: - Market Data Fetching
     
     private func getCurrentMarketRate(from fromToken: String, to toToken: String) async throws -> Double {
-        // Get prices for both tokens
-        let fromTokenId = tokenPriceIds[fromToken.uppercased()]
-        let toTokenId = tokenPriceIds[toToken.uppercased()]
+        // Normalize token names to match PriceService
+        let normalizedFrom = normalizeTokenSymbol(fromToken)
+        let normalizedTo = normalizeTokenSymbol(toToken)
         
-        guard let fromId = fromTokenId, let toId = toTokenId else {
+        // Get token addresses
+        guard let fromAddress = tokenAddresses[normalizedFrom],
+              let toAddress = tokenAddresses[normalizedTo] else {
             throw PriceValidationError.unsupportedToken
         }
         
         // Special case: if both tokens are the same, rate is 1.0
-        if fromId == toId {
+        if normalizedFrom == normalizedTo {
             return 1.0
         }
         
-        // Fetch prices from CoinGecko API
-        let prices = try await fetchTokenPrices(tokenIds: [fromId, toId])
+        // Fetch prices from 1inch API
+        let prices = try await fetchTokenPrices(tokens: [normalizedFrom: fromAddress, normalizedTo: toAddress])
         
-        guard let fromPrice = prices[fromId],
-              let toPrice = prices[toId],
+        guard let fromPrice = prices[normalizedFrom],
+              let toPrice = prices[normalizedTo],
               toPrice > 0 else {
             throw PriceValidationError.priceNotAvailable
         }
@@ -136,32 +135,75 @@ class PriceValidationService: ObservableObject, PriceValidationProtocol {
         return fromPrice / toPrice
     }
     
-    private func fetchTokenPrices(tokenIds: [String]) async throws -> [String: Double] {
-        let idsString = tokenIds.joined(separator: ",")
-        let urlString = "https://api.coingecko.com/api/v3/simple/price?ids=\(idsString)&vs_currencies=usd"
-        
-        guard let url = URL(string: urlString) else {
-            throw PriceValidationError.invalidURL
+    private func normalizeTokenSymbol(_ token: String) -> String {
+        switch token.uppercased() {
+        case "MATIC", "WMATIC":
+            return "WMATIC"
+        case "USDC", "USDC.E", "USD COIN":
+            return "USDC"
+        default:
+            return token.uppercased()
+        }
+    }
+    
+    private func fetchTokenPrices(tokens: [String: String]) async throws -> [String: Double] {
+        guard let apiKey = loadAPIKey() else {
+            throw PriceValidationError.noAPIKey
         }
         
-        let (data, response) = try await urlSession.data(from: url)
+        let baseURL = "https://api.1inch.dev/price/v1.1/137" // Polygon mainnet
+        var tokenPrices: [String: Double] = [:]
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw PriceValidationError.apiError
-        }
-        
-        let priceData = try JSONDecoder().decode([String: [String: Double]].self, from: data)
-        
-        // Extract USD prices
-        var prices: [String: Double] = [:]
-        for (tokenId, priceInfo) in priceData {
-            if let usdPrice = priceInfo["usd"] {
-                prices[tokenId] = usdPrice
+        // Fetch each token price from 1inch API
+        for (symbol, address) in tokens {
+            do {
+                var components = URLComponents(string: "\(baseURL)/\(address.lowercased())")!
+                components.queryItems = [
+                    URLQueryItem(name: "currency", value: "USD")
+                ]
+                
+                guard let url = components.url else {
+                    continue
+                }
+                
+                var request = URLRequest(url: url)
+                request.httpMethod = "GET"
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                request.setValue("application/json", forHTTPHeaderField: "Accept")
+                
+                let (data, response) = try await urlSession.data(for: request)
+                
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    continue
+                }
+                
+                // Parse the JSON response: {"0x...": "0.9996755210754397"}
+                guard let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: String],
+                      let priceString = jsonObject[address.lowercased()],
+                      let usdPrice = Double(priceString) else {
+                    continue
+                }
+                
+                tokenPrices[symbol] = usdPrice
+                
+            } catch {
+                print("⚠️ Failed to fetch price for \(symbol): \(error)")
             }
         }
         
-        return prices
+        return tokenPrices
+    }
+    
+    private func loadAPIKey() -> String? {
+        // Try to load from app bundle
+        if let path = Bundle.main.path(forResource: "api_keys", ofType: "txt") {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+               !content.isEmpty {
+                return content
+            }
+        }
+        return nil
     }
     
     // MARK: - Warning Message Generation
@@ -201,6 +243,7 @@ enum PriceValidationError: Error, LocalizedError {
     case invalidURL
     case apiError
     case networkError
+    case noAPIKey
     
     var errorDescription: String? {
         switch self {
@@ -214,6 +257,8 @@ enum PriceValidationError: Error, LocalizedError {
             return "API request failed"
         case .networkError:
             return "Network connection error"
+        case .noAPIKey:
+            return "No API key found for 1inch service"
         }
     }
 }

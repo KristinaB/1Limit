@@ -26,7 +26,8 @@
       "Bash(./run_single_test.sh:*)",
       "Bash(./run_fast_tests.sh:*)",
       "Bash(cp:*)",
-      "Bash(xcrun simctl install:*)"
+      "Bash(xcrun simctl install:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }
