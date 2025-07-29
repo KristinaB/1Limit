@@ -80,21 +80,35 @@ class WalletResetAndTabVisibilityUITests: XCTestCase {
         XCTAssertTrue(useTestWalletButton.exists, "Use Test Wallet button should exist")
         
         useTestWalletButton.tap()
-        usleep(1500000) // 1.5 seconds for wallet to load
         
-        // Verify Trade and Transactions tabs now exist
+        // First wait for wallet to load (indicated by "Active Wallet" text)
+        let activeWalletText = app.staticTexts["Active Wallet"]
+        let walletLoadExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: activeWalletText
+        )
+        let walletResult = XCTWaiter.wait(for: [walletLoadExpectation], timeout: 10.0)
+        XCTAssertEqual(walletResult, .completed, "Active Wallet text should appear within 10 seconds")
+        
+        // Then wait for tabs to appear
         let tradeTab = app.tabBars.buttons["Trade"]
         let transactionsTab = app.tabBars.buttons["Transactions"]
+        
+        // Wait up to 5 additional seconds for tabs to appear after wallet loads
+        let tabExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: tradeTab
+        )
+        let tabResult = XCTWaiter.wait(for: [tabExpectation], timeout: 5.0)
+        XCTAssertEqual(tabResult, .completed, "Trade tab should appear within 5 seconds after wallet loads")
         
         XCTAssertTrue(tradeTab.exists, "Trade tab should appear after wallet load")
         XCTAssertTrue(transactionsTab.exists, "Transactions tab should appear after wallet load")
         
-        // Verify wallet content is displayed
-        let activeWalletText = app.staticTexts["Active Wallet"]
+        // Verify wallet content is displayed (already verified activeWalletText above)
         let addButton = app.buttons["Add"]
         let sendButton = app.buttons["Send"]
         
-        XCTAssertTrue(activeWalletText.exists, "Active Wallet text should be visible")
         XCTAssertTrue(addButton.exists, "Add button should exist with wallet loaded")
         XCTAssertTrue(sendButton.exists, "Send button should exist with wallet loaded")
         
@@ -177,18 +191,32 @@ class WalletResetAndTabVisibilityUITests: XCTestCase {
         XCTAssertTrue(useTestWalletButton.exists, "Use Test Wallet button should be available for reload")
         
         useTestWalletButton.tap()
-        usleep(1500000) // 1.5 seconds for wallet to load
         
-        // Verify tabs reappear
+        // First wait for wallet to load (indicated by "Active Wallet" text)
+        let activeWalletText = app.staticTexts["Active Wallet"]
+        let walletLoadExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: activeWalletText
+        )
+        let walletResult = XCTWaiter.wait(for: [walletLoadExpectation], timeout: 10.0)
+        XCTAssertEqual(walletResult, .completed, "Active Wallet text should appear within 10 seconds")
+        
+        // Then wait for tabs to appear
         let tradeTab = app.tabBars.buttons["Trade"]
         let transactionsTab = app.tabBars.buttons["Transactions"]
+        
+        // Wait up to 5 additional seconds for tabs to appear after wallet loads
+        let tabExpectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true"),
+            object: tradeTab
+        )
+        let tabResult = XCTWaiter.wait(for: [tabExpectation], timeout: 5.0)
+        XCTAssertEqual(tabResult, .completed, "Trade tab should appear within 5 seconds after wallet loads")
         
         XCTAssertTrue(tradeTab.exists, "Trade tab should reappear after wallet reload")
         XCTAssertTrue(transactionsTab.exists, "Transactions tab should reappear after wallet reload")
         
-        // Verify wallet content is restored
-        let activeWalletText = app.staticTexts["Active Wallet"]
-        XCTAssertTrue(activeWalletText.exists, "Active Wallet text should reappear after reload")
+        // Active Wallet text already verified above during loading
         
         // Test quick tab switching to ensure stability
         tradeTab.tap()

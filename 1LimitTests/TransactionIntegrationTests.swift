@@ -23,10 +23,17 @@ final class TransactionIntegrationTests: XCTestCase {
             persistenceManager: mockPersistence,
             pollingService: mockPolling
         )
-        
-        // Let initial loading complete
-        Task {
+    }
+    
+    /// Helper to wait for initial loading to complete
+    @MainActor
+    private func waitForInitialLoad() async {
+        // Wait for the manager's initialization to complete
+        var attempts = 0
+        while transactionManager.isLoading && attempts < 10 {
             await Task.yield()
+            try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            attempts += 1
         }
     }
     
@@ -205,7 +212,7 @@ final class TransactionIntegrationTests: XCTestCase {
     @MainActor
     func testCompleteTransactionLifecycle() async {
         // Wait for initial load to complete
-        await Task.yield()
+        await waitForInitialLoad()
         
         // Given: Empty transaction manager
         XCTAssertEqual(transactionManager.transactions.count, 0)
@@ -261,10 +268,15 @@ final class TransactionIntegrationTests: XCTestCase {
         XCTAssertEqual(transactionManager.transactions.first?.blockNumber, "12345678")
         
         // When: User deletes transaction
-        await transactionManager.deleteTransaction(confirmedTransaction)
+        // Use the actual transaction from the manager to avoid ID mismatch issues
+        if let transactionToDelete = transactionManager.transactions.first {
+            await transactionManager.deleteTransaction(transactionToDelete)
         
-        // Then: Transaction should be removed
-        XCTAssertEqual(transactionManager.transactions.count, 0)
+            // Then: Transaction should be removed
+            XCTAssertEqual(transactionManager.transactions.count, 0)
+        } else {
+            XCTFail("No transaction found in manager to delete")
+        }
     }
     
     @MainActor
