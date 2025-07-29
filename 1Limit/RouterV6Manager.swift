@@ -30,6 +30,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
   private let transactionPersistence: TransactionPersistenceProtocol
   private let transactionPolling: TransactionPollingProtocol
   private let transactionManager: TransactionManagerProtocol?
+  private let oneInchSwapService: OneInchSwapProtocol
 
   // MARK: - Configuration
 
@@ -52,6 +53,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     transactionPersistence: TransactionPersistenceProtocol,
     transactionPolling: TransactionPollingProtocol,
     transactionManager: TransactionManagerProtocol? = nil,
+    oneInchSwapService: OneInchSwapProtocol,
     networkConfig: NetworkConfig
   ) {
     self.orderFactory = orderFactory
@@ -64,6 +66,7 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     self.transactionPersistence = transactionPersistence
     self.transactionPolling = transactionPolling
     self.transactionManager = transactionManager
+    self.oneInchSwapService = oneInchSwapService
     self.networkConfig = networkConfig
 
     // Set up debug logging
@@ -128,6 +131,23 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
       // Step 1: Load wallet
       wallet = try await loadWallet()
 
+      // Check if this is a USDC→WMATIC swap (use 1inch) or WMATIC→USDC limit order
+      let isUSDCToWMATIC = fromToken == "USDC" && toToken == "WMATIC"
+      
+      if isUSDCToWMATIC {
+        await addLog("🔄 Using 1inch Swap for USDC → WMATIC")
+        let success = try await executeSwapTransaction(
+          fromAmount: fromAmount,
+          fromToken: fromToken,
+          toToken: toToken
+        )
+        
+        isExecuting = false
+        return success
+      } else {
+        await addLog("📋 Using Router V6 Limit Order for WMATIC → USDC")
+      }
+
       // Step 2: Create dynamic order
       let orderResult = try await createDynamicOrder(
         fromAmount: fromAmount,
@@ -178,6 +198,96 @@ class RouterV6Manager: ObservableObject, LoggerProtocol {
     await addLog("✅ Validation: \(displayInfo.isValid ? "PASSED" : "FAILED")\n")
 
     return loadedWallet
+  }
+
+  // MARK: - 1inch Swap Execution
+  
+  private func executeSwapTransaction(
+    fromAmount: String,
+    fromToken: String,
+    toToken: String
+  ) async throws -> Bool {
+    guard let wallet = wallet else {
+      throw RouterV6Error.invalidOrderData
+    }
+    
+    await addLog("🔄 Step 2: Getting swap quote from 1inch...")
+    
+    // Convert tokens to contract addresses
+    let srcTokenAddress: String
+    let dstTokenAddress: String
+    let amountInTokenUnits: String
+    
+    if fromToken == "USDC" {
+      srcTokenAddress = networkConfig.usdc // Native USDC
+      // Convert USDC amount (6 decimals) to smallest units
+      if let amountDouble = Double(fromAmount) {
+        let amountUnits = amountDouble * 1_000_000 // 6 decimals
+        amountInTokenUnits = String(format: "%.0f", amountUnits)
+      } else {
+        throw RouterV6Error.invalidAmount
+      }
+    } else {
+      throw RouterV6Error.unsupportedToken
+    }
+    
+    if toToken == "WMATIC" {
+      dstTokenAddress = networkConfig.wmatic
+    } else {
+      throw RouterV6Error.unsupportedToken
+    }
+    
+    await addLog("   Source: \(fromAmount) \(fromToken) (\(srcTokenAddress))")
+    await addLog("   Destination: \(toToken) (\(dstTokenAddress))")
+    await addLog("   Amount in units: \(amountInTokenUnits)")
+    
+    // Get swap quote from 1inch
+    let swapQuote = try await oneInchSwapService.getSwapQuote(
+      srcToken: srcTokenAddress,
+      dstToken: dstTokenAddress,
+      amount: amountInTokenUnits,
+      fromAddress: wallet.address
+    )
+    
+    await addLog("✅ Step 3: Received swap quote from 1inch")
+    await addLog("   Expected output: \(swapQuote.dstAmount) wei WMATIC")
+    
+    // Convert destination amount for display
+    let dstAmountDouble = Double(swapQuote.dstAmount) ?? 0
+    let dstAmountFormatted = dstAmountDouble / 1e18 // Convert from wei to WMATIC
+    await addLog("   ≈ \(String(format: "%.6f", dstAmountFormatted)) WMATIC")
+    await addLog("   Estimated gas: \(swapQuote.gas)")
+    
+    await addLog("🚀 Step 4: Submitting swap transaction...")
+    
+    // Execute the swap
+    let txHash = try await oneInchSwapService.executeSwap(
+      swapData: swapQuote,
+      walletData: wallet,
+      config: networkConfig
+    )
+    
+    await addLog("✅ Swap transaction submitted!")
+    await addLog("🔗 Transaction Hash: \(txHash)")
+    
+    if let transactionManager = transactionManager {
+      // Create transaction record for the swap
+      let transaction = Transaction(
+        type: "1inch Swap",
+        fromAmount: fromAmount,
+        fromToken: fromToken,
+        toAmount: String(format: "%.6f", dstAmountFormatted),
+        toToken: toToken,
+        limitPrice: "Market", // Swaps are at market price
+        txHash: txHash
+      )
+      
+      transactionManager.addTransaction(transaction)
+      await addLog("📊 Transaction added to history")
+    }
+    
+    await addLog("🎉 1inch Swap Complete! 🎊")
+    return true
   }
 
   private func createOrder() async throws -> OrderCreationResult {
@@ -624,6 +734,10 @@ class RouterV6ManagerFactory {
       persistenceManager: transactionPersistence
     )
     let transactionManager = TransactionManagerFactory.createProduction()
+    
+    // Create 1inch swap service with production API key
+    // TODO: Load API key from secure storage or environment
+    let oneInchSwapService = OneInchSwapServiceFactory.createMock() // Use mock for now
 
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createProductionFactory(logger: nil),
@@ -637,6 +751,7 @@ class RouterV6ManagerFactory {
       transactionPersistence: transactionPersistence,
       transactionPolling: transactionPolling,
       transactionManager: transactionManager,
+      oneInchSwapService: oneInchSwapService,
       networkConfig: networkConfig
     )
 
@@ -659,6 +774,7 @@ class RouterV6ManagerFactory {
     let mockTransactionPersistence = MockTransactionPersistenceManager()
     let mockTransactionPolling = MockTransactionPollingService()
     let mockTransactionManager = TransactionManagerFactory.createTest()
+    let mockOneInchSwapService = OneInchSwapServiceFactory.createMock()
 
     let manager = RouterV6Manager(
       orderFactory: OrderFactory.createTestFactory(),
@@ -672,6 +788,7 @@ class RouterV6ManagerFactory {
       transactionPersistence: mockTransactionPersistence,
       transactionPolling: mockTransactionPolling,
       transactionManager: mockTransactionManager,
+      oneInchSwapService: mockOneInchSwapService,
       networkConfig: networkConfig
     )
 
@@ -789,6 +906,8 @@ enum RouterV6Error: LocalizedError {
   case contractCreationFailed
   case transactionCreationFailed
   case invalidURL
+  case invalidAmount
+  case unsupportedToken
 
   var errorDescription: String? {
     switch self {
@@ -814,6 +933,10 @@ enum RouterV6Error: LocalizedError {
       return "Failed to create transaction"
     case .invalidURL:
       return "Invalid URL"
+    case .invalidAmount:
+      return "Invalid amount for swap"
+    case .unsupportedToken:
+      return "Unsupported token for swap"
     }
   }
 }
