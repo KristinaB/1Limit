@@ -261,7 +261,7 @@ struct BackupPhraseView: View {
 
                         // Continue button - only enabled when wallet is generated
                         if generatedWallet != nil {
-                            PrimaryButton("I've Saved My Phrase - REPLACE WALLET") {
+                            PrimaryButton("I've Saved My Phrase") {
                                 Task {
                                     await saveWalletAndProceed()
                                 }

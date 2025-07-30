@@ -220,6 +220,7 @@ struct TradeView: View {
                                     ("USDC", "USDC"),
                                 ]
                             )
+                            .frame(maxWidth: .infinity)
                         }
                     }
                     VStack(spacing: 12) {
@@ -230,7 +231,7 @@ struct TradeView: View {
                                 .foregroundColor(.secondaryText)
                             Spacer()
                         }
-                        
+
                         AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
                             .onChange(of: fromAmount) {
                                 updatePreview()
