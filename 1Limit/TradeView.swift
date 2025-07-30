@@ -171,7 +171,7 @@ struct TradeView: View {
     private var orderFormView: some View {
         VStack(spacing: 16) {
             // Currency selection with swap button
-            InputCard(title: "") {
+            AppCard {
                 VStack(spacing: 16) {
                     // From token
                     HStack {
@@ -293,7 +293,7 @@ struct TradeView: View {
             }
 
             // Amount and Limit price input
-            InputCard(title: "") {
+            AppCard {
                 VStack(spacing: 16) {
                     // Amount input
                     VStack(spacing: 8) {
