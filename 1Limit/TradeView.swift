@@ -223,20 +223,7 @@ struct TradeView: View {
                             .frame(maxWidth: .infinity)
                         }
                     }
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("Amount")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondaryText)
-                            Spacer()
-                        }
 
-                        AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
-                            .onChange(of: fromAmount) {
-                                updatePreview()
-                            }
-                    }
                 }
 
                 // Swap button
@@ -292,6 +279,21 @@ struct TradeView: View {
                         .frame(maxWidth: .infinity)
                     }
                 }
+            }
+
+            VStack(spacing: 12) {
+                HStack {
+                    Text("Amount")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondaryText)
+                    Spacer()
+                }
+
+                AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
+                    .onChange(of: fromAmount) {
+                        updatePreview()
+                    }
             }
 
             // Limit price input
