@@ -208,67 +208,77 @@ struct TradeView: View {
     private var orderFormView: some View {
         VStack(spacing: 16) {
             // Currency selection with swap button
-            VStack(spacing: 12) {
-                // Spending currency
-                InputCard(title: "From") {
-                    VStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            AppPicker(
-                                "From Token", selection: $fromToken,
-                                options: [
-                                    ("WMATIC", "WMATIC"),
-                                    ("USDC", "USDC"),
-                                ]
-                            )
-                            .frame(maxWidth: .infinity)
+            InputCard(title: "Currency Pair") {
+                VStack(spacing: 16) {
+                    // From token
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("From")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondaryText)
+                            Spacer()
+                        }
+                        
+                        AppPicker(
+                            "From Token", selection: $fromToken,
+                            options: [
+                                ("WMATIC", "WMATIC"),
+                                ("USDC", "USDC"),
+                            ]
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    
+                    // Swap button
+                    Button(action: swapTokens) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.white.opacity(0.25),
+                                            Color.white.opacity(0.15),
+                                            Color.white.opacity(0.1),
+                                        ],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    )
+                                )
+                                .frame(width: 38, height: 38)
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.primaryGradientStart,
+                                                    Color.primaryGradientEnd,
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 2
+                                        )
+                                )
+                                .shadow(color: Color.blue.opacity(0.2), radius: 6, x: 0, y: 3)
+                                .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
+
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
                         }
                     }
-
-                }
-
-                // Swap button
-                Button(action: swapTokens) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.25),
-                                        Color.white.opacity(0.15),
-                                        Color.white.opacity(0.1),
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.primaryGradientStart,
-                                                Color.primaryGradientEnd,
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                            )
-                            .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(.vertical, 8)
-
-                // Buying currency
-                InputCard(title: "To") {
-                    VStack(spacing: 12) {
+                    
+                    // To token
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("To")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondaryText)
+                            Spacer()
+                        }
+                        
                         AppPicker(
                             "To Token", selection: $toToken,
                             options: [
