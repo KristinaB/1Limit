@@ -291,31 +291,43 @@ struct TradeView: View {
                 }
             }
 
-            VStack(spacing: 12) {
-                HStack {
-                    Text("Amount")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondaryText)
-                    Spacer()
-                }
-
-                AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
-                    .onChange(of: fromAmount) {
-                        updatePreview()
-                    }
-            }
-
-            // Limit price input
-            InputCard(title: "Limit Price") {
-                VStack(spacing: 12) {
-                    AppTextField("0.00", text: $limitPrice, keyboardType: .decimalPad)
-                        .onChange(of: limitPrice) {
-                            updatePreview()
+            // Amount and Limit price input
+            InputCard(title: "Order Details") {
+                VStack(spacing: 16) {
+                    // Amount input
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Amount")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondaryText)
+                            Spacer()
                         }
 
-                    Text("Price per \(toToken) in \(fromToken)")
-                        .captionText()
+                        AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
+                            .onChange(of: fromAmount) {
+                                updatePreview()
+                            }
+                    }
+                    
+                    // Limit price input
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Limit Price")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondaryText)
+                            Spacer()
+                        }
+                        
+                        AppTextField("0.00", text: $limitPrice, keyboardType: .decimalPad)
+                            .onChange(of: limitPrice) {
+                                updatePreview()
+                            }
+
+                        Text("Price per \(toToken) in \(fromToken)")
+                            .captionText()
+                    }
                 }
             }
         }
