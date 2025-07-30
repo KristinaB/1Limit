@@ -222,8 +222,15 @@ struct TradeView: View {
                             )
                         }
                     }
-                    // TODO: put an amount label here
                     VStack(spacing: 12) {
+                        HStack {
+                            Text("Amount")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondaryText)
+                            Spacer()
+                        }
+                        
                         AppTextField("0.00", text: $fromAmount, keyboardType: .decimalPad)
                             .onChange(of: fromAmount) {
                                 updatePreview()
@@ -273,17 +280,15 @@ struct TradeView: View {
 
                 // Buying currency
                 InputCard(title: "To") {
-                    // TODO: put this at full width
                     VStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            AppPicker(
-                                "To Token", selection: $toToken,
-                                options: [
-                                    ("WMATIC", "WMATIC"),
-                                    ("USDC", "USDC"),
-                                ]
-                            )
-                        }
+                        AppPicker(
+                            "To Token", selection: $toToken,
+                            options: [
+                                ("WMATIC", "WMATIC"),
+                                ("USDC", "USDC"),
+                            ]
+                        )
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
