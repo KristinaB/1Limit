@@ -136,7 +136,7 @@ struct TradeView: View {
                                     endPoint: .bottom
                                 )
                             )
-                            .frame(width: 34, height: 34)
+                            .frame(width: 38, height: 38)
                             .overlay(
                                 Circle()
                                     .strokeBorder(
@@ -155,7 +155,7 @@ struct TradeView: View {
                             .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
 
                         Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                     }
 
