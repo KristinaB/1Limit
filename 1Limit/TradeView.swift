@@ -121,8 +121,8 @@ struct TradeView: View {
 
     private var headerView: some View {
         AppCard {
-            VStack(spacing: 16) {
-                HStack {
+            VStack(spacing: 100) {
+                HStack(spacing: 25) {
                     ZStack {
                         Circle()
                             .fill(
@@ -136,7 +136,7 @@ struct TradeView: View {
                                     endPoint: .bottom
                                 )
                             )
-                            .frame(width: 60, height: 60)
+                            .frame(width: 34, height: 34)
                             .overlay(
                                 Circle()
                                     .strokeBorder(
@@ -151,56 +151,19 @@ struct TradeView: View {
                                         lineWidth: 2
                                     )
                             )
-                            .shadow(color: Color.blue.opacity(0.2), radius: 8, x: 0, y: 4)
-                            .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
+                            .shadow(color: Color.blue.opacity(0.2), radius: 6, x: 0, y: 3)
+                            .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
 
-                        Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 24, weight: .medium))
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white)
                     }
 
-                    Spacer()
+                    Text("Create Limit Order")
+                        .sectionTitle()
 
-                    SmallButton("Chart", style: .primary) {
-                        showingChart = true
-                    }
                 }
 
-                Text("Create Limit Order")
-                    .sectionTitle()
-
-                // Currency pair with prices
-                VStack(spacing: 8) {
-                    Text("\(fromToken)/\(toToken)")
-                        .cardTitle()
-
-                    if priceService.isLoading {
-                        HStack(spacing: 4) {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                            Text("Loading prices...")
-                                .captionText()
-                        }
-                    } else {
-                        HStack(spacing: 8) {
-                            if let fromPrice = priceService.getPrice(for: fromToken) {
-                                Text("\(fromToken): \(fromPrice.formattedPrice)")
-                                    .captionText()
-                            }
-                            Text("•")
-                                .captionText()
-                            if let toPrice = priceService.getPrice(for: toToken) {
-                                Text("\(toToken): \(toPrice.formattedPrice)")
-                                    .captionText()
-                            }
-                        }
-                    }
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.inputBackground)
-                )
             }
         }
     }
@@ -208,18 +171,25 @@ struct TradeView: View {
     private var orderFormView: some View {
         VStack(spacing: 16) {
             // Currency selection with swap button
-            InputCard(title: "Currency Pair") {
+            InputCard(title: "") {
                 VStack(spacing: 16) {
                     // From token
+                    HStack {
+                        Spacer()
+                        SmallButton("Chart", style: .primary) {
+                            showingChart = true
+                        }
+                    }
                     VStack(spacing: 8) {
                         HStack {
                             Text("From")
-                                .font(.subheadline)
+                                .font(.footnote)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondaryText)
                             Spacer()
+
                         }
-                        
+
                         AppPicker(
                             "From Token", selection: $fromToken,
                             options: [
@@ -229,7 +199,7 @@ struct TradeView: View {
                         )
                         .frame(maxWidth: .infinity)
                     }
-                    
+
                     // Swap button
                     Button(action: swapTokens) {
                         ZStack {
@@ -245,7 +215,7 @@ struct TradeView: View {
                                         endPoint: .bottom
                                     )
                                 )
-                                .frame(width: 38, height: 38)
+                                .frame(width: 28, height: 28)
                                 .overlay(
                                     Circle()
                                         .strokeBorder(
@@ -264,21 +234,21 @@ struct TradeView: View {
                                 .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
 
                             Image(systemName: "arrow.up.arrow.down")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.white)
                         }
                     }
-                    
+
                     // To token
                     VStack(spacing: 8) {
                         HStack {
                             Text("To")
-                                .font(.subheadline)
+                                .font(.footnote)
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondaryText)
                             Spacer()
                         }
-                        
+
                         AppPicker(
                             "To Token", selection: $toToken,
                             options: [
@@ -288,11 +258,42 @@ struct TradeView: View {
                         )
                         .frame(maxWidth: .infinity)
                     }
+
+                    // Current rate display
+                    VStack(spacing: 4) {
+                        if priceService.isLoading {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                Text("Loading rates...")
+                                    .font(.caption2)
+                                    .foregroundColor(.tertiaryText)
+                            }
+                        } else {
+                            if let fromPrice = priceService.getPrice(for: fromToken),
+                                let toPrice = priceService.getPrice(for: toToken)
+                            {
+                                let marketRate = fromPrice.usdPrice / toPrice.usdPrice
+                                Text(
+                                    "Current Rate: 1 \(fromToken) = \(String(format: "%.6f", marketRate)) \(toToken)"
+                                )
+                                .font(.caption)
+                                .foregroundColor(.secondaryText)
+                                .multilineTextAlignment(.center)
+                            } else {
+                                Text("Rate unavailable")
+                                    .font(.caption)
+                                    .foregroundColor(.tertiaryText)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
                 }
             }
 
             // Amount and Limit price input
-            InputCard(title: "Order Details") {
+            InputCard(title: "") {
                 VStack(spacing: 16) {
                     // Amount input
                     VStack(spacing: 8) {
@@ -309,7 +310,7 @@ struct TradeView: View {
                                 updatePreview()
                             }
                     }
-                    
+
                     // Limit price input
                     VStack(spacing: 8) {
                         HStack {
@@ -319,7 +320,7 @@ struct TradeView: View {
                                 .foregroundColor(.secondaryText)
                             Spacer()
                         }
-                        
+
                         AppTextField("0.00", text: $limitPrice, keyboardType: .decimalPad)
                             .onChange(of: limitPrice) {
                                 updatePreview()
