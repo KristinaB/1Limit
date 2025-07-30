@@ -164,13 +164,15 @@ struct BackupPhraseView: View {
                                 Text("Recovery Phrase")
                                     .cardTitle()
 
-                                if isGeneratingWallet && generatedWallet == nil {
+                                if generatedWallet == nil {
                                     // Loading spinner while generating wallet key
                                     VStack(spacing: 16) {
                                         ProgressView()
                                             .scaleEffect(1.2)
-                                            .progressViewStyle(CircularProgressViewStyle(tint: .primaryGradientStart))
-                                        
+                                            .progressViewStyle(
+                                                CircularProgressViewStyle(
+                                                    tint: .primaryGradientStart))
+
                                         Text("Generating secure keys...")
                                             .font(.subheadline)
                                             .foregroundColor(.secondaryText)
