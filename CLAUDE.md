@@ -9,6 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build and Run Commands
 
 ```bash
+# Quick build check (RECOMMENDED - use this for build testing)
+python3 scripts/check_build.py
+
 # Build the iOS project
 xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 16' build
 
@@ -169,6 +172,7 @@ xcodebuild -scheme 1Limit -configuration Debug -destination 'platform=iOS Simula
 # Run Python debugging scripts
 python3 scripts/check_wallet_transactions.py
 python3 scripts/check_wallet_balances.py
+python3 scripts/analyze_failed_tx.py <tx_hash>  # Analyze specific failed transaction
 
 # Check recent debug logs
 ls -la logs/ | tail -5
@@ -212,10 +216,23 @@ The send screen now implements **real blockchain transactions** for both MATIC a
 - ✅ Transaction hashes are real and can be verified on PolygonScan
 
 **Implementation Details:**
-- Native transfers: Uses `Web3.Utils.coldWalletABI` with fallback operation
-- ERC-20 transfers: Uses `Web3.Utils.erc20ABI` with transfer operation
+- Native transfers: Uses `Web3.Utils.coldWalletABI` with fallback operation (TokenTransferService:152-157)
+- ERC-20 transfers: Uses `Web3.Utils.erc20ABI` with transfer operation (TokenTransferService:281-290)
 - Gas policies: Uses `.latest` nonce policy and manual gas limits
 - Keystore: Created from wallet private key with empty password
+
+### 1inch Swap Integration
+The app integrates 1inch API for instant token swaps:
+- ✅ Swap functionality available for USDC → WMATIC conversions
+- ✅ Real-time price quotes from 1inch aggregation router
+- ✅ Automatic routing through most efficient DEX paths
+- ✅ Gas estimation included in swap quotes
+- ✅ Transactions tracked in transaction history
+
+**Implementation:**
+- Swap service: `OneInchSwapService` handles API calls and transaction submission
+- Router integration: `RouterV6Manager.executeSwapTransaction()` (lines 205-291)
+- API key loaded from bundle configuration
 
 ## Reminder Notes
 
