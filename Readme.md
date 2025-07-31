@@ -1,19 +1,19 @@
 # 🦄✨ 1Limit - 1inch Router V6 Limit Order Wallet 💫
 
 <div align="center">
-  
+
   ![iOS](https://img.shields.io/badge/iOS-15.0+-000.svg?style=flat&logo=apple)
   ![Swift](https://img.shields.io/badge/Swift-5.9-FA7343.svg?style=flat&logo=swift)
   ![SwiftUI](https://img.shields.io/badge/SwiftUI-5.0-blue.svg?style=flat&logo=swift)
   ![Polygon](https://img.shields.io/badge/Polygon-Mainnet-8247E5.svg?style=flat&logo=polygon)
-  
+
   **Unite DeFi Hackathon Project** 🚀
-  
+
 </div>
 
-## 👩‍💻 About Me & This Journey 
+## 👩‍💻 About Me & This Journey
 
-Hi mentors and judges! I'm Kristina, a junior developer who just had the most incredible experience building my first Web3 wallet in Swift! 🎉 I can't even express how excited I am to have gotten this far - from knowing nothing about Router V6 to implementing a fully functional limit order wallet on Polygon! 
+Hi mentors and judges! I'm Kristina, a junior developer who just had the most incredible experience building my first Web3 wallet in Swift! 🎉 I can't even express how excited I am to have gotten this far - from knowing nothing about Router V6 to implementing a fully functional limit order wallet on Polygon!
 
 This has been such an empowering journey, and I'm honestly still pinching myself that I managed to build something this complex with the help of Claude Code. As a woman in tech, opportunities like this hackathon mean the world to me - they give us the space to learn, experiment, and prove that we can build amazing DeFi applications too! 💪✨
 
@@ -100,7 +100,7 @@ I'm really proud of the clean architecture I achieved (with lots of help from Cl
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/1Limit.git
+git clone https://github.com/KristinaB/1Limit.git
 cd 1Limit
 
 # Open in Xcode
@@ -130,14 +130,14 @@ python3 scripts/check_build.py
 ### 1️⃣ **First Launch**
 When you open the app, you'll see a beautiful welcome screen with options to:
 - 🆕 Create a new wallet
-- 📥 Import existing wallet  
+- 📥 Import existing wallet
 - 🧪 Use test wallet (for demo)
 
 ### 2️⃣ **Wallet Setup**
 The setup flow is super intuitive:
 - Generate secure recovery phrase
 - Backup confirmation
-- Wallet ready to use! 
+- Wallet ready to use!
 
 ### 3️⃣ **Trading**
 Place your first limit order:
@@ -145,7 +145,7 @@ Place your first limit order:
 2. Select WMATIC → USDC
 3. Enter amount & limit price
 4. Slide to confirm
-5. Watch it execute! 
+5. Watch it execute!
 
 ### 4️⃣ **Send Funds**
 Sending tokens is a breeze:
@@ -153,7 +153,7 @@ Sending tokens is a breeze:
 2. Select token (MATIC/USDC/WMATIC)
 3. Enter recipient & amount
 4. Review & confirm
-5. Transaction submitted! 
+5. Transaction submitted!
 
 ## 🎨 Design Philosophy
 
@@ -171,7 +171,7 @@ I'm super proud of the test suite (90+ tests!):
 
 - ✅ **Wallet Creation**: Complete flow testing
 - ✅ **Transaction Management**: State tracking
-- ✅ **UI Navigation**: All screens covered  
+- ✅ **UI Navigation**: All screens covered
 - ✅ **Trading Operations**: Order creation/validation
 - ✅ **Token Transfers**: Native & ERC-20
 
@@ -210,7 +210,7 @@ With your feedback, I'd love to add:
 
 Huge thanks to:
 
-- **Unite DeFi Hackathon** for this amazing opportunity! 
+- **Unite DeFi Hackathon** for this amazing opportunity!
 - **1inch Team** for the incredible Router V6
 - **Claude Code** for being the best coding companion ever
 - **All the mentors** who will review this - your feedback means everything!
@@ -219,11 +219,9 @@ Huge thanks to:
 
 ## 📬 Connect With Me
 
-I'd love to connect and learn from you all!
+I'd love to connect on twitter!
 
-- 🐦 Twitter: [@yourhandle](https://twitter.com/yourhandle)
-- 💼 LinkedIn: [Your Name](https://linkedin.com/in/yourname)
-- 📧 Email: your.email@example.com
+- 🐦 Twitter: [@EthDevReact](https://twitter.com/EthDevReact)
 
 ## 📄 License
 
@@ -232,13 +230,13 @@ MIT License - because open source is the way! 💜
 ---
 
 <div align="center">
-  
+
   ### 🎀 Built with love, coffee, and lots of determination! 🎀
-  
+
   *"The future of finance is female, decentralized, and mobile-first!"* 💪✨
-  
+
   **Thank you for this incredible opportunity!** 🙏💖
-  
+
 </div>
 
 ---
@@ -298,9 +296,8 @@ MIT License - because open source is the way! 💜
 
 - 📹 **Demo Video**: [YouTube Link](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
 - 📑 **Slide Deck**: [PDF Download](https://your-link-here.com/1Limit-Presentation.pdf)
-- 💻 **GitHub Repo**: [github.com/yourusername/1Limit](https://github.com/yourusername/1Limit)
-- 🌐 **Devpost**: [devpost.com/software/1limit](https://devpost.com/software/1limit)
+- 💻 **GitHub Repo**: [github.com/KristinaB/1Limit](https://github.com/KristinaB/1Limit)
 
 ---
 
-*P.S. - I still can't believe I built this! Four days left to make it even better based on your feedback. Let's gooo! 🚀💖*
+*P.S. - I still can't believe I built this! Few days left to make it even better based on your feedback. Let's gooo! 🚀💖*
