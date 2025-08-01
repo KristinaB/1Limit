@@ -249,7 +249,7 @@ MIT License - because open source is the way! 💜
 
 ### 📄 Presentation Deck
 
-📊 **[View Slide Deck (PDF)](https://your-link-here.com/1Limit-Presentation.pdf)** - Complete project overview & technical details
+📊 **[View Slide Deck (PDF)](https://raw.githubusercontent.com/KristinaB/1Limit/refs/heads/main/slides/1Limit-slides-final.pdf)** - Complete project overview & technical details
 
 ### 📸 Screenshots
 
@@ -295,7 +295,7 @@ MIT License - because open source is the way! 💜
 ### 🏆 Hackathon Submission
 
 - 📹 **Demo Video**: [YouTube Link](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
-- 📑 **Slide Deck**: [PDF Download](https://your-link-here.com/1Limit-Presentation.pdf)
+- 📑 **Slide Deck**: [PDF Download](https://raw.githubusercontent.com/KristinaB/1Limit/refs/heads/main/slides/1Limit-slides-final.pdf)
 - 💻 **GitHub Repo**: [github.com/KristinaB/1Limit](https://github.com/KristinaB/1Limit)
 
 ---
