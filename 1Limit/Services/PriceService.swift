@@ -60,7 +60,9 @@ class PriceService: ObservableObject {
     @Published var isLoading = false
     @Published var lastError: Error?
     
-    private let baseURL = "https://api.1inch.dev/price/v1.1/137" // Polygon mainnet
+    private var baseURL: String {
+        return APIConfig.shared.priceEndpoint()
+    }
     private lazy var apiKey: String? = {
         let key = loadAPIKey()
         print("🔑 API Key loaded: \(key != nil ? "✅ Found" : "❌ Missing")")
@@ -77,9 +79,12 @@ class PriceService: ObservableObject {
     
     /// Fetch prices for all supported tokens
     func fetchPrices() async {
-        guard let apiKey = apiKey else {
-            print("❌ No API key found for 1inch service")
-            return
+        // Check if authentication is required
+        if APIConfig.shared.requiresAuthentication {
+            guard let apiKey = apiKey else {
+                print("❌ No API key found for 1inch service")
+                return
+            }
         }
         
         isLoading = true
@@ -178,7 +183,7 @@ class PriceService: ObservableObject {
         return nil
     }
     
-    private func fetchTokenPrices(apiKey: String) async throws -> [String: TokenPrice] {
+    private func fetchTokenPrices(apiKey: String?) async throws -> [String: TokenPrice] {
         print("🌐 Fetching prices from 1inch API...")
         
         var tokenPrices: [String: TokenPrice] = [:]
@@ -200,7 +205,9 @@ class PriceService: ObservableObject {
                 
                 var request = URLRequest(url: url)
                 request.httpMethod = "GET"
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                if let apiKey = apiKey {
+                    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                }
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 
                 let (data, response) = try await URLSession.shared.data(for: request)

@@ -112,12 +112,15 @@ class OneInchSwapService: OneInchSwapProtocol {
         amount: String,
         fromAddress: String
     ) async throws -> OneInchSwapResponse {
-        guard let apiKey = apiKey else {
-            print("❌ No API key found for 1inch swap service")
-            throw SwapError.apiError(401, "API key required for 1inch swap endpoint")
+        // Check if authentication is required
+        if APIConfig.shared.requiresAuthentication {
+            guard let apiKey = apiKey else {
+                print("❌ No API key found for 1inch swap service")
+                throw SwapError.apiError(401, "API key required for 1inch swap endpoint")
+            }
         }
         
-        let baseURL = "https://api.1inch.dev/swap/v6.0/\(chainID)/swap"
+        let baseURL = APIConfig.shared.swapEndpoint(chainID: chainID)
         
         var components = URLComponents(string: baseURL)!
         components.queryItems = [
@@ -134,7 +137,9 @@ class OneInchSwapService: OneInchSwapProtocol {
         }
         
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let apiKey = apiKey {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 10
         

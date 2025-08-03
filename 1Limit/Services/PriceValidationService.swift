@@ -147,11 +147,16 @@ class PriceValidationService: ObservableObject, PriceValidationProtocol {
     }
     
     private func fetchTokenPrices(tokens: [String: String]) async throws -> [String: Double] {
-        guard let apiKey = loadAPIKey() else {
-            throw PriceValidationError.noAPIKey
+        // Check if authentication is required
+        var apiKey: String? = nil
+        if APIConfig.shared.requiresAuthentication {
+            guard let key = loadAPIKey() else {
+                throw PriceValidationError.noAPIKey
+            }
+            apiKey = key
         }
         
-        let baseURL = "https://api.1inch.dev/price/v1.1/137" // Polygon mainnet
+        let baseURL = APIConfig.shared.priceEndpoint()
         var tokenPrices: [String: Double] = [:]
         
         // Fetch each token price from 1inch API
@@ -168,7 +173,9 @@ class PriceValidationService: ObservableObject, PriceValidationProtocol {
                 
                 var request = URLRequest(url: url)
                 request.httpMethod = "GET"
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                if let apiKey = apiKey {
+                    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                }
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 
                 let (data, response) = try await urlSession.data(for: request)

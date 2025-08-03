@@ -50,7 +50,9 @@ class ChartLineDataService: ObservableObject {
     @Published var lastError: Error?
     @Published var currentPeriod: ChartPeriod = .twentyFourHours
     
-    private let baseURL = "https://api.1inch.dev/charts/v1.0/chart/line"
+    private var baseURL: String {
+        return APIConfig.shared.chartLineEndpoint()
+    }
     private let chainId = "137" // Polygon mainnet
     
     private var apiKey: String? {
@@ -72,9 +74,16 @@ class ChartLineDataService: ObservableObject {
     
     /// Fetch line chart data for a currency pair
     func fetchLineChartData(fromToken: String, toToken: String, period: ChartPeriod = .twentyFourHours) async {
-        guard let apiKey = apiKey else {
-            print("❌ No API key found for 1inch charts service")
-            return
+        // Check if authentication is required
+        let apiKeyToUse: String?
+        if APIConfig.shared.requiresAuthentication {
+            guard let key = apiKey else {
+                print("❌ No API key found for 1inch charts service")
+                return
+            }
+            apiKeyToUse = key
+        } else {
+            apiKeyToUse = nil
         }
         
         guard let fromAddress = tokenAddresses[fromToken],
@@ -92,7 +101,7 @@ class ChartLineDataService: ObservableObject {
                 fromAddress: fromAddress,
                 toAddress: toAddress,
                 period: period,
-                apiKey: apiKey
+                apiKey: apiKeyToUse
             )
             
             // Update data on main thread
@@ -171,7 +180,7 @@ class ChartLineDataService: ObservableObject {
         fromAddress: String,
         toAddress: String,
         period: ChartPeriod,
-        apiKey: String
+        apiKey: String?
     ) async throws -> [LineChartData] {
         
         // Build the API URL
@@ -181,10 +190,12 @@ class ChartLineDataService: ObservableObject {
             throw ChartDataError.invalidURL
         }
         
-        // Create request with API key
+        // Create request with optional API key
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let apiKey = apiKey {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         print("📊 Fetching line chart data from: \(urlString)")

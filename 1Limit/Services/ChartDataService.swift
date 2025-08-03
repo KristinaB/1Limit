@@ -103,7 +103,9 @@ class ChartDataService: ObservableObject {
     @Published var lastError: Error?
     @Published var currentTimeframe: ChartTimeframe = .oneHour
     
-    private let baseURL = "https://api.1inch.dev/charts/v1.0/chart/aggregated/candle"
+    private var baseURL: String {
+        return APIConfig.shared.chartCandleEndpoint()
+    }
     private let chainId = "137" // Polygon mainnet
     
     private var apiKey: String? {
@@ -125,9 +127,16 @@ class ChartDataService: ObservableObject {
     
     /// Fetch OHLC data for a currency pair
     func fetchChartData(fromToken: String, toToken: String, timeframe: ChartTimeframe = .oneHour) async {
-        guard let apiKey = apiKey else {
-            print("❌ No API key found for 1inch charts service")
-            return
+        // Check if authentication is required
+        let apiKeyToUse: String?
+        if APIConfig.shared.requiresAuthentication {
+            guard let key = apiKey else {
+                print("❌ No API key found for 1inch charts service")
+                return
+            }
+            apiKeyToUse = key
+        } else {
+            apiKeyToUse = nil
         }
         
         guard let fromAddress = tokenAddresses[fromToken],
@@ -145,7 +154,7 @@ class ChartDataService: ObservableObject {
                 fromAddress: fromAddress,
                 toAddress: toAddress,
                 timeframe: timeframe,
-                apiKey: apiKey
+                apiKey: apiKeyToUse
             )
             
             // Update data on main thread
@@ -208,7 +217,7 @@ class ChartDataService: ObservableObject {
         fromAddress: String,
         toAddress: String,
         timeframe: ChartTimeframe,
-        apiKey: String
+        apiKey: String?
     ) async throws -> [CandlestickData] {
         
         // Build the API URL
@@ -218,10 +227,12 @@ class ChartDataService: ObservableObject {
             throw ChartDataError.invalidURL
         }
         
-        // Create request with API key
+        // Create request with optional API key
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        if let apiKey = apiKey {
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         print("📊 Fetching OHLC data from: \(urlString)")
