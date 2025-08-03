@@ -254,42 +254,7 @@ MIT License - because open source is the way! 💜
 ### 📸 Screenshots
 
 <div align="center">
-  <table>
-    <tr>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=Home+Screen" width="250" alt="Home Screen"><br>
-        <b>Home Screen</b><br>
-        <i>Wallet overview & balance</i>
-      </td>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=Trade+Screen" width="250" alt="Trade Screen"><br>
-        <b>Trade Interface</b><br>
-        <i>Limit orders & swaps</i>
-      </td>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=Transactions" width="250" alt="Transactions"><br>
-        <b>Transaction History</b><br>
-        <i>Real-time status tracking</i>
-      </td>
-    </tr>
-    <tr>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=Send+Funds" width="250" alt="Send Screen"><br>
-        <b>Send Tokens</b><br>
-        <i>Easy token transfers</i>
-      </td>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=Receive+QR" width="250" alt="Receive Screen"><br>
-        <b>Receive Funds</b><br>
-        <i>QR code sharing</i>
-      </td>
-      <td align="center">
-        <img src="https://via.placeholder.com/250x540.png?text=iOS+Widget" width="250" alt="Widget"><br>
-        <b>Home Widget</b><br>
-        <i>Price tracking at a glance</i>
-      </td>
-    </tr>
-  </table>
+  <img width="80%"  alt="Screenshot 2025-08-03 at 09 06 52" src="https://github.com/user-attachments/assets/954641b0-ea63-441a-8340-90d784243e1a" />
 </div>
 
 ### 🏆 Hackathon Submission
