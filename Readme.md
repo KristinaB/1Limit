@@ -17,7 +17,7 @@ Hi mentors and judges! I'm Kristina, a junior developer who just had the most in
 
 This has been such an empowering journey, and I'm honestly still pinching myself that I managed to build something this complex with the help of Claude Code. As a woman in tech, opportunities like this hackathon mean the world to me - they give us the space to learn, experiment, and prove that we can build amazing DeFi applications too! 💪✨
 
-The app is feature-complete and I just finished recording the demo video! With 4 days left, I'm super pumped to polish it even more based on your feedback. This project has been an absolute blast and I'm so grateful for this opportunity! 🌟
+The app is feature-complete and I just finished recording the demo video! With 0 days left, I'm super pumped to polish it even more based on your feedback. This project has been an absolute blast and I'm so grateful for this opportunity! 🌟
 
 ## 🎯 What is 1Limit?
 
@@ -300,4 +300,4 @@ MIT License - because open source is the way! 💜
 
 ---
 
-*P.S. - I still can't believe I built this! Few days left to make it even better based on your feedback. Let's gooo! 🚀💖*
+*P.S. - I still can't believe I built this! Zero days left, submission day. Let's gooo! 🚀💖*
